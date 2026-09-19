@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#eef2f7">
+<link rel="icon" href="data:,">
 <title>Антивирус</title>
 <style>
 :root{
@@ -420,7 +421,6 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
   : 'wss://antivirus-duel-server.relaxdev.ru';
 
 // ===== МАГАЗИН (отключён до модерации) =====
-// Данные товаров сохранены — пригодятся после одобрения
 const SHOP_ITEMS = [
   { id:'bombs_pack', icon:'💣', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:15 },
   { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:50 },
@@ -659,11 +659,6 @@ function show(html,name){
 function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPaused;sync();}
 function btn(text,act,primary=false){return `<button data-menu="${act}"${primary?' class="primary"':''}>${text}</button>`;}
 
-// ============================================================
-//  ГЛАВНОЕ МЕНЮ
-//  ⚠️ Магазин временно убран (SHOP_ENABLED=false).
-//  После одобрения модерации поменяй SHOP_ENABLED на true.
-// ============================================================
 function menu(){
   running=false;paused=false;active=null;state='idle';
   duelMode=false;
