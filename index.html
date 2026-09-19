@@ -291,7 +291,7 @@ body.duel-mode .bomb-btn{display:none}
 .shop-item .price{
   flex-shrink:0;padding:8px 12px;border-radius:999px;font-weight:800;
   background:linear-gradient(135deg,var(--accent),var(--accent-2));
-  color:#fff;font-size:13px;min-width:64px;text-align:center;
+  color:#fff;font-size:13px;min-width:80px;text-align:center;
 }
 .shop-item .price:disabled{opacity:.4}
 
@@ -403,6 +403,10 @@ body.duel-mode .bomb-btn{display:none}
 <script>
 'use strict';
 
+// ============================================================
+//  НАСТРОЙКИ
+//  ⚠️ Если поменяешь ID товаров ниже — поменяй их и в кабинете VK
+// ============================================================
 const VK_APP_ID = 54764920;
 const W = 8, H = 12, N = 30;
 const KEY = 'antivirus-vk-1';
@@ -419,6 +423,10 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
   ? 'ws://localhost:3000'
   : 'wss://antivirus-duel-server.relaxdev.ru';
 
+// ============================================================
+//  ТОВАРЫ МАГАЗИНА
+//  ⚠️ ID ДОЛЖНЫ ТОЧНО СОВПАДАТЬ с товарами в кабинете VK
+// ============================================================
 const SHOP_ITEMS = [
   { id:'bombs_pack', icon:'💣', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:15 },
   { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:50 },
@@ -453,7 +461,7 @@ const LOCALES = {
     duelPlayBot:'Играть с ботом',
     duelOpponentBot:'Соперник (Бот)',
     duelRules:'Первый, кто уничтожит <b>все 15 вирусов</b>, побеждает.',
-    duelRulesMore:'<b>Мусор:</b> очистил 10+ клеток за один ход — сопернику прилетает «загрязнение». Вместо его следующей пилюли сверху появляются одиночные клетки случайного цвета в разных столбцах. Их нельзя двигать или поворачивать — только медленно падают вниз.<br><br><b>Количество клеток:</b> 10 → 2, 11 → 3, 12 → 4 ... макс 5.<br><br><b>В дуэли отключены:</b> бомба и возрождение за рекламу.<br><br><b>Если соперник не зашёл за 2 минуты</b> — играешь против бота.',
+    duelRulesMore:'<b>Мусор:</b> очистил 10+ клеток за один ход — сопернику прилетает «загрязнение». Вместо его следующей пилюли сверху появляются одиночные клетки случайного цвета в разных столбцах.<br><br><b>В дуэли отключены:</b> бомба и возрождение за рекламу.<br><br><b>Если соперник не зашёл за 2 минуты</b> — играешь против бота.',
     duelWaiting:'Ожидание соперника',
     duelCopyLink:'Скопировать ссылку', duelCancel:'Отмена',
     duelFinding:'Поиск соперника…',
@@ -507,7 +515,7 @@ const LOCALES = {
     duelPlayBot:'Play vs bot',
     duelOpponentBot:'Opponent (Bot)',
     duelRules:'First to clear <b>all 15 viruses</b> wins.',
-    duelRulesMore:'<b>Garbage:</b> clear 10+ cells in one move — opponent gets garbage. Instead of their next pill, single colored cells fall from top in random columns.<br><br><b>Cell count:</b> 10 → 2, 11 → 3, 12 → 4 ... max 5.<br><br><b>In duel disabled:</b> bomb and ad revival.<br><br><b>If opponent doesn\'t join in 2 min</b> — you play vs bot.',
+    duelRulesMore:'<b>Garbage:</b> clear 10+ cells in one move — opponent gets garbage.<br><br><b>In duel disabled:</b> bomb and ad revival.<br><br><b>If opponent doesn\'t join in 2 min</b> — you play vs bot.',
     duelWaiting:'Waiting for opponent',
     duelCopyLink:'Copy link', duelCancel:'Cancel',
     duelFinding:'Searching opponent…',
@@ -545,7 +553,7 @@ function normalizeLang(raw){if(!raw)return null;const c=String(raw).toLowerCase(
 const fresh = () => ({
   unlocked:1, stars:Array(N).fill(0), best:{kills:0,time:0,score:0},
   settings:{sound:true,music:true,voice:true,sensitivity:30,lang:'auto',theme:0},
-  purchases:{remove_ads:false,unlock_all:false,skin_space:false}
+  purchases:{remove_ads:false,unlock_all:false}
 });
 const num = (v,min=0,max=1e9)=>Math.max(min,Math.min(max,Number.isFinite(Number(v))?Number(v):min));
 function normalize(raw){
@@ -563,7 +571,6 @@ function normalize(raw){
   const p=raw.purchases||{};
   s.purchases.remove_ads=!!p.remove_ads;
   s.purchases.unlock_all=!!p.unlock_all;
-  s.purchases.skin_space=!!p.skin_space;
   return s;
 }
 let save = fresh();
@@ -612,7 +619,7 @@ function setCloudStatus(text){const el=$('cloudStatus');if(el)el.textContent=tex
 
 async function showInterstitial(){if(!vkReady||save.purchases.remove_ads)return false;try{const r=await vkBridge.send('VKWebAppShowNativeAds',{ad_format:'interstitial'});return !!r?.result;}catch{return false;}}
 async function showRewarded(){if(!vkReady)return false;try{const r=await vkBridge.send('VKWebAppShowNativeAds',{ad_format:'reward'});return !!r?.result;}catch{return false;}}
-async function vkPurchase(itemId){if(!vkReady)return false;try{const r=await vkBridge.send('VKWebAppShowOrderBox',{type:'item',item:itemId});return !!r?.success;}catch{return false;}}
+async function vkPurchase(itemId){if(!vkReady)return false;try{const r=await vkBridge.send('VKWebAppShowOrderBox',{type:'item',item:itemId});return !!r?.success;}catch(e){console.warn('[VK] purchase:',e);return false;}}
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
 
 let grid = Array.from({length:H},()=>Array(W).fill(null));
@@ -722,13 +729,18 @@ function recordsMenu(){
     </div>
     <div class="stack">${btn(t('recordsBack'),'menu')}</div>`,'records');
 }
+
+// ============================================================
+//  МАГАЗИН
+//  Цена пишется как "15 голосов" вместо эмодзи (не отображался)
+// ============================================================
 function shopMenu(){
   const items=SHOP_ITEMS.map(item=>{
     const owned=item.id==='remove_ads'?save.purchases.remove_ads:item.id==='unlock_all'?save.purchases.unlock_all:false;
     return `<div class="shop-item">
       <div class="icon">${item.icon}</div>
       <div class="info"><b>${item.title}</b><small>${item.desc}</small></div>
-      <button class="price" data-buy="${item.id}" ${owned?'disabled':''}>${owned?'✓':item.price+' 🪙'}</button>
+      <button class="price" data-buy="${item.id}" ${owned?'disabled':''}>${owned?'✓ Куплено':item.price+' голосов'}</button>
     </div>`;
   }).join('');
   show(`<h2>${t('shopTitle')}</h2><p>${t('shopDesc')}</p>${items}
@@ -1695,21 +1707,33 @@ if(virusColumn){
   });
 }
 
+// ============================================================
+//  ОБРАБОТКА КЛИКОВ (магазин, дуэль, меню)
+// ============================================================
 $('dialog').addEventListener('click',async e=>{
   const b=e.target.closest('[data-menu]');
   const buy=e.target.closest('[data-buy]');
   const dl=e.target.closest('[data-duel]');
 
-  if(buy&&!buy.disabled){
-    const itemId=buy.dataset.buy;
-    buy.disabled=true;
-    const ok=await vkPurchase(itemId);
+  // === ПОКУПКА В МАГАЗИНЕ ===
+  if(buy && !buy.disabled){
+    const itemId = buy.dataset.buy;
+    buy.disabled = true;
+    console.log('[Shop] Покупка:', itemId);
+
+    const ok = await vkPurchase(itemId);
+
     if(ok){
-      if(itemId==='remove_ads')save.purchases.remove_ads=true;
-      if(itemId==='unlock_all')save.purchases.unlock_all=true;
-      if(itemId==='bombs_pack'){bombsAvailable+=5;updateBombButton();}
-      persist();shopMenu();
-    }else{buy.disabled=false;alert(t('shopError'));}
+      // ВК подтвердил покупку — начисляем предмет
+      if(itemId === 'remove_ads')   save.purchases.remove_ads = true;
+      if(itemId === 'unlock_all')   save.purchases.unlock_all = true;
+      if(itemId === 'bombs_pack'){  bombsAvailable += 5; updateBombButton(); }
+      persist();
+      shopMenu();
+    } else {
+      buy.disabled = false;
+      alert(t('shopError'));
+    }
     return;
   }
 
