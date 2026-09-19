@@ -273,11 +273,12 @@ body.duel-mode .bomb-btn{display:none}
   font-size:14px;font-weight:600;
 }
 .row:last-of-type{border-bottom:none}
-.row input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
+.row input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);user-select:auto;-webkit-user-select:auto;pointer-events:auto;cursor:pointer}
 .row input[type=range]{width:110px;accent-color:var(--accent)}
 .row select{
   padding:6px 8px;border-radius:10px;border:1px solid var(--border);
   background:var(--panel-2);max-width:170px;font-size:14px;
+  user-select:auto;-webkit-user-select:auto;pointer-events:auto;cursor:pointer;
 }
 .status{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.5}
 .shop-item{
@@ -1912,12 +1913,4 @@ boot();
           <path d="M32 50L40 58 M40 50L32 58"/>
           <path d="M60 50L68 58 M68 50L60 58"/>
         </g>
-        <ellipse cx="50" cy="80" rx="8" ry="10" fill="#44213e"/>
-        <ellipse cx="50" cy="82" rx="5" ry="6" fill="#fb7185"/>
-      </g>
-    </svg>`;
-  });
-})();
-</script>
-</body>
-</html>
+        <ellipse cx="50" cy="80" r
