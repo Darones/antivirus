@@ -420,13 +420,12 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
   ? 'ws://localhost:3000'
   : 'wss://antivirus-duel-server.relaxdev.ru';
 
-// ===== МАГАЗИН (отключён до модерации) =====
 const SHOP_ITEMS = [
   { id:'bombs_pack', icon:'💣', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:15 },
   { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:50 },
   { id:'unlock_all', icon:'🔓', title:'Открыть все уровни', desc:'Вся кампания (30 уровней)', price:25 }
 ];
-const SHOP_ENABLED = false; // ← поменяй на true после одобрения модерации
+const SHOP_ENABLED = false;
 
 const $ = id => document.getElementById(id);
 const ctx = $('board').getContext('2d');
@@ -660,6 +659,7 @@ function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPa
 function btn(text,act,primary=false){return `<button data-menu="${act}"${primary?' class="primary"':''}>${text}</button>`;}
 
 function menu(){
+  if(duelMode)duelLeave();
   running=false;paused=false;active=null;state='idle';
   duelMode=false;
   document.body.classList.remove('duel-mode');
@@ -1039,6 +1039,7 @@ function duelEnd(won, reason){
   document.body.classList.remove('duel-mode');
   $('bombButton').style.display = '';
 
+  duelLeave();
   const dlg = $('dialog');
   $('overlay').hidden = false;
   $('app').inert = true;
@@ -1075,7 +1076,8 @@ function duelEnqueueGarbage(cells){
   cells = Math.max(1, Math.min(cells, DUEL_MAX_GARBAGE));
   playGarbageSound();
   showToast(t('duelGarbage') + cells);
-  spawnGarbageCells(cells);
+  if(active===null && state==='fall') spawnGarbageCells(cells);
+  else duelState.garbageQueue += cells;
 }
 function playGarbageSound(){
   try{
@@ -1226,6 +1228,10 @@ function cells(p=active){
 }
 function valid(p){return !!p&&cells(p).every(c=>c.x>=0&&c.x<W&&c.y>=0&&c.y<H&&!grid[c.y][c.x]);}
 function spawn(){
+  if(duelState.garbageQueue > 0){
+    spawnGarbageCells(duelState.garbageQueue);
+    duelState.garbageQueue = 0;
+  }
   if(duelMode && garbagePieces.length > 0){
     active = null;
     state = 'waiting_garbage';
@@ -1886,7 +1892,6 @@ boot();
       </g>
       <ellipse cx="50" cy="60" rx="36" ry="38" fill="url(#${id})" stroke="${dark}" stroke-width="1.5"/>
       <ellipse cx="35" cy="34" rx="15" ry="6" fill="#fff" opacity=".3" transform="rotate(-25 35 34)"/>
-
       <g class="av-happy">
         <ellipse cx="36" cy="54" rx="12" ry="15" fill="#fffefa"/>
         <ellipse cx="64" cy="54" rx="12" ry="15" fill="#fffefa"/>
@@ -1900,7 +1905,6 @@ boot();
         <path d="M43 79H59" stroke="white" stroke-width="3" stroke-linecap="round"/>
         <path d="M27 37Q35 32 43 37 M57 37Q65 32 73 37" fill="none" stroke="${dark}" stroke-width="3" stroke-linecap="round"/>
       </g>
-
       <g class="av-shock">
         <ellipse cx="36" cy="54" rx="13" ry="16" fill="#fffefa"/>
         <ellipse cx="64" cy="54" rx="13" ry="16" fill="#fffefa"/>
