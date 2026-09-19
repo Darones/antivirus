@@ -403,10 +403,6 @@ body.duel-mode .bomb-btn{display:none}
 <script>
 'use strict';
 
-// ============================================================
-//  НАСТРОЙКИ
-//  ⚠️ Если поменяешь ID товаров ниже — поменяй их и в кабинете VK
-// ============================================================
 const VK_APP_ID = 54764920;
 const W = 8, H = 12, N = 30;
 const KEY = 'antivirus-vk-1';
@@ -423,15 +419,14 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
   ? 'ws://localhost:3000'
   : 'wss://antivirus-duel-server.relaxdev.ru';
 
-// ============================================================
-//  ТОВАРЫ МАГАЗИНА
-//  ⚠️ ID ДОЛЖНЫ ТОЧНО СОВПАДАТЬ с товарами в кабинете VK
-// ============================================================
+// ===== МАГАЗИН (отключён до модерации) =====
+// Данные товаров сохранены — пригодятся после одобрения
 const SHOP_ITEMS = [
   { id:'bombs_pack', icon:'💣', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:15 },
   { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:50 },
   { id:'unlock_all', icon:'🔓', title:'Открыть все уровни', desc:'Вся кампания (30 уровней)', price:25 }
 ];
+const SHOP_ENABLED = false; // ← поменяй на true после одобрения модерации
 
 const $ = id => document.getElementById(id);
 const ctx = $('board').getContext('2d');
@@ -664,6 +659,11 @@ function show(html,name){
 function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPaused;sync();}
 function btn(text,act,primary=false){return `<button data-menu="${act}"${primary?' class="primary"':''}>${text}</button>`;}
 
+// ============================================================
+//  ГЛАВНОЕ МЕНЮ
+//  ⚠️ Магазин временно убран (SHOP_ENABLED=false).
+//  После одобрения модерации поменяй SHOP_ENABLED на true.
+// ============================================================
 function menu(){
   running=false;paused=false;active=null;state='idle';
   duelMode=false;
@@ -676,7 +676,7 @@ function menu(){
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
     <div class="stack">
       ${btn(t('menuCampaign'),'levels',true)}
-      ${btn(t('menuShop'),'shop',true)}
+      ${SHOP_ENABLED ? btn(t('menuShop'),'shop',true) : ''}
       ${btn(t('menuEndless'),'endless')}
       ${btn(t('menuMultiplayer'),'multiplayer')}
       ${btn(t('menuRecords'),'records')}
@@ -729,12 +729,8 @@ function recordsMenu(){
     </div>
     <div class="stack">${btn(t('recordsBack'),'menu')}</div>`,'records');
 }
-
-// ============================================================
-//  МАГАЗИН
-//  Цена пишется как "15 голосов" вместо эмодзи (не отображался)
-// ============================================================
 function shopMenu(){
+  if(!SHOP_ENABLED){ menu(); return; }
   const items=SHOP_ITEMS.map(item=>{
     const owned=item.id==='remove_ads'?save.purchases.remove_ads:item.id==='unlock_all'?save.purchases.unlock_all:false;
     return `<div class="shop-item">
@@ -1707,24 +1703,17 @@ if(virusColumn){
   });
 }
 
-// ============================================================
-//  ОБРАБОТКА КЛИКОВ (магазин, дуэль, меню)
-// ============================================================
 $('dialog').addEventListener('click',async e=>{
   const b=e.target.closest('[data-menu]');
   const buy=e.target.closest('[data-buy]');
   const dl=e.target.closest('[data-duel]');
 
-  // === ПОКУПКА В МАГАЗИНЕ ===
-  if(buy && !buy.disabled){
+  if(buy && !buy.disabled && SHOP_ENABLED){
     const itemId = buy.dataset.buy;
     buy.disabled = true;
     console.log('[Shop] Покупка:', itemId);
-
     const ok = await vkPurchase(itemId);
-
     if(ok){
-      // ВК подтвердил покупку — начисляем предмет
       if(itemId === 'remove_ads')   save.purchases.remove_ads = true;
       if(itemId === 'unlock_all')   save.purchases.unlock_all = true;
       if(itemId === 'bombs_pack'){  bombsAvailable += 5; updateBombButton(); }
