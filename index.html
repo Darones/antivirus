@@ -34,7 +34,6 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-r
   display:flex;flex-direction:column;gap:5px;overflow:hidden;
 }
 
-/* Дуэль-полоса */
 .duel-bar{
   display:flex;gap:10px;align-items:center;justify-content:space-between;
   background:linear-gradient(135deg,#fef3c7,#fde68a);
@@ -45,7 +44,6 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-r
 .duel-opp-name{white-space:nowrap;flex:1}
 .duel-opp-count{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:13px}
 
-/* Мини-колба (высокая, по 2 кнопки) */
 .mini-opp{
   grid-column:2;grid-row:1 / span 2;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -455,7 +453,7 @@ const LOCALES = {
     duelPlayBot:'Играть с ботом',
     duelOpponentBot:'Соперник (Бот)',
     duelRules:'Первый, кто уничтожит <b>все 15 вирусов</b>, побеждает.',
-    duelRulesMore:'<b>Мусор:</b> очистил 10+ клеток за один ход — сопернику прилетает «загрязнение». Вместо его следующей пилюли сверху появляются одиночные клетки случайного цвета (жёлтый/синий/красный) в разных столбцах. Их нельзя двигать или поворачивать — только медленно падают вниз.<br><br><b>Количество клеток:</b> 10 → 2, 11 → 3, 12 → 4 ... макс 5.<br><br><b>В дуэли отключены:</b> бомба и возрождение за рекламу.<br><br><b>Если соперник не зашёл за 2 минуты</b> — играешь против бота.',
+    duelRulesMore:'<b>Мусор:</b> очистил 10+ клеток за один ход — сопернику прилетает «загрязнение». Вместо его следующей пилюли сверху появляются одиночные клетки случайного цвета в разных столбцах. Их нельзя двигать или поворачивать — только медленно падают вниз.<br><br><b>Количество клеток:</b> 10 → 2, 11 → 3, 12 → 4 ... макс 5.<br><br><b>В дуэли отключены:</b> бомба и возрождение за рекламу.<br><br><b>Если соперник не зашёл за 2 минуты</b> — играешь против бота.',
     duelWaiting:'Ожидание соперника',
     duelCopyLink:'Скопировать ссылку', duelCancel:'Отмена',
     duelFinding:'Поиск соперника…',
@@ -509,7 +507,7 @@ const LOCALES = {
     duelPlayBot:'Play vs bot',
     duelOpponentBot:'Opponent (Bot)',
     duelRules:'First to clear <b>all 15 viruses</b> wins.',
-    duelRulesMore:'<b>Garbage:</b> clear 10+ cells in one move — opponent gets garbage. Instead of their next pill, single colored cells fall from top in random columns. Cannot be moved or rotated.<br><br><b>Cell count:</b> 10 → 2, 11 → 3, 12 → 4 ... max 5.<br><br><b>In duel disabled:</b> bomb and ad revival.<br><br><b>If opponent doesn\'t join in 2 min</b> — you play vs bot.',
+    duelRulesMore:'<b>Garbage:</b> clear 10+ cells in one move — opponent gets garbage. Instead of their next pill, single colored cells fall from top in random columns.<br><br><b>Cell count:</b> 10 → 2, 11 → 3, 12 → 4 ... max 5.<br><br><b>In duel disabled:</b> bomb and ad revival.<br><br><b>If opponent doesn\'t join in 2 min</b> — you play vs bot.',
     duelWaiting:'Waiting for opponent',
     duelCopyLink:'Copy link', duelCancel:'Cancel',
     duelFinding:'Searching opponent…',
@@ -974,7 +972,6 @@ function duelStart(mode){
   $('app').inert = false;
   start('campaign', 1);
 
-  // Отправляем стартовую доску, чтобы соперник сразу её увидел
   if(mode !== 'bot'){
     setTimeout(() => {
       if(!duelMode || !duelState.started || duelState.botMode) return;
@@ -1002,7 +999,6 @@ function duelStartBot(){
       if(!duelState.started || !duelState.botMode) return;
       duelState.botMoveCount++;
 
-      // Иногда бот делает «комбо» — снимает сразу 2 вируса
       const removeCount = Math.random() < 0.25 ? 2 : 1;
       for(let i = 0; i < removeCount && duelState.oppViruses < DUEL_TARGET; i++){
         duelState.oppViruses++;
@@ -1015,7 +1011,6 @@ function duelStartBot(){
         return;
       }
 
-      // Мусор — 5% за всю игру, не чаще одного раза
       if(!duelState.botGarbageFired && Math.random() < 0.05){
         duelState.botGarbageFired = true;
         const cells = 2 + Math.floor(Math.random()*2);
