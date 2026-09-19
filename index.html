@@ -34,7 +34,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-r
   display:flex;flex-direction:column;gap:5px;overflow:hidden;
 }
 
-/* Дуэль-полоса: имя + счётчик */
+/* Дуэль-полоса */
 .duel-bar{
   display:flex;gap:10px;align-items:center;justify-content:space-between;
   background:linear-gradient(135deg,#fef3c7,#fde68a);
@@ -45,18 +45,18 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-r
 .duel-opp-name{white-space:nowrap;flex:1}
 .duel-opp-count{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:13px}
 
-/* === ИСПРАВЛЕНИЕ: мини-колба === */
+/* Мини-колба (высокая, по 2 кнопки) */
 .mini-opp{
-  grid-column:2;grid-row:1 / span 2; /* занимает обе строки */
+  grid-column:2;grid-row:1 / span 2;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   background:linear-gradient(135deg,#fef3c7,#fde68a);
   border:2px solid #f59e0b;border-radius:16px;
   box-shadow:var(--shadow);padding:3px;
-  min-height:104px; /* высота двух кнопок */
-  min-width:70px;  /* ширина для сохранения пропорций */
+  min-height:104px;
+  min-width:70px;
 }
 .mini-opp canvas{
-  display:block;width:60px;height:90px; /* внутренний размер */
+  display:block;width:60px;height:90px;
   background:#fff;border-radius:3px;
   max-width:100%;max-height:100%;
 }
@@ -334,7 +334,7 @@ body.duel-mode .bomb-btn{display:none}
   .drop-btn,.rotate-btn{min-height:42px;font-size:18px}
   .canvas-wrap{padding-right:44px}
   .friend{width:40px;height:50px}
-  .mini-opp canvas{width:26px;height:40px}
+  .mini-opp canvas{width:52px;height:78px}
 }
 </style>
 </head>
@@ -414,7 +414,7 @@ const BOMB_THRESHOLD = 10;
 const RESCUE_ROWS = 5;
 const INTERSTITIAL_EVERY = 2;
 
-const DUEL_TARGET = 22;
+const DUEL_TARGET = 15;
 const DUEL_MAX_GARBAGE = 5;
 const DUEL_BOT_DELAY = 120 * 1000;
 const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
@@ -454,7 +454,7 @@ const LOCALES = {
     duelFindRandom:'Найти соперника',
     duelPlayBot:'Играть с ботом',
     duelOpponentBot:'Соперник (Бот)',
-    duelRules:'Первый, кто уничтожит <b>все 22 вируса</b>, побеждает.',
+    duelRules:'Первый, кто уничтожит <b>все 15 вирусов</b>, побеждает.',
     duelRulesMore:'<b>Мусор:</b> очистил 10+ клеток за один ход — сопернику прилетает «загрязнение». Вместо его следующей пилюли сверху появляются одиночные клетки случайного цвета (жёлтый/синий/красный) в разных столбцах. Их нельзя двигать или поворачивать — только медленно падают вниз.<br><br><b>Количество клеток:</b> 10 → 2, 11 → 3, 12 → 4 ... макс 5.<br><br><b>В дуэли отключены:</b> бомба и возрождение за рекламу.<br><br><b>Если соперник не зашёл за 2 минуты</b> — играешь против бота.',
     duelWaiting:'Ожидание соперника',
     duelCopyLink:'Скопировать ссылку', duelCancel:'Отмена',
@@ -508,7 +508,7 @@ const LOCALES = {
     duelFindRandom:'Find opponent',
     duelPlayBot:'Play vs bot',
     duelOpponentBot:'Opponent (Bot)',
-    duelRules:'First to clear <b>all 22 viruses</b> wins.',
+    duelRules:'First to clear <b>all 15 viruses</b> wins.',
     duelRulesMore:'<b>Garbage:</b> clear 10+ cells in one move — opponent gets garbage. Instead of their next pill, single colored cells fall from top in random columns. Cannot be moved or rotated.<br><br><b>Cell count:</b> 10 → 2, 11 → 3, 12 → 4 ... max 5.<br><br><b>In duel disabled:</b> bomb and ad revival.<br><br><b>If opponent doesn\'t join in 2 min</b> — you play vs bot.',
     duelWaiting:'Waiting for opponent',
     duelCopyLink:'Copy link', duelCancel:'Cancel',
@@ -750,7 +750,9 @@ const duelState = {
   botTimeout: null,
   garbageQueue: 0,
   botMoveCount: 0,
-  botBoard: null
+  botBoard: null,
+  stateSendTimer: null,
+  botGarbageFired: false
 };
 
 function duelMenu(){
@@ -853,10 +855,11 @@ function duelUpdateProgress(){
 }
 function duelDrawOppBoard(board){
   const c = $('duelOppBoard');
-  if(!c || !board) return;
+  if(!c) return;
   const cx = c.getContext('2d');
   const cw = c.width / W, ch = c.height / H;
   cx.clearRect(0,0,c.width,c.height);
+  if(!board) return;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const cell = board[y]?.[x];
     if(!cell) continue;
@@ -971,33 +974,62 @@ function duelStart(mode){
   $('app').inert = false;
   start('campaign', 1);
 
+  // Отправляем стартовую доску, чтобы соперник сразу её увидел
+  if(mode !== 'bot'){
+    setTimeout(() => {
+      if(!duelMode || !duelState.started || duelState.botMode) return;
+      duelSend({
+        type: 'state',
+        state: {
+          viruses: 0,
+          score: 0,
+          board: grid.map(row => row.map(c => c ? { type: c.type, color: c.color } : null))
+        }
+      });
+    }, 300);
+  }
+
   if(mode === 'bot') duelStartBot();
 }
 function duelStartBot(){
   duelStopBot();
   initBotBoard();
   duelState.botMoveCount = 0;
-  duelState.botInterval = setInterval(()=>{
-    if(!duelState.started || !duelState.botMode) return;
-    duelState.botMoveCount++;
+  duelState.botGarbageFired = false;
 
-    if(Math.random() < 0.4){
-      duelState.oppViruses = Math.min(DUEL_TARGET, duelState.oppViruses + 1);
+  const scheduleBotMove = () => {
+    duelState.botInterval = setTimeout(() => {
+      if(!duelState.started || !duelState.botMode) return;
+      duelState.botMoveCount++;
+
+      // Иногда бот делает «комбо» — снимает сразу 2 вируса
+      const removeCount = Math.random() < 0.25 ? 2 : 1;
+      for(let i = 0; i < removeCount && duelState.oppViruses < DUEL_TARGET; i++){
+        duelState.oppViruses++;
+        updateBotBoardRemoveOne();
+      }
       duelUpdateProgress();
-      updateBotBoardRemoveOne();
+
       if(duelState.oppViruses >= DUEL_TARGET){
         duelEnd(false, t('duelBotWin'));
+        return;
       }
-    }
 
-    if(duelState.botMoveCount % 6 === 0 && Math.random() < 0.6){
-      const cells = 2 + Math.floor(Math.random()*3);
-      duelEnqueueGarbage(cells);
-    }
-  }, 4000);
+      // Мусор — 5% за всю игру, не чаще одного раза
+      if(!duelState.botGarbageFired && Math.random() < 0.05){
+        duelState.botGarbageFired = true;
+        const cells = 2 + Math.floor(Math.random()*2);
+        duelEnqueueGarbage(cells);
+      }
+
+      scheduleBotMove();
+    }, 6000 + Math.random() * 7000);
+  };
+
+  scheduleBotMove();
 }
 function duelStopBot(){
-  clearInterval(duelState.botInterval);
+  clearTimeout(duelState.botInterval);
   duelState.botInterval = null;
 }
 function duelEnd(won, reason){
@@ -1033,6 +1065,7 @@ function duelLeave(){
   duelState.botBoard = null;
   duelStopBot();
   clearTimeout(duelState.botTimeout);
+  clearTimeout(duelState.stateSendTimer);
   const bar = $('duelBar');
   if(bar) bar.hidden = true;
   duelMode = false;
@@ -1140,14 +1173,18 @@ function duelMyVirusesChanged(n){
   if(!duelMode || !duelState.started) return;
   duelState.myViruses = n;
   if(!duelState.botMode){
-    duelSend({
-      type:'state',
-      state: {
-        viruses: n,
-        score,
-        board: grid.map(row => row.map(c => c ? { type: c.type, color: c.color } : null))
-      }
-    });
+    clearTimeout(duelState.stateSendTimer);
+    duelState.stateSendTimer = setTimeout(() => {
+      if(!duelMode || !duelState.started || duelState.botMode) return;
+      duelSend({
+        type:'state',
+        state: {
+          viruses: duelState.myViruses,
+          score,
+          board: grid.map(row => row.map(c => c ? { type: c.type, color: c.color } : null))
+        }
+      });
+    }, 400);
   }
   if(n >= DUEL_TARGET){
     if(!duelState.botMode) duelSend({type:'game_over', reason:'target_reached'});
