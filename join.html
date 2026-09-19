@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Приглашение в дуэль — Антивирус</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+           background: #f8fafc; color: #1e293b; display: flex; align-items: center; 
+           justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+    .card { background: #fff; border-radius: 16px; padding: 32px 24px; max-width: 400px; 
+            width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { color: #64748b; margin: 0 0 24px; }
+    .room { font-size: 28px; font-weight: 700; color: #3b82f6; letter-spacing: 2px; 
+            margin: 16px 0; }
+    button { background: #3b82f6; color: #fff; border: none; border-radius: 12px; 
+             padding: 14px 24px; font-size: 16px; font-weight: 600; width: 100%; 
+             cursor: pointer; margin-bottom: 12px; }
+    button.secondary { background: #e2e8f0; color: #1e293b; }
+    .note { font-size: 12px; color: #94a3b8; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎮 Вас приглашают в дуэль!</h1>
+    <p>Игра «Антивирус»</p>
+    <div class="room" id="roomDisplay">...</div>
+    <button onclick="openApp()">Открыть игру</button>
+    <button class="secondary" onclick="downloadApp()">Скачать в RuStore</button>
+    <p class="note" id="status"></p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const room = params.get('room');
+    const scheme = 'ru.relaxdev.antivirus://join?room=' + encodeURIComponent(room || '');
+
+    document.getElementById('roomDisplay').textContent = room ? 'Комната: ' + room : 'Комната не указана';
+
+    function openApp() {
+      document.getElementById('status').textContent = 'Открываем приложение...';
+      window.location.href = scheme;
+      setTimeout(() => {
+        document.getElementById('status').textContent = 'Если игра не открылась, установите её по кнопке ниже.';
+      }, 2000);
+    }
+
+    function downloadApp() {
+      // TODO: заменить на реальную ссылку RuStore после публикации
+      window.location.href = 'https://www.rustore.ru/catalog/app/com.darones.antivirus';
+    }
+
+    // Автопопытка открыть приложение сразу
+    if (room) {
+      setTimeout(openApp, 300);
+    }
+  </script>
+</body>
+</html>
