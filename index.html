@@ -594,10 +594,15 @@ async function vkInit(){
 async function vkCloudLoad(){
   if(!vkReady)return null;
   try{
-    const r=await vkBridge.send('VKWebAppStorageGet',{keys:['progress']});
+    // VK bridge can stay pending indefinitely when the app is opened outside VK
+    // or when the storage service is temporarily unavailable.
+    const r=await Promise.race([
+      vkBridge.send('VKWebAppStorageGet',{keys:['progress']}),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('storage timeout')),1500))
+    ]);
     const it=r.keys.find(k=>k.key==='progress');
     if(it?.value)return JSON.parse(it.value);
-  }catch{}
+  }catch(e){console.warn('[VK] cloud load skipped:',e.message||e);}
   return null;
 }
 let cloudTimer=null, cloudDirty=false, cloudSaving=false;
@@ -1842,6 +1847,12 @@ async function boot(){
   updateHUD();updateBombButton();
   requestAnimationFrame(frame);
 
+  // Show the game immediately; cloud sync must never block the first screen.
+  menu();
+  $('app').hidden=false;
+  $('boot').hidden=true;
+  clearTimeout(failsafe);
+
   if(vkReady){
     const cloud=await vkCloudLoad();
     if(cloud){save=normalize({...save,...cloud,settings:save.settings});writeLocal();setCloudStatus(t('cloudCloud'));}
@@ -1864,11 +1875,6 @@ async function boot(){
   if(inviteRoom){
     duelConnect().then(()=>duelSend({type:'join_room',roomId:inviteRoom}));
   }
-
-  menu();
-  $('app').hidden=false;
-  $('boot').hidden=true;
-  clearTimeout(failsafe);
 
   if(vkReady&&window.vkBridge){
     try{await vkBridge.send('VKWebAppSetViewSettings',{status_bar_style:'dark',action_bar_color:'#ffffff'});}catch{}
@@ -1906,10 +1912,4 @@ boot();
         <ellipse cx="24" cy="72" rx="6" ry="3" fill="#ffb7ca" opacity=".55"/>
         <ellipse cx="77" cy="72" rx="6" ry="3" fill="#ffb7ca" opacity=".55"/>
         <path d="M38 77Q51 94 64 77" fill="#44213e"/>
-        <path d="M43 79H59" stroke="white" stroke-width="3" stroke-linecap="round"/>
-        <path d="M27 37Q35 32 43 37 M57 37Q65 32 73 37" fill="none" stroke="${dark}" stroke-width="3" stroke-linecap="round"/>
-      </g>
-      <g class="av-shock">
-        <ellipse cx="36" cy="54" rx="13" ry="16" fill="#fffefa"/>
-        <ellipse cx="64" cy="54" rx="13" ry="16" fill="#fffefa"/>
-        <g stroke="#0f172a" stroke-width="4" stroke-lin
+        <path d="M43 79H59" stroke="whit
