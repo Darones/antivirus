@@ -413,6 +413,8 @@ const DIR = [[1,0],[0,1],[-1,0],[0,-1]];
 const BOMB_THRESHOLD = 10;
 const RESCUE_ROWS = 5;
 const INTERSTITIAL_EVERY = 2;
+const FALL_SLOWDOWN = 1.75;
+const MIN_FALL_INTERVAL = 0.6;
 
 const DUEL_TARGET = 15;
 const DUEL_MAX_GARBAGE = 5;
@@ -1627,7 +1629,8 @@ function frame(now){
       if(garbagePieces.length === 0 && state === 'waiting_garbage') spawn();
     }
     if(state==='fall'&&active){
-      const interval=mode==='campaign'?Math.max(.22,difficulty(level).interval-Math.min(.1,elapsed*.0003)):Math.max(.15,.92-wave*.043-elapsed*.00065);
+      const rawInterval=mode==='campaign'?Math.max(.22,difficulty(level).interval-Math.min(.1,elapsed*.0003)):Math.max(.15,.92-wave*.043-elapsed*.00065);
+      const interval=Math.max(MIN_FALL_INTERVAL,rawInterval*FALL_SLOWDOWN); // rawInterval * FALL_SLOWDOWN
       fall+=dt;
       const soft=pressed.has('ArrowDown')||pressed.has('KeyS')||buttonHold?.act==='soft';
       if(fall>=(soft?.055:interval)){fall=0;if(!move(0,1))lock();}
@@ -1909,8 +1912,4 @@ boot();
       <g class="av-shock">
         <ellipse cx="36" cy="54" rx="13" ry="16" fill="#fffefa"/>
         <ellipse cx="64" cy="54" rx="13" ry="16" fill="#fffefa"/>
-        <g stroke="#0f172a" stroke-width="4" stroke-linecap="round" fill="none">
-          <path d="M32 50L40 58 M40 50L32 58"/>
-          <path d="M60 50L68 58 M68 50L60 58"/>
-        </g>
-        <ellipse cx="50" cy="80" r
+        <g stroke="#0f172a" stroke-width="4" stroke-lin
