@@ -211,6 +211,14 @@ body.stopped .friend{animation-play-state:paused}
   background:linear-gradient(135deg,#dbeafe,#bfdbfe);
   border-color:#93c5fd;color:#1e40af;
 }
+.ad-btn{
+  grid-column:2;grid-row:1;min-height:48px;
+  background:linear-gradient(135deg,#d1fae5,#a7f3d0);
+  border-color:#34d399;color:#065f46;gap:0;
+}
+.ad-btn .ad-emoji{font-size:18px;line-height:1}
+.ad-btn .ad-plus{font-size:9px;font-weight:900;margin-top:1px;line-height:1}
+body.duel-mode .ad-btn{display:none}
 .left-btn{grid-column:1;grid-row:2}
 .right-btn{grid-column:3;grid-row:2}
 .bomb-btn{
@@ -332,6 +340,7 @@ body.duel-mode .bomb-btn{display:none}
   .stat small{font-size:7px}
   .ctrl-btn{min-height:46px;font-size:22px}
   .drop-btn,.rotate-btn{min-height:42px;font-size:18px}
+  .ad-btn{min-height:42px}
   .canvas-wrap{padding-right:44px}
   .friend{width:40px;height:50px}
   .mini-opp canvas{width:52px;height:78px}
@@ -371,6 +380,10 @@ body.duel-mode .bomb-btn{display:none}
 
     <div class="controls-v2" id="controls">
       <button class="ctrl-btn drop-btn" data-act="drop" aria-label="Быстрое падение">⤓</button>
+      <button class="ctrl-btn ad-btn" id="adBombButton" data-act="adbomb" aria-label="Бомба за рекламу">
+        <span class="ad-emoji">📺</span>
+        <span class="ad-plus">+💣</span>
+      </button>
       <button class="ctrl-btn rotate-btn" data-act="rotate" aria-label="Поворот">↻</button>
       <button class="ctrl-btn left-btn" data-act="left" aria-label="Влево">←</button>
       <button class="ctrl-btn bomb-btn zero" id="bombButton" data-act="bomb" aria-label="Бомба">
@@ -413,10 +426,98 @@ const DIR = [[1,0],[0,1],[-1,0],[0,-1]];
 const BOMB_THRESHOLD = 10;
 const RESCUE_ROWS = 5;
 const INTERSTITIAL_EVERY = 2;
+const FALL_SLOWDOWN = 1.75;
+const MIN_FALL_INTERVAL = 0.6;
 
 const DUEL_TARGET = 15;
 const DUEL_MAX_GARBAGE = 5;
 const DUEL_BOT_DELAY = 120 * 1000;
+
+// === Менеджер рекламы ===
+// [AD-FIX] Ограничивает частоту и суточное количество рекламных показов.
+const AD_INTERSTITIAL_COOLDOWN = 60 * 1000;
+const AD_REWARDED_COOLDOWN     = 30 * 1000;
+const AD_DAILY_LIMIT           = 15;
+const AD_CHECK_TIMEOUT         = 1500;
+const AD_SHOW_TIMEOUT          = 8000;
+
+let lastInterstitialAt = 0;
+let lastRewardedAt     = 0;
+let adDailyCount       = 0;
+let adDailyResetAt     = Date.now() + 24*60*60*1000;
+let adRequestPending   = false;
+
+// [AD-FIX] Единая проверка лимитов перед любым рекламным запросом.
+function adCanShow(kind){
+  const now = Date.now();
+  if(now >= adDailyResetAt){ adDailyCount = 0; adDailyResetAt = now + 24*60*60*1000; }
+  if(adDailyCount >= AD_DAILY_LIMIT){
+    console.warn('[Ads] daily limit reached');
+    return {ok:false, reason:'daily_limit'};
+  }
+  if(kind === 'interstitial' && now - lastInterstitialAt < AD_INTERSTITIAL_COOLDOWN){
+    console.warn('[Ads] cooldown ' + Math.ceil((AD_INTERSTITIAL_COOLDOWN - (now-lastInterstitialAt))/1000) + 's left');
+    return {ok:false, reason:'cooldown'};
+  }
+  if(kind === 'rewarded' && now - lastRewardedAt < AD_REWARDED_COOLDOWN){
+    console.warn('[Ads] cooldown ' + Math.ceil((AD_REWARDED_COOLDOWN - (now-lastRewardedAt))/1000) + 's left');
+    return {ok:false, reason:'cooldown'};
+  }
+  if(adRequestPending) return {ok:false, reason:'pending'};
+  return {ok:true};
+}
+
+// [AD-FIX] Проверяет доступность формата с ограниченным ожиданием Bridge.
+async function adCheckAvailable(kind){
+  if(!vkReady) return false;
+  try{
+    const fmt = kind === 'rewarded' ? 'reward' : 'interstitial';
+    const r = await Promise.race([
+      vkBridge.send('VKWebAppCheckNativeAds', {ad_format: fmt}),
+      new Promise((_,rj)=>setTimeout(()=>rj(new Error('check timeout')), AD_CHECK_TIMEOUT))
+    ]);
+    return !!r?.result;
+  }catch(e){
+    if(e?.message === 'check timeout') console.warn('[Ads] check timeout');
+    console.warn('[Ads] check failed:', e?.message||e);
+    return false;
+  }
+}
+
+// [AD-FIX] Сериализует показы и обновляет лимиты только после успешного показа.
+async function adShow(kind){
+  if(!vkReady) return false;
+  const gate = adCanShow(kind);
+  if(!gate.ok){
+    console.warn('[Ads] blocked:', gate.reason);
+    return false;
+  }
+  adRequestPending = true;
+  try{
+    const fmt = kind === 'rewarded' ? 'reward' : 'interstitial';
+    const r = await Promise.race([
+      vkBridge.send('VKWebAppShowNativeAds', {ad_format: fmt}),
+      new Promise((_,rj)=>setTimeout(()=>rj(new Error('show timeout')), AD_SHOW_TIMEOUT))
+    ]);
+    const shown = !!r?.result;
+    if(shown){
+      adDailyCount++;
+      if(kind === 'interstitial') lastInterstitialAt = Date.now();
+      if(kind === 'rewarded')     lastRewardedAt     = Date.now();
+      console.warn('[Ads] show ' + kind + ' ok');
+    }else{
+      console.warn('[Ads] show ' + kind + ' failed');
+    }
+    return shown;
+  }catch(e){
+    if(e?.message === 'show timeout') console.warn('[Ads] show timeout');
+    console.warn('[Ads] show ' + kind + ' failed');
+    console.warn('[Ads] show failed:', e?.message||e);
+    return false;
+  }finally{
+    adRequestPending = false;
+  }
+}
 const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'ws://localhost:3000'
   : 'wss://antivirus-duel-server.relaxdev.ru';
@@ -483,6 +584,9 @@ const LOCALES = {
     noticeWave:w=>`Волна ${w}`,
     noticeNoBombs:'Нет бомб. Соберите 10+ клеток за ход',
     noticeRescueFail:'Реклама недоступна',
+    adBombEarned:'+1 💣 за рекламу!',
+    adBombFailed:'Реклама недоступна',
+    adCooldown:s=>`Подождите ${s}с`,
     cloudLocal:'Локальное сохранение', cloudCloud:'Синхронизировано с VK', cloudSave:'Сохранено в VK',
     cloudError:'Ошибка синхронизации', cloudSDK:'Автономный режим'
   },
@@ -537,6 +641,9 @@ const LOCALES = {
     noticeWave:w=>`Wave ${w}`,
     noticeNoBombs:'No bombs. Clear 10+ cells in one move',
     noticeRescueFail:'Ad unavailable',
+    adBombEarned:'+1 💣 via ad!',
+    adBombFailed:'Ad unavailable',
+    adCooldown:s=>`Wait ${s}s`,
     cloudLocal:'Local save', cloudCloud:'Synced with VK', cloudSave:'Saved to VK',
     cloudError:'Sync error', cloudSDK:'Offline mode'
   }
@@ -592,30 +699,98 @@ async function vkInit(){
 async function vkCloudLoad(){
   if(!vkReady)return null;
   try{
-    const r=await vkBridge.send('VKWebAppStorageGet',{keys:['progress']});
+    // VK bridge can stay pending indefinitely when the app is opened outside VK
+    // or when the storage service is temporarily unavailable.
+    const r=await Promise.race([
+      vkBridge.send('VKWebAppStorageGet',{keys:['progress']}),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('storage timeout')),1500))
+    ]);
     const it=r.keys.find(k=>k.key==='progress');
     if(it?.value)return JSON.parse(it.value);
-  }catch{}
+  }catch(e){console.warn('[VK] cloud load skipped:',e.message||e);}
   return null;
 }
 let cloudTimer=null, cloudDirty=false, cloudSaving=false;
+let cloudRetryCount = 0;
+const CLOUD_SAVE_TIMEOUT = 3000;
+const CLOUD_SAVE_MAX_RETRY = 3;
+// [VK-FIX] Сохраняет прогресс с timeout и ограниченным числом повторов.
 async function vkCloudSave(){
   if(!vkReady||cloudSaving)return;
   cloudSaving=true; cloudDirty=false;
+  let ok = false;
   try{
-    await vkBridge.send('VKWebAppStorageSet',{key:'progress',value:JSON.stringify({unlocked:save.unlocked,stars:save.stars,best:save.best,purchases:save.purchases})});
-    setCloudStatus(t('cloudSave'));
-  }catch{cloudDirty=true;setCloudStatus(t('cloudError'));}
-  finally{cloudSaving=false;if(cloudDirty)scheduleSave();}
+    const r = await Promise.race([
+      vkBridge.send('VKWebAppStorageSet',{key:'progress',value:JSON.stringify({unlocked:save.unlocked,stars:save.stars,best:save.best,purchases:save.purchases})}),
+      new Promise((_,rj)=>setTimeout(()=>rj(new Error('save timeout')), CLOUD_SAVE_TIMEOUT))
+    ]);
+    if(r){
+      ok = true;
+      cloudRetryCount = 0;
+      console.warn('[Cloud] save ok');
+      setCloudStatus(t('cloudSave'));
+    }
+  }catch(e){
+    if(e?.message === 'save timeout') console.warn('[VK] StorageSet timeout');
+    console.warn('[Cloud] save failed:', e?.message||e);
+  }finally{
+    cloudSaving=false;
+    if(!ok){
+      cloudDirty = true;
+      if(cloudRetryCount < CLOUD_SAVE_MAX_RETRY){
+        cloudRetryCount++;
+        console.warn('[Cloud] save retry ' + cloudRetryCount + '/' + CLOUD_SAVE_MAX_RETRY);
+        scheduleSave();
+      }else{
+        console.warn('[Cloud] give up after ' + CLOUD_SAVE_MAX_RETRY + ' retries');
+        setCloudStatus(t('cloudError'));
+        cloudRetryCount = 0;
+      }
+    }
+  }
 }
 function scheduleSave(){clearTimeout(cloudTimer);cloudTimer=setTimeout(vkCloudSave,2500);}
 function persist(){writeLocal();cloudDirty=true;scheduleSave();}
 function setCloudStatus(text){const el=$('cloudStatus');if(el)el.textContent=text;}
 
-async function showInterstitial(){if(!vkReady||save.purchases.remove_ads)return false;try{const r=await vkBridge.send('VKWebAppShowNativeAds',{ad_format:'interstitial'});return !!r?.result;}catch{return false;}}
-async function showRewarded(){if(!vkReady)return false;try{const r=await vkBridge.send('VKWebAppShowNativeAds',{ad_format:'reward'});return !!r?.result;}catch{return false;}}
+// [AD-FIX] Все interstitial проходят через единый менеджер рекламы.
+async function showInterstitial(){
+  if(save.purchases.remove_ads) return false;
+  return await adShow('interstitial');
+}
+// [AD-FIX] Все rewarded проходят через единый менеджер рекламы.
+async function showRewarded(){
+  return await adShow('rewarded');
+}
 async function vkPurchase(itemId){if(!vkReady)return false;try{const r=await vkBridge.send('VKWebAppShowOrderBox',{type:'item',item:itemId});return !!r?.success;}catch(e){console.warn('[VK] purchase:',e);return false;}}
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
+
+// [AD-FIX] Блокирует повторные rewarded-запросы с игровой кнопки.
+async function requestBombViaAd(){
+  if(duelMode) return;
+  if(adRequestPending) return;
+  if(!vkReady){
+    console.warn('[Ads] requestBombViaAd: vkReady=false');
+    showToast(t('adBombFailed')); return;
+  }
+  const adBtn = $('adBombButton');
+  if(adBtn) adBtn.disabled = true;
+  let ok = false;
+  try{
+    ok = await showRewarded();
+  } finally {
+    if(adBtn) adBtn.disabled = false;
+  }
+  if(!ok){
+    console.warn('[Ads] requestBombViaAd: rewarded false');
+    showToast(t('adBombFailed'));
+    return;
+  }
+  bombsAvailable += 1;
+  updateBombButton();
+  fireworkAtBomb();
+  showToast(t('adBombEarned'));
+}
 
 let grid = Array.from({length:H},()=>Array(W).fill(null));
 let active=null, next=[0,2], serial=1;
@@ -660,6 +835,14 @@ function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPa
 function btn(text,act,primary=false){return `<button data-menu="${act}"${primary?' class="primary"':''}>${text}</button>`;}
 
 function menu(){
+  // [TIMER-FIX] Очищает отложенные игровые, дуэльные и рекламные операции.
+  clearTimeout(cloudTimer);
+  clearTimeout(duelState.botInterval);
+  clearTimeout(duelState.botTimeout);
+  clearTimeout(duelState.stateSendTimer);
+  clearTimeout(tapTimer);
+  clearTimeout(duelState.duelStartTimer);
+  adRequestPending = false;
   if(duelMode)duelLeave();
   running=false;paused=false;active=null;state='idle';
   duelMode=false;
@@ -754,6 +937,7 @@ const duelState = {
   botMoveCount: 0,
   botBoard: null,
   stateSendTimer: null,
+  duelStartTimer: null,
   botGarbageFired: false
 };
 
@@ -811,9 +995,12 @@ function duelInvite(){
   duelConnect().then(()=>duelSend({type:'join_room',roomId}));
   const link = `https://vk.com/app${VK_APP_ID}#duel=${roomId}`;
   if(vkReady && window.vkBridge){
-    vkBridge.send('VKWebAppShare',{link}).catch(()=>{
+    // [VK-FIX] Обрабатывает синхронный сбой вызова Share и отказ Promise.
+    try{ vkBridge.send('VKWebAppShare',{link}).catch(()=>{
       navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
-    });
+    }); }catch{
+      navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
+    }
   } else {
     navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
   }
@@ -977,8 +1164,10 @@ function duelStart(mode){
   start('campaign', 1);
 
   if(mode !== 'bot'){
-    setTimeout(() => {
+    clearTimeout(duelState.duelStartTimer);
+    duelState.duelStartTimer = setTimeout(() => {
       if(!duelMode || !duelState.started || duelState.botMode) return;
+      console.warn('[Duel] start send state');
       duelSend({
         type: 'state',
         state: {
@@ -1068,6 +1257,9 @@ function duelLeave(){
   clearTimeout(duelState.stateSendTimer);
   const bar = $('duelBar');
   if(bar) bar.hidden = true;
+  // [BUG-FIX] Очищает последний кадр доски соперника при выходе из дуэли.
+  const c = $('duelOppBoard');
+  if(c){ const cx = c.getContext('2d'); cx.clearRect(0,0,c.width,c.height); }
   duelMode = false;
   document.body.classList.remove('duel-mode');
   $('bombButton').style.display = '';
@@ -1208,7 +1400,7 @@ function start(m,n){
   active=null;next=pair();serial=1;
   score=kills=elapsed=moves=fall=phase=combo=0;
   matches=[];particles=[];garbagePieces=[];
-  moveCleared=0;bombAwarded=false;bombsAvailable=0;
+  moveCleared=0;bombAwarded=false;bombsAvailable=1;
   updateBombButton();
   running=true;paused=false;state='fall';last=performance.now();
   document.querySelectorAll('.friend').forEach(e=>e.classList.remove('hurt'));
@@ -1221,6 +1413,11 @@ function start(m,n){
     addViruses(14, 6);
   }
   clearInput();hide();spawn();updateHUD();tell('noticeStart');
+  // [TIMER-FIX] Сбрасывает ввод и базовое время при старте новой игры.
+  pointer = null;
+  buttonHold = null;
+  pressed.clear();
+  last = performance.now();
 }
 function cells(p=active){
   if(!p)return[];
@@ -1262,6 +1459,7 @@ function lock(){
 function action(a){
   if(!playable())return;
   if(a==='bomb'){useBomb();return;}
+  if(a==='adbomb'){requestBombViaAd();return;}
   if(state!=='fall'||!active)return;
   if(a==='left'){if(move(-1,0))sound('move');}
   if(a==='right'){if(move(1,0))sound('move');}
@@ -1350,16 +1548,55 @@ function finish(won){
     <p>${t('endScore')}: <b>${score}</b><br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
       ${showNext?btn(t('endNext'),'next',true):''}
-      ${showRescue?btn(t('endRescue'),'rescue',true):''}
+      ${showRescue?`<button data-menu="rescue" class="primary" id="rescueBtn">${t('endRescue')}</button>`:''}
       ${showRescue?`<p class="status" style="margin:0">${t('endRescueHint')}</p>`:''}
       ${btn(t('endRetry'),'restart')}
       ${btn(t('endMenu'),'menu')}
     </div>`,'end');
   sound(won?'win':'lose');
+  // [AD-FIX] Показывает cooldown rewarded-кнопки в диалоге проигрыша.
+  if(showRescue){
+    const rb = $('rescueBtn');
+    if(rb){
+      const tick = () => {
+        if(!rb.isConnected) return;
+        const gate = adCanShow('rewarded');
+        if(gate.ok){
+          rb.disabled = false;
+          rb.textContent = t('endRescue');
+          return;
+        }
+        if(gate.reason === 'cooldown'){
+          const left = Math.max(0, Math.ceil((AD_REWARDED_COOLDOWN - (Date.now()-lastRewardedAt))/1000));
+          rb.disabled = true;
+          rb.textContent = t('endRescue') + ' · ' + t('adCooldown', left);
+          setTimeout(tick, 500);
+        } else {
+          rb.disabled = true;
+          rb.textContent = t('endRescue');
+        }
+      };
+      tick();
+    }
+  }
 }
+// [AD-FIX] Блокирует повторные rewarded-запросы из диалога проигрыша.
 async function rescueWithAd(){
-  const ok=await showRewarded();
-  if(!ok){const p=$('dialog').querySelector('.status');if(p){p.textContent=t('noticeRescueFail');p.style.color='#f43f5e';}return;}
+  if(adRequestPending) return;
+  const btn = $('dialog')?.querySelector('[data-menu="rescue"]');
+  if(btn) btn.disabled = true;
+  let ok = false;
+  try{
+    ok = await showRewarded();
+  } finally {
+    if(btn && btn.isConnected) btn.disabled = false;
+  }
+  if(!ok){
+    console.warn('[Ads] rescueWithAd: rewarded false');
+    const p = $('dialog')?.querySelector('.status');
+    if(p){ p.textContent = t('noticeRescueFail'); p.style.color = '#f43f5e'; }
+    return;
+  }
   for(let y=0;y<RESCUE_ROWS;y++)for(let x=0;x<W;x++)grid[y][x]=null;
   running=true;paused=false;state='scan';last=performance.now();hide();updateHUD();
 }
@@ -1417,6 +1654,35 @@ function updateHUD(){
   const sig=next.join(',');
   const prev=$('preview');
   if(prev.dataset.pair!==sig){prev.dataset.pair=sig;prev.innerHTML=next.map(c=>`<i style="background:${COLORS[c]}"></i>`).join('');}
+}
+// [AD-FIX] Обновляет состояние кнопки рекламной бомбы.
+function updateAdButton(){
+  const btn = $('adBombButton');
+  if(!btn) return;
+  const plus = btn.querySelector('.ad-plus');
+  const gate = adCanShow('rewarded');
+
+  if(gate.ok){
+    if(btn.disabled) console.warn('[Ads] button ready');
+    if(btn.disabled) btn.disabled = false;
+    if(btn.style.opacity !== '') btn.style.opacity = '';
+    if(plus && plus.textContent !== '+') plus.textContent = '+';
+    return;
+  }
+
+  if(gate.reason === 'cooldown'){
+    const left = Math.max(0, Math.ceil((AD_REWARDED_COOLDOWN - (Date.now()-lastRewardedAt))/1000));
+    if(!btn.disabled) console.warn('[Ads] button cooldown', left + 's');
+    if(!btn.disabled) btn.disabled = true;
+    if(btn.style.opacity !== '.5') btn.style.opacity = '.5';
+    if(plus && plus.textContent !== left + 'с') plus.textContent = left + 'с';
+    return;
+  }
+
+  // [AD-FIX] Блокирует кнопку при daily_limit, pending или недоступном VK.
+  if(!btn.disabled) btn.disabled = true;
+  if(btn.style.opacity !== '.5') btn.style.opacity = '.5';
+  if(plus && plus.textContent !== '+') plus.textContent = '+';
 }
 function fireworkAtBomb(){
   const btn=$('bombButton');
@@ -1602,7 +1868,10 @@ function praise(){
   p.voice=voice;p.lang=voice.lang;p.volume=.7;
   speechSynthesis.speak(p);
 }
-setInterval(()=>{
+// [TIMER-FIX] Не допускает повторного музыкального интервала.
+let _musicTimer = null;
+if(_musicTimer) clearInterval(_musicTimer);
+_musicTimer = setInterval(()=>{
   if(!audio||audio.state!=='running'||!playable()||!save.settings.music){noteAt=0;return;}
   const theme=themes[save.settings.theme??0];
   const now=audio.currentTime;
@@ -1627,7 +1896,10 @@ function frame(now){
       if(garbagePieces.length === 0 && state === 'waiting_garbage') spawn();
     }
     if(state==='fall'&&active){
-      const interval=mode==='campaign'?Math.max(.22,difficulty(level).interval-Math.min(.1,elapsed*.0003)):Math.max(.15,.92-wave*.043-elapsed*.00065);
+      const rawInterval = mode==='campaign'
+        ? Math.max(.22, difficulty(level).interval - Math.min(.1, elapsed*.0003))
+        : Math.max(.15, .92 - wave*.043 - elapsed*.00065);
+      const interval = Math.max(MIN_FALL_INTERVAL, rawInterval * FALL_SLOWDOWN);
       fall+=dt;
       const soft=pressed.has('ArrowDown')||pressed.has('KeyS')||buttonHold?.act==='soft';
       if(fall>=(soft?.055:interval)){fall=0;if(!move(0,1))lock();}
@@ -1635,7 +1907,7 @@ function frame(now){
     for(const p of particles){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=220*dt;}
     particles=particles.filter(p=>p.life>0);
   }
-  hudTick+=dt;if(hudTick>.1){hudTick=0;updateHUD();}
+  hudTick+=dt;if(hudTick>.1){hudTick=0;updateHUD();updateAdButton();}
   draw();
   requestAnimationFrame(frame);
 }
@@ -1656,6 +1928,8 @@ document.addEventListener('keyup',e=>pressed.delete(e.code));
 
 document.querySelectorAll('[data-act]').forEach(b=>{
   b.addEventListener('pointerdown',e=>{
+    // [AD-FIX] Не обрабатывает pointerdown отключённой рекламной кнопки.
+    if(b.disabled)return;
     if(!playable())return;e.preventDefault();
     try{b.setPointerCapture(e.pointerId);}catch{}
     const act=b.dataset.act;action(act);
@@ -1816,7 +2090,11 @@ function applyLanguage(lang){
   document.title=currentLang==='ru'?'Антивирус':'Antivirus';
 }
 
+// [BUG-FIX] Не допускает повторной инициализации приложения и RAF-цикла.
+let _bootRan = false;
 async function boot(){
+  if(_bootRan) return;
+  _bootRan = true;
   const failsafe=setTimeout(()=>{
     if($('app').hidden){
       try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{}
@@ -1838,6 +2116,12 @@ async function boot(){
 
   updateHUD();updateBombButton();
   requestAnimationFrame(frame);
+
+  // Show the game immediately; cloud sync must never block the first screen.
+  menu();
+  $('app').hidden=false;
+  $('boot').hidden=true;
+  clearTimeout(failsafe);
 
   if(vkReady){
     const cloud=await vkCloudLoad();
@@ -1862,14 +2146,10 @@ async function boot(){
     duelConnect().then(()=>duelSend({type:'join_room',roomId:inviteRoom}));
   }
 
-  menu();
-  $('app').hidden=false;
-  $('boot').hidden=true;
-  clearTimeout(failsafe);
-
   if(vkReady&&window.vkBridge){
     try{await vkBridge.send('VKWebAppSetViewSettings',{status_bar_style:'dark',action_bar_color:'#ffffff'});}catch{}
   }
+  console.warn('[Boot] Antivirus v2 loaded. Backups: stage7. Features: ad manager, cooldowns, timers.');
 }
 boot();
 
