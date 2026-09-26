@@ -219,6 +219,7 @@ body.stopped .friend{animation-play-state:paused}
 .ad-btn .ad-emoji{font-size:18px;line-height:1}
 .ad-btn .ad-plus{font-size:9px;font-weight:900;margin-top:1px;line-height:1}
 body.duel-mode .ad-btn{display:none}
+body.no-rewarded-ads .ad-btn{display:none}
 .left-btn{grid-column:1;grid-row:2}
 .right-btn{grid-column:3;grid-row:2}
 .bomb-btn{
@@ -433,6 +434,22 @@ const DUEL_TARGET = 15;
 const DUEL_MAX_GARBAGE = 5;
 const DUEL_BOT_DELAY = 120 * 1000;
 
+// [PLATFORM-FIX] Rewarded-реклама (VKWebAppShowNativeAds с форматом
+// reward) работает только в нативных мобильных приложениях VK.
+// На mobile_web и desktop_web не поддерживается — там кнопки
+// rewarded-рекламы нужно скрывать.
+// vk_platform пустой (dev-режим, запуск вне VK) → кнопки оставляем,
+// чтобы не спрятать их у реального Android/iOS-пользователя.
+let __vkPlatform = '';
+try {
+  __vkPlatform = new URLSearchParams(location.search).get('vk_platform') || '';
+} catch(e){ __vkPlatform = ''; }
+const __isWebPlatform = /web$/.test(__vkPlatform);
+const __rewardedAdsAvailable = !__isWebPlatform;
+if(!__rewardedAdsAvailable){
+  document.body.classList.add('no-rewarded-ads');
+}
+
 // === Менеджер рекламы ===
 // [AD-FIX] Ограничивает частоту и суточное количество рекламных показов.
 const AD_INTERSTITIAL_COOLDOWN = 60 * 1000;
@@ -537,7 +554,7 @@ const LOCALES = {
     hudLevel:'Ур.', hudWave:'Волна',
     settingsTitle:'Настройки', pauseTitle:'Пауза', pauseResume:'Продолжить',
     menuCampaign:'Кампания · 30 уровней', menuEndless:'Бесконечная игра',
-    menuShop:'Магазин', menuRecords:'Рекорды', menuMultiplayer:'Дуэль 1×1',
+    menuShop:'Магазин', menuRecords:'Рекорды', menuMultiplayer:'Дуэль 1×1', menuSupport:'Поддержка',
     levelsTitle:'Кампания', levelsDesc:'Соберите 4 одинаковых цвета в ряд.', levelsBack:'Назад',
     settingsSound:'Звуковые эффекты', settingsMusic:'Музыка', settingsVoice:'Голосовая похвала',
     settingsSwipe:'Порог свайпа', settingsTheme:'Мелодия', settingsLang:'Язык', settingsLangAuto:'Авто',
@@ -588,13 +605,26 @@ const LOCALES = {
     adBombFailed:'Реклама недоступна',
     adCooldown:s=>`Подождите ${s}с`,
     cloudLocal:'Локальное сохранение', cloudCloud:'Синхронизировано с VK', cloudSave:'Сохранено в VK',
-    cloudError:'Ошибка синхронизации', cloudSDK:'Автономный режим'
+    cloudError:'Ошибка синхронизации', cloudSDK:'Автономный режим: прогресс не синхронизируется',
+    settingsAllowShare:'Публикация на стене', shareConfirmTitle:'Публикация на стене',
+    shareConfirmText:'Приглашение будет опубликовано на вашей стене ВКонтакте. Продолжить?', shareConfirmOk:'Опубликовать',
+    shareConfirmCancel:'Отмена', shareSkipped:'Публикация отключена. Ссылка скопирована.',
+    menuTraining:'Обучение', trainingTitle:'Обучение', trainingContinue:'Продолжить',
+    training1:'В колбе находятся вирусы трёх цветов — красные, жёлтые и синие. Они не должны вырваться наружу. Чтобы победить — уничтожьте их все.',
+    training2:'Вниз падают пилюли двух цветов. Управляйте ими кнопками или свайпами: ← → влево-вправо, ↑ поворот, ↓ ускорить.',
+    training3:'Соберите 4 и больше одинаковых цветов в ряд — они исчезнут, а вирусы рядом погибнут. За 10+ клеток за один ход получите бомбу \u{1F4A3} — она взрывает область 3×3.',
+    trainingBomb:'Вы получили бомбу! Нажмите \u{1F4A3}, затем поставьте её в нужное место — она уничтожит вирусы в области 3×3.',
+    trainingDoneTitle:'ПОЗДРАВЛЯЕМ!',
+    trainingDoneText:'Обучение пройдено!<br><br>Ты научился управлять пилюлями, собирать 4 в ряд, использовать бомбу \u{1F4A3} и получил первое комбо.<br><br>Впереди — 30 уровней заражения.<br>Удачи, антивирусолог!',
+    trainingDoneCampaign:'Начать кампанию',
+    trainingDoneRestart:'Пройти обучение заново',
+    trainingDoneMenu:'В меню'
   },
   en: {
     hudLevel:'Lv.', hudWave:'Wave',
     settingsTitle:'Settings', pauseTitle:'Pause', pauseResume:'Resume',
     menuCampaign:'Campaign · 30 levels', menuEndless:'Endless mode',
-    menuShop:'Shop', menuRecords:'Records', menuMultiplayer:'Duel 1v1',
+    menuShop:'Shop', menuRecords:'Records', menuMultiplayer:'Duel 1v1', menuSupport:'Support',
     levelsTitle:'Campaign', levelsDesc:'Match 4 same colors in a row.', levelsBack:'Back',
     settingsSound:'Sound', settingsMusic:'Music', settingsVoice:'Voice',
     settingsSwipe:'Swipe threshold', settingsTheme:'Melody', settingsLang:'Language', settingsLangAuto:'Auto',
@@ -645,7 +675,20 @@ const LOCALES = {
     adBombFailed:'Ad unavailable',
     adCooldown:s=>`Wait ${s}s`,
     cloudLocal:'Local save', cloudCloud:'Synced with VK', cloudSave:'Saved to VK',
-    cloudError:'Sync error', cloudSDK:'Offline mode'
+    cloudError:'Sync error', cloudSDK:'Offline mode: progress is not synced',
+    settingsAllowShare:'Publish to wall', shareConfirmTitle:'Publish to wall',
+    shareConfirmText:'The invitation will be posted on your VK wall. Continue?', shareConfirmOk:'Publish',
+    shareConfirmCancel:'Cancel', shareSkipped:'Publishing disabled. Link copied.',
+    menuTraining:'Training', trainingTitle:'Training', trainingContinue:'Continue',
+    training1:'The flask contains viruses of three colors — red, yellow and blue. They must not escape. Destroy them all to win.',
+    training2:'Pills of two colors fall down. Control with buttons or swipes: ← → left-right, ↑ rotate, ↓ speed up.',
+    training3:'Match 4+ same colors in a row — they disappear and nearby viruses die. Clear 10+ cells in one move to get a bomb \u{1F4A3} — it explodes a 3×3 area.',
+    trainingBomb:'You got a bomb! Press \u{1F4A3}, then place it — it destroys viruses in a 3×3 area.',
+    trainingDoneTitle:'CONGRATULATIONS!',
+    trainingDoneText:'Training complete!<br><br>You learned to control pills, match 4 in a row, use the bomb \u{1F4A3} and got your first combo.<br><br>Ahead — 30 levels of infection.<br>Good luck, antivirus specialist!',
+    trainingDoneCampaign:'Start campaign',
+    trainingDoneRestart:'Retake training',
+    trainingDoneMenu:'Main menu'
   }
 };
 let currentLang = 'ru';
@@ -654,7 +697,7 @@ function normalizeLang(raw){if(!raw)return null;const c=String(raw).toLowerCase(
 
 const fresh = () => ({
   unlocked:1, stars:Array(N).fill(0), best:{kills:0,time:0,score:0},
-  settings:{sound:true,music:true,voice:true,sensitivity:30,lang:'auto',theme:0},
+  settings:{sound:true,music:true,voice:true,allowShare:false,sensitivity:30,lang:'auto',theme:0},
   purchases:{remove_ads:false,unlock_all:false}
 });
 const num = (v,min=0,max=1e9)=>Math.max(min,Math.min(max,Number.isFinite(Number(v))?Number(v):min));
@@ -667,6 +710,7 @@ function normalize(raw){
   s.best.kills=Math.floor(s.best.kills);
   const o=raw.settings||{};
   for(const k of ['sound','music','voice'])s.settings[k]=o[k]!==false;
+  s.settings.allowShare = o.allowShare === true;
   s.settings.sensitivity=num(o.sensitivity??30,15,65);
   s.settings.lang=['auto','ru','en'].includes(o.lang)?o.lang:'auto';
   s.settings.theme=Math.floor(num(o.theme,0,3));
@@ -724,11 +768,16 @@ async function vkCloudSave(){
       vkBridge.send('VKWebAppStorageSet',{key:'progress',value:JSON.stringify({unlocked:save.unlocked,stars:save.stars,best:save.best,purchases:save.purchases})}),
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('save timeout')), CLOUD_SAVE_TIMEOUT))
     ]);
-    if(r){
+    if(r && r.result !== false){
       ok = true;
       cloudRetryCount = 0;
       console.warn('[Cloud] save ok');
       setCloudStatus(t('cloudSave'));
+      // Через 2 секунды вернуть нейтральный статус.
+      clearTimeout(window._cloudStatusTimer);
+      window._cloudStatusTimer = setTimeout(()=>{
+        setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
+      }, 2000);
     }
   }catch(e){
     if(e?.message === 'save timeout') console.warn('[VK] StorageSet timeout');
@@ -749,7 +798,8 @@ async function vkCloudSave(){
     }
   }
 }
-function scheduleSave(){clearTimeout(cloudTimer);cloudTimer=setTimeout(vkCloudSave,2500);}
+// [2.3.8] Синхронизация почти мгновенная: 400 мс debounce.
+function scheduleSave(){clearTimeout(cloudTimer);cloudTimer=setTimeout(vkCloudSave,400);}
 function persist(){writeLocal();cloudDirty=true;scheduleSave();}
 function setCloudStatus(text){const el=$('cloudStatus');if(el)el.textContent=text;}
 
@@ -768,6 +818,7 @@ async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('V
 // [AD-FIX] Блокирует повторные rewarded-запросы с игровой кнопки.
 async function requestBombViaAd(){
   if(duelMode) return;
+  if(!__rewardedAdsAvailable) return;
   if(adRequestPending) return;
   if(!vkReady){
     console.warn('[Ads] requestBombViaAd: vkReady=false');
@@ -801,6 +852,8 @@ let moveCleared=0, bombAwarded=false, bombsAvailable=0;
 let last=performance.now(), clock=0, hudTick=0, noticeLeft=0;
 let pressed=new Set(), pointer=null, tapTimer=null, lastTap=0, buttonHold=null;
 let levelsCompleted=0;
+let trainingStage = 0;
+let trainingBombTipShown = false;
 
 let duelMode = false;
 let garbagePieces = [];
@@ -854,13 +907,25 @@ function menu(){
     <h2>ANTIVIRUS</h2>
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
     <div class="stack">
+      ${btn('\u{1F393} ' + t('menuTraining'),'training',true)}
       ${btn(t('menuCampaign'),'levels',true)}
       ${SHOP_ENABLED ? btn(t('menuShop'),'shop',true) : ''}
       ${btn(t('menuEndless'),'endless')}
       ${btn(t('menuMultiplayer'),'multiplayer')}
       ${btn(t('menuRecords'),'records')}
       ${btn(t('settingsTitle'),'settings')}
+      ${btn('🆘 ' + t('menuSupport'),'support')}
     </div>`,'menu');
+}
+function showTrainingStep(n){
+  trainingStage = n;
+  paused = true;
+  const keys = ['training1','training2','training3'];
+  show(`<h2>\u{1F393} ${t('trainingTitle')}</h2>
+    <p>${t(keys[n-1])}</p>
+    <div class="stack">
+      <button data-menu="training-next" class="primary">${t('trainingContinue')}</button>
+    </div>`, 'training');
 }
 function levelsMenu(){
   show(`<h2>${t('levelsTitle')}</h2><p>${t('levelsDesc')}</p>
@@ -878,6 +943,7 @@ function settingsMenu(){
     <label class="row">${t('settingsSound')}<input id="set-sound" type="checkbox" ${s.sound?'checked':''}></label>
     <label class="row">${t('settingsMusic')}<input id="set-music" type="checkbox" ${s.music?'checked':''}></label>
     <label class="row">${t('settingsVoice')}<input id="set-voice" type="checkbox" ${s.voice?'checked':''}></label>
+    <label class="row">${t('settingsAllowShare')}<input id="set-allow-share" type="checkbox" ${s.allowShare?'checked':''}></label>
     <label class="row">${t('settingsSwipe')}<input id="set-swipe" type="range" min="15" max="65" value="${s.sensitivity}"></label>
     <label class="row">${t('settingsTheme')}<select id="set-theme">${themes.map((tm,i)=>`<option value="${i}" ${(s.theme??0)===i?'selected':''}>${tm.name}</option>`).join('')}</select></label>
     <label class="row">${t('settingsLang')}<select id="set-lang">
@@ -936,6 +1002,7 @@ const duelState = {
   garbageQueue: 0,
   botMoveCount: 0,
   botBoard: null,
+  pendingShareLink: null,
   stateSendTimer: null,
   duelStartTimer: null,
   botGarbageFired: false
@@ -994,15 +1061,23 @@ function duelInvite(){
   const roomId = Math.random().toString(36).slice(2,10);
   duelConnect().then(()=>duelSend({type:'join_room',roomId}));
   const link = `https://vk.com/app${VK_APP_ID}#duel=${roomId}`;
-  if(vkReady && window.vkBridge){
-    // [VK-FIX] Обрабатывает синхронный сбой вызова Share и отказ Promise.
-    try{ vkBridge.send('VKWebAppShare',{link}).catch(()=>{
-      navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
-    }); }catch{
-      navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
-    }
+  duelState.pendingShareLink = link;
+  if(vkReady && window.vkBridge && save.settings.allowShare){
+    show(`<h2>${t('shareConfirmTitle')}</h2>
+      <p>${t('shareConfirmText')}</p>
+      <div class="stack">
+        <button data-duel="share-confirm" class="primary">${t('shareConfirmOk')}</button>
+        <button data-duel="share-cancel">${t('shareConfirmCancel')}</button>
+      </div>`, 'duel-share');
   } else {
-    navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
+    navigator.clipboard.writeText(link).then(()=>{
+      if(vkReady && window.vkBridge && !save.settings.allowShare){
+        showToast(t('shareSkipped'));
+      } else {
+        showToast(t('mpCopied'));
+      }
+    }).catch(()=>{});
+    duelShowWaiting();
   }
 }
 function duelShowWaiting(){
@@ -1407,12 +1482,16 @@ function start(m,n){
   const d=difficulty(n);
   if(duelMode){
     addViruses(DUEL_TARGET, 4);
+  } else if(m==='training'){
+    addViruses(5, 6);
+    ensureTrainingColors();
   } else if(m==='campaign'){
     addViruses(d.viruses, d.top);
   } else {
     addViruses(14, 6);
   }
   clearInput();hide();spawn();updateHUD();tell('noticeStart');
+  if(m==='training') showTrainingStep(1);
   // [TIMER-FIX] Сбрасывает ввод и базовое время при старте новой игры.
   pointer = null;
   buttonHold = null;
@@ -1515,6 +1594,19 @@ function erase(bomb=false){
     sound('clear');
     tell(combo>1?'noticeCombo':'noticeKilled',combo>1?Math.min(combo,4):removed);
   }
+  if(mode==='training' && !trainingBombTipShown && removed > 0){
+    trainingBombTipShown = true;
+    setTimeout(()=>{
+      if(mode==='training' && running && !paused && state !== 'end'){
+        paused = true;
+        show(`<h2>\u{1F393} ${t('trainingTitle')}</h2>
+          <p>${t('trainingBomb')}</p>
+          <div class="stack">
+            <button data-menu="training-next" class="primary">${t('trainingContinue')}</button>
+          </div>`, 'training');
+      }
+    }, 600);
+  }
   if(duelMode) duelMyVirusesChanged(kills);
   record();
 }
@@ -1524,7 +1616,11 @@ function resolution(dt){
   if(state==='scan'){
     matches=findMatches();phase=0;
     if(matches.length){combo++;state='flash';}
-    else if(!count()){if(mode==='campaign'&&!duelMode)finish(true);else{wave++;if(!addViruses(Math.min(36,12+wave*2),4)){if(!duelMode)finish(false);}else{tell('noticeWave',wave);spawn();}}}
+    else if(!count()){
+      if(mode==='campaign'&&!duelMode)finish(true);
+      else if(mode==='training'&&!duelMode)trainingComplete();
+      else{wave++;if(!addViruses(Math.min(36,12+wave*2),4)){if(!duelMode)finish(false);}else{tell('noticeWave',wave);spawn();}}
+    }
     else spawn();
   }else if(state==='flash'&&phase>=.28){erase();state='gravity';phase=0;}
   else if(state==='gravity'&&phase>=.075){phase=0;if(!gravity())state='scan';}
@@ -1543,7 +1639,7 @@ function finish(won){
     levelsCompleted++;
   }
   const showNext=won&&mode==='campaign'&&level<N;
-  const showRescue=!won&&!duelMode;
+  const showRescue=!won&&!duelMode&&__rewardedAdsAvailable;
   show(`<h2>${won?t('endWin'):t('endLose')}</h2>${text}
     <p>${t('endScore')}: <b>${score}</b><br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
@@ -1579,6 +1675,19 @@ function finish(won){
       tick();
     }
   }
+}
+function trainingComplete(){
+  running=false;paused=false;active=null;state='end';
+  clearInput();
+  sound('win');
+  fireworkAtBomb();
+  show(`<h2>\u{1F38A} ${t('trainingDoneTitle')}</h2>
+    <p style="font-size:15px;line-height:1.6;color:#0f172a">${t('trainingDoneText')}</p>
+    <div class="stack">
+      <button data-menu="training-done-campaign" class="primary">${t('trainingDoneCampaign')}</button>
+      <button data-menu="training-done-restart">${t('trainingDoneRestart')}</button>
+      <button data-menu="training-done-menu">${t('trainingDoneMenu')}</button>
+    </div>`,'training-done');
 }
 // [AD-FIX] Блокирует повторные rewarded-запросы из диалога проигрыша.
 async function rescueWithAd(){
@@ -1628,6 +1737,30 @@ function addViruses(n,top){
     }
   }
   return added;
+}
+// [TRAINING-FIX] Гарантирует 3 разных цвета вирусов в обучении.
+function ensureTrainingColors(){
+  const cells = [];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if(grid[y][x]?.type === 'virus') cells.push({x,y});
+  }
+  if(cells.length < 3) return;
+  const distinctCount = () => new Set(cells.map(c => grid[c.y][c.x].color)).size;
+  if(distinctCount() >= 3) return;
+  let guard = 60;
+  while(distinctCount() < 3 && guard-- > 0){
+    const shuffled = cells.slice().sort(() => Math.random() - 0.5);
+    for(const c of shuffled){
+      if(distinctCount() >= 3) break;
+      const cur = grid[c.y][c.x].color;
+      const candidates = [0,1,2].filter(x => x !== cur).sort(() => Math.random() - 0.5);
+      for(const nc of candidates){
+        grid[c.y][c.x].color = nc;
+        if(!findMatches().length) break;
+        grid[c.y][c.x].color = cur;
+      }
+    }
+  }
 }
 function record(){
   if(mode!=='endless')return;
@@ -2012,6 +2145,24 @@ $('dialog').addEventListener('click',async e=>{
       duelStart('bot');
     }
     else if(action==='invite') duelInvite();
+    else if(action==='share-confirm'){
+      const link = duelState.pendingShareLink;
+      if(link && vkReady && window.vkBridge){
+        try{
+          vkBridge.send('VKWebAppShare', {link}).catch(()=>{
+            navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
+          });
+        }catch{
+          navigator.clipboard.writeText(link).then(()=>showToast(t('mpCopied'))).catch(()=>{});
+        }
+      }
+      duelState.pendingShareLink = null;
+      duelShowWaiting();
+    }
+    else if(action==='share-cancel'){
+      duelState.pendingShareLink = null;
+      duelShowWaiting();
+    }
     else if(action==='copy') {
       navigator.clipboard.writeText(`https://vk.com/app${VK_APP_ID}#duel=${duelState.roomId}`).then(()=>showToast(t('mpCopied')));
     }
@@ -2030,13 +2181,40 @@ $('dialog').addEventListener('click',async e=>{
   switch(a){
     case'menu':record();menu();break;
     case'levels':levelsMenu();break;
+    case 'training':
+      trainingStage = 1;
+      trainingBombTipShown = false;
+      start('training', 0);
+      break;
+    case 'training-next':
+      if(trainingStage === 1){ showTrainingStep(2); }
+      else if(trainingStage === 2){ showTrainingStep(3); }
+      else {
+        trainingStage = 0;
+        paused = false;
+        hide();
+        last = performance.now();
+      }
+      break;
+    case 'training-done-campaign': levelsMenu(); break;
+    case 'training-done-restart':
+      trainingStage = 1;
+      trainingBombTipShown = false;
+      start('training', 0);
+      break;
+    case 'training-done-menu': menu(); break;
     case'endless':start('endless',1);break;
     case'settings':settingsMenu();break;
+    case 'support': {
+      window.open('https://vk.ru/club241751605', '_blank');
+      break;
+    }
     case'back':if(running)pauseMenu();else menu();break;
     case'saveSettings':
       save.settings.sound=$('set-sound').checked;
       save.settings.music=$('set-music').checked;
       save.settings.voice=$('set-voice').checked;
+      save.settings.allowShare=$('set-allow-share').checked;
       save.settings.sensitivity=Number($('set-swipe').value);
       save.settings.theme=Number($('set-theme').value);
       save.settings.lang=$('set-lang').value;
@@ -2106,8 +2284,6 @@ async function boot(){
 
   let ok=false;
   try{ok=await vkInit();}catch(e){console.warn('[Boot]',e);}
-  setCloudStatus(ok?t('cloudLocal'):t('cloudSDK'));
-
   if(save.settings.lang==='auto'){
     try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{applyLanguage('ru');}
   }else{
@@ -2117,16 +2293,26 @@ async function boot(){
   updateHUD();updateBombButton();
   requestAnimationFrame(frame);
 
-  // Show the game immediately; cloud sync must never block the first screen.
+  // Загружаем облако до показа меню, с таймаутом, чтобы не залипнуть.
+  if(vkReady){
+    try{
+      const cloud = await Promise.race([
+        vkCloudLoad(),
+        new Promise(r=>setTimeout(()=>r(null), 1500))
+      ]);
+      if(cloud){
+        save = normalize({...save, ...cloud, settings: save.settings});
+        writeLocal();
+      }
+    }catch(e){ console.warn('[Boot] cloud load failed', e); }
+  }
+
+  // Теперь показываем UI уже с актуальным прогрессом.
   menu();
   $('app').hidden=false;
   $('boot').hidden=true;
   clearTimeout(failsafe);
-
-  if(vkReady){
-    const cloud=await vkCloudLoad();
-    if(cloud){save=normalize({...save,...cloud,settings:save.settings});writeLocal();setCloudStatus(t('cloudCloud'));}
-  }
+  setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
 
   if(vkReady&&window.vkBridge){
     try{
@@ -2152,6 +2338,12 @@ async function boot(){
   console.warn('[Boot] Antivirus v2 loaded. Backups: stage7. Features: ad manager, cooldowns, timers.');
 }
 boot();
+
+// [2.3.8] Периодическая синхронизация каждые 30 сек,
+// если есть несохранённые изменения.
+setInterval(()=>{
+  if(vkReady && cloudDirty && !cloudSaving) vkCloudSave();
+}, 30000);
 
 (function initViruses(){
   const palettes=[
