@@ -419,9 +419,34 @@ body.duel-mode .bomb-btn{display:none}
 <script>
 'use strict';
 
-const VK_APP_ID = 54764920;
+// [PLATFORM-FIX] Платформа: 'vk' или 'ok'.
+// Первичная детекция по URL-параметру vk_platform=ok (синхронно,
+// до первого чтения localStorage). Уточняется позже в vkInit()
+// через VKWebAppGetLaunchParams.
+let __vkPlatform = '';
+let __vkSearchParams = null;
+try {
+  __vkSearchParams = new URLSearchParams(location.search);
+  __vkPlatform = __vkSearchParams.get('vk_platform') || '';
+} catch(e){ __vkPlatform = ''; }
+window.Platform = { mode: /^ok/i.test(__vkPlatform) ? 'ok' : 'vk' };
+const __isWebPlatform = /web$/.test(__vkPlatform);
+const __rewardedAdsAvailable = !__isWebPlatform;
+if(!__rewardedAdsAvailable){
+  document.body.classList.add('no-rewarded-ads');
+}
+
+function isOK(){ return window.Platform.mode === 'ok'; }
+function getSaveKey(){ return isOK() ? 'antivirus-ok-1' : 'antivirus-vk-1'; }
+function supportURL(){
+  return isOK()
+    ? 'https://ok.ru/group/70000058576368'
+    : 'https://vk.ru/club241751605';
+}
+
+const VK_APP_ID = 54764920;   // VK App ID
+const OK_APP_ID = 512004990432; // OK App ID (для справки, в коде пока не используется)
 const W = 8, H = 12, N = 30;
-const KEY = 'antivirus-vk-1';
 const COLORS = ['#f43f5e', '#f59e0b', '#3b82f6'];
 const DIR = [[1,0],[0,1],[-1,0],[0,-1]];
 const BOMB_THRESHOLD = 10;
@@ -433,22 +458,6 @@ const MIN_FALL_INTERVAL = 0.6;
 const DUEL_TARGET = 15;
 const DUEL_MAX_GARBAGE = 5;
 const DUEL_BOT_DELAY = 120 * 1000;
-
-// [PLATFORM-FIX] Rewarded-реклама (VKWebAppShowNativeAds с форматом
-// reward) работает только в нативных мобильных приложениях VK.
-// На mobile_web и desktop_web не поддерживается — там кнопки
-// rewarded-рекламы нужно скрывать.
-// vk_platform пустой (dev-режим, запуск вне VK) → кнопки оставляем,
-// чтобы не спрятать их у реального Android/iOS-пользователя.
-let __vkPlatform = '';
-try {
-  __vkPlatform = new URLSearchParams(location.search).get('vk_platform') || '';
-} catch(e){ __vkPlatform = ''; }
-const __isWebPlatform = /web$/.test(__vkPlatform);
-const __rewardedAdsAvailable = !__isWebPlatform;
-if(!__rewardedAdsAvailable){
-  document.body.classList.add('no-rewarded-ads');
-}
 
 // === Менеджер рекламы ===
 // [AD-FIX] Ограничивает частоту и суточное количество рекламных показов.
@@ -726,10 +735,28 @@ function normalize(raw){
   return s;
 }
 let save = fresh();
-try { save = normalize(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch {}
-function writeLocal(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch{}}
+try { save = normalize(JSON.parse(localStorage.getItem(getSaveKey()) || 'null')); } catch {}
+function writeLocal(){try{localStorage.setItem(getSaveKey(),JSON.stringify(save));}catch{}}
 
 let vkReady = false, vkUserId = null, vkLaunchParams = {};
+// [PLATFORM-FIX] Уточняет платформу через VKWebAppGetLaunchParams.
+// Вызывается после успешного VKWebAppInit.
+async function detectPlatform(){
+  if(!window.vkBridge) return;
+  try{
+    const r = await Promise.race([
+      vkBridge.send('VKWebAppGetLaunchParams'),
+      new Promise((_,rj)=>setTimeout(()=>rj(new Error('launch params timeout')),1500))
+    ]);
+    const p = String(r?.vk_platform || '').toLowerCase();
+    if(p){
+      window.Platform.mode = p.includes('ok') ? 'ok' : 'vk';
+    }
+  }catch(e){
+    console.warn('[Platform] getLaunchParams skipped:', e?.message||e);
+  }
+  console.warn('[Platform] mode =', window.Platform.mode);
+}
 async function vkInit(){
   if(!window.vkBridge){console.warn('[VK] SDK не загружен');return false;}
   try{
@@ -737,7 +764,8 @@ async function vkInit(){
       vkBridge.send('VKWebAppInit'),
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),1500))
     ]);
-    const p=new URLSearchParams(location.search);
+    await detectPlatform();
+    const p=__vkSearchParams || new URLSearchParams();
     vkLaunchParams=Object.fromEntries(p);
     vkUserId=p.get('vk_user_id');
     const vkLang=p.get('vk_language');
@@ -830,22 +858,11 @@ async function vkPurchase(itemId){
     console.warn('[Shop] unknown item', itemId);
     return false;
   }
-  const payload = {
-    id: item.id,
-    title: t(item.titleKey) || item.title || item.id,
-    description: t(item.descKey) || item.desc || '',
-    price: item.price,
-    photo_url: 'https://raw.githubusercontent.com/Darones/assets/main/coin.png',
-    item_type: 'item',
-    currency: 'votes'
-  };
-  console.log('[Shop] sending payload:', JSON.stringify(payload));
-  console.log('[Shop] item JSON string:', JSON.stringify(payload));
-  console.log('[Shop] vkReady =', vkReady, 'vkBridge =', !!window.vkBridge);
+  console.log('[Shop] purchase item:', itemId, 'platform =', window.Platform.mode);
   try{
     const r = await vkBridge.send(
       'VKWebAppShowOrderBox',
-      {type:'item',item:JSON.stringify(payload)}
+      {type:'item', item:itemId}
     );
     console.log('[Shop] raw response:', JSON.stringify(r));
     if(!r || !r.success){
@@ -2180,7 +2197,13 @@ $('dialog').addEventListener('click',async e=>{
     } else {
       buy.disabled = false;
       const errText = (window.__lastShopError || '') + '';
-      alert(t('shopError') + (errText ? '\n\nVK: ' + errText : ''));
+      console.warn('[Shop] purchase failed:', errText);
+      // [SHOP-FIX] Тост вместо блокирующего alert.
+      showToast(t('shopError'));
+      setCloudStatus(errText ? (t('shopError') + ' · ' + errText) : t('shopError'));
+      setTimeout(()=>{
+        setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
+      }, 3000);
     }
     return;
   }
@@ -2256,7 +2279,7 @@ $('dialog').addEventListener('click',async e=>{
     case'endless':start('endless',1);break;
     case'settings':settingsMenu();break;
     case 'support': {
-      window.open('https://vk.ru/club241751605', '_blank');
+      window.open(supportURL(), '_blank');
       break;
     }
     case'back':if(running)pauseMenu();else menu();break;
