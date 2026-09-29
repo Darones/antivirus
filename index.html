@@ -540,11 +540,11 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
   : 'wss://antivirus-duel-server.relaxdev.ru';
 
 const SHOP_ITEMS = [
-  { id:'bombs_pack', icon:'💣', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:15 },
-  { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:50 },
-  { id:'unlock_all', icon:'🔓', title:'Открыть все уровни', desc:'Вся кампания (30 уровней)', price:25 }
+  { id:'bombs_pack', icon:'💣', titleKey:'shopBombsPackTitle', descKey:'shopBombsPackDesc', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:15 },
+  { id:'remove_ads', icon:'🚫', titleKey:'shopRemoveAdsTitle', descKey:'shopRemoveAdsDesc', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:10 },
+  { id:'unlock_all', icon:'🔓', titleKey:'shopUnlockAllTitle', descKey:'shopUnlockAllDesc', title:'Открыть все уровни', desc:'Вся кампания (30 уровней)', price:25 }
 ];
-const SHOP_ENABLED = false;
+const SHOP_ENABLED = true;
 
 const $ = id => document.getElementById(id);
 const ctx = $('board').getContext('2d');
@@ -568,6 +568,9 @@ const LOCALES = {
     recordsViruses:'Вирусы', recordsScore:'Очки', recordsTime:'Время', recordsBack:'Назад',
     shopTitle:'Магазин', shopDesc:'Покупки за голоса ВКонтакте.', shopBack:'Назад',
     shopError:'Не удалось совершить покупку',
+    shopRemoveAdsTitle:'Убрать рекламу', shopRemoveAdsDesc:'Реклама между уровнями больше не показывается',
+    shopBombsPackTitle:'Набор бомб', shopBombsPackDesc:'Три дополнительные бомбы',
+    shopUnlockAllTitle:'Открыть все уровни', shopUnlockAllDesc:'Разблокировать всю кампанию сразу',
     mpTitle:'Дуэль 1×1', mpDesc:'Сервер дуэли в разработке.',
     mpInvite:'Пригласить друга', mpShareError:'Не удалось поделиться', mpCopied:'Ссылка скопирована',
     duelFindRandom:'Найти соперника',
@@ -638,6 +641,9 @@ const LOCALES = {
     recordsViruses:'Viruses', recordsScore:'Score', recordsTime:'Time', recordsBack:'Back',
     shopTitle:'Shop', shopDesc:'Purchases via VK votes.', shopBack:'Back',
     shopError:'Purchase failed',
+    shopRemoveAdsTitle:'Remove ads', shopRemoveAdsDesc:'Interstitial ads between levels will no longer appear',
+    shopBombsPackTitle:'Bomb pack', shopBombsPackDesc:'Three extra bombs',
+    shopUnlockAllTitle:'Unlock all levels', shopUnlockAllDesc:'Unlock the whole campaign at once',
     mpTitle:'Duel 1v1', mpDesc:'Duel server in development.',
     mpInvite:'Invite friend', mpShareError:'Share failed', mpCopied:'Link copied',
     duelFindRandom:'Find opponent',
@@ -812,7 +818,32 @@ async function showInterstitial(){
 async function showRewarded(){
   return await adShow('rewarded');
 }
-async function vkPurchase(itemId){if(!vkReady)return false;try{const r=await vkBridge.send('VKWebAppShowOrderBox',{type:'item',item:itemId});return !!r?.success;}catch(e){console.warn('[VK] purchase:',e);return false;}}
+async function vkPurchase(itemId){
+  if(!vkReady)return false;
+  const item = (SHOP_ITEMS||[]).find(i=>i.id===itemId);
+  if(!item){ console.warn('[Shop] unknown item', itemId); return false; }
+  const payload = {
+    id: item.id,
+    title: t(item.titleKey) || item.id,
+    description: t(item.descKey) || '',
+    price: item.price,
+    photo_url: 'https://raw.githubusercontent.com/Darones/assets/main/coin.png'
+  };
+  try{
+    const r = await vkBridge.send(
+      'VKWebAppShowOrderBox',
+      {type:'item',item:JSON.stringify(payload)}
+    );
+    if(!r || !r.success){
+      console.warn('[Shop] not success', r);
+      return false;
+    }
+    return true;
+  }catch(e){
+    console.warn('[Shop] order fail:', e?.message||e);
+    return false;
+  }
+}
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
 
 // [AD-FIX] Блокирует повторные rewarded-запросы с игровой кнопки.
