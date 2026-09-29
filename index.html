@@ -819,27 +819,45 @@ async function showRewarded(){
   return await adShow('rewarded');
 }
 async function vkPurchase(itemId){
-  if(!vkReady)return false;
+  window.__lastShopError = '';
+  if(!vkReady){
+    window.__lastShopError = 'VK bridge is not ready';
+    return false;
+  }
   const item = (SHOP_ITEMS||[]).find(i=>i.id===itemId);
-  if(!item){ console.warn('[Shop] unknown item', itemId); return false; }
+  if(!item){
+    window.__lastShopError = 'Unknown item: ' + itemId;
+    console.warn('[Shop] unknown item', itemId);
+    return false;
+  }
   const payload = {
     id: item.id,
-    title: t(item.titleKey) || item.id,
-    description: t(item.descKey) || '',
+    title: t(item.titleKey) || item.title || item.id,
+    description: t(item.descKey) || item.desc || '',
     price: item.price,
-    photo_url: 'https://raw.githubusercontent.com/Darones/assets/main/coin.png'
+    photo_url: 'https://raw.githubusercontent.com/Darones/assets/main/coin.png',
+    item_type: 'item',
+    currency: 'votes'
   };
+  console.log('[Shop] sending payload:', JSON.stringify(payload));
+  console.log('[Shop] item JSON string:', JSON.stringify(payload));
+  console.log('[Shop] vkReady =', vkReady, 'vkBridge =', !!window.vkBridge);
   try{
     const r = await vkBridge.send(
       'VKWebAppShowOrderBox',
       {type:'item',item:JSON.stringify(payload)}
     );
+    console.log('[Shop] raw response:', JSON.stringify(r));
     if(!r || !r.success){
+      const responseError = r?.error?.error_msg || r?.error?.message || r?.error || 'VK returned success=false';
+      window.__lastShopError = typeof responseError === 'string' ? responseError : JSON.stringify(responseError);
       console.warn('[Shop] not success', r);
       return false;
     }
     return true;
   }catch(e){
+    window.__lastShopError = e?.message || String(e);
+    console.error('[Shop] exception:', e, e && e.message, e && e.stack);
     console.warn('[Shop] order fail:', e?.message||e);
     return false;
   }
@@ -2161,7 +2179,8 @@ $('dialog').addEventListener('click',async e=>{
       shopMenu();
     } else {
       buy.disabled = false;
-      alert(t('shopError'));
+      const errText = (window.__lastShopError || '') + '';
+      alert(t('shopError') + (errText ? '\n\nVK: ' + errText : ''));
     }
     return;
   }
