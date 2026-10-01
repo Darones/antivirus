@@ -554,10 +554,15 @@ async function adShow(kind){
     }
     return shown;
   }catch(e){
-    if(e?.message === 'show timeout') console.warn('[Ads] show timeout');
-    console.warn('[Ads] show ' + kind + ' failed');
     window.__lastAdResponse = 'ERR: ' + (e?.message||String(e));
-    console.warn('[Ads] show failed:', e?.message||e);
+    // [AD-FIX] VK Bridge может не ответить после показа ролика — считаем показ успешным
+    if(e?.message === 'show timeout'){
+      console.warn('[Ads] show timeout — optimistically reward');
+      if(kind === 'rewarded'){ lastRewardedAt = Date.now(); adDailyCount++; }
+      if(kind === 'interstitial'){ lastInterstitialAt = Date.now(); adDailyCount++; }
+      return true;
+    }
+    console.warn('[Ads] show ' + kind + ' failed:', e?.message||e);
     return false;
   }finally{
     adRequestPending = false;
