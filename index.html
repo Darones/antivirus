@@ -568,9 +568,9 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
   : 'wss://antivirus-duel-server.relaxdev.ru';
 
 const SHOP_ITEMS = [
-  { id:'bombs_pack', icon:'💣', titleKey:'shopBombsPackTitle', descKey:'shopBombsPackDesc', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:15 },
-  { id:'remove_ads', icon:'🚫', titleKey:'shopRemoveAdsTitle', descKey:'shopRemoveAdsDesc', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:10 },
-  { id:'unlock_all', icon:'🔓', titleKey:'shopUnlockAllTitle', descKey:'shopUnlockAllDesc', title:'Открыть все уровни', desc:'Вся кампания (30 уровней)', price:25 }
+  { id:'bombs_pack', icon:'💣', titleKey:'shopBombsPackTitle', descKey:'shopBombsPackDesc', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:10 },
+  { id:'bombs_pack_big', icon:'💣', titleKey:'shopBombsPackBigTitle', descKey:'shopBombsPackBigDesc', title:'Набор бомб ×20', desc:'Мгновенно +20 бомб', price:25 },
+  { id:'remove_ads', icon:'🚫', titleKey:'shopRemoveAdsTitle', descKey:'shopRemoveAdsDesc', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:10 }
 ];
 const SHOP_ENABLED = true;
 
@@ -598,6 +598,7 @@ const LOCALES = {
     shopError:'Не удалось совершить покупку',
     shopRemoveAdsTitle:'Убрать рекламу', shopRemoveAdsDesc:'Реклама между уровнями больше не показывается',
     shopBombsPackTitle:'Набор бомб', shopBombsPackDesc:'Три дополнительные бомбы',
+    shopBombsPackBigTitle:'Набор бомб ×20', shopBombsPackBigDesc:'Мгновенно +20 бомб',
     shopUnlockAllTitle:'Открыть все уровни', shopUnlockAllDesc:'Разблокировать всю кампанию сразу',
     mpTitle:'Дуэль 1×1', mpDesc:'Сервер дуэли в разработке.',
     mpInvite:'Пригласить друга', mpShareError:'Не удалось поделиться', mpCopied:'Ссылка скопирована',
@@ -672,6 +673,7 @@ const LOCALES = {
     shopError:'Purchase failed',
     shopRemoveAdsTitle:'Remove ads', shopRemoveAdsDesc:'Interstitial ads between levels will no longer appear',
     shopBombsPackTitle:'Bomb pack', shopBombsPackDesc:'Three extra bombs',
+    shopBombsPackBigTitle:'Bomb pack ×20', shopBombsPackBigDesc:'Instantly +20 bombs',
     shopUnlockAllTitle:'Unlock all levels', shopUnlockAllDesc:'Unlock the whole campaign at once',
     mpTitle:'Duel 1v1', mpDesc:'Duel server in development.',
     mpInvite:'Invite friend', mpShareError:'Share failed', mpCopied:'Link copied',
@@ -2262,8 +2264,9 @@ $('dialog').addEventListener('click',async e=>{
     const ok = await vkPurchase(itemId);
     if(ok){
       if(itemId === 'remove_ads')   save.purchases.remove_ads = true;
-      if(itemId === 'unlock_all')   save.purchases.unlock_all = true;
-      if(itemId === 'bombs_pack'){  bombsAvailable += 5; updateBombButton(); }
+      if(itemId === 'unlock_all')   save.purchases.unlock_all = true;  // legacy, товар больше не продаётся
+      if(itemId === 'bombs_pack'){     bombsAvailable += 5;  save.bombs = bombsAvailable; updateBombButton(); }
+      if(itemId === 'bombs_pack_big'){ bombsAvailable += 20; save.bombs = bombsAvailable; updateBombButton(); }
       persist();
       shopMenu();
     } else {
