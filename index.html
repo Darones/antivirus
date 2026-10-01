@@ -540,6 +540,9 @@ async function adShow(kind){
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('show timeout')), AD_SHOW_TIMEOUT))
     ]);
     // [AD-FIX] VK Bridge может возвращать {success:true}
+    // [DEBUG-TEMP] сохраняем сырой ответ для диагностики
+    window.__lastAdResponse = JSON.stringify(r);
+    console.warn('[Ads] raw response:', window.__lastAdResponse);
     const shown = !!(r?.result || r?.success);
     if(shown){
       adDailyCount++;
@@ -553,6 +556,7 @@ async function adShow(kind){
   }catch(e){
     if(e?.message === 'show timeout') console.warn('[Ads] show timeout');
     console.warn('[Ads] show ' + kind + ' failed');
+    window.__lastAdResponse = 'ERR: ' + (e?.message||String(e));
     console.warn('[Ads] show failed:', e?.message||e);
     return false;
   }finally{
@@ -919,7 +923,7 @@ async function requestBombViaAd(){
   }
   if(!ok){
     console.warn('[Ads] requestBombViaAd: rewarded false');
-    showToast(t('adBombFailed'));
+    showToast(t('adBombFailed') + ' | ' + (window.__lastAdResponse||'—'));
     return;
   }
   bombsAvailable += 3;
@@ -1836,7 +1840,7 @@ async function rescueWithAd(){
   if(!ok){
     console.warn('[Ads] rescueWithAd: rewarded false');
     const p = $('dialog')?.querySelector('.status');
-    if(p){ p.textContent = t('noticeRescueFail'); p.style.color = '#f43f5e'; }
+    if(p){ p.textContent = t('noticeRescueFail') + ' | ' + (window.__lastAdResponse||'—'); p.style.color = '#f43f5e'; p.style.fontSize='11px'; }
     return;
   }
   for(let y=0;y<RESCUE_ROWS;y++)for(let x=0;x<W;x++)grid[y][x]=null;
