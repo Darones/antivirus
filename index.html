@@ -429,6 +429,7 @@ body.duel-mode .bomb-btn{display:none}
 <div id="fireworkLayer" aria-hidden="true"></div>
 
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script src="https://connect.ok.ru/connect.js"></script>
 
 <script>
 'use strict';
@@ -457,6 +458,22 @@ function supportURL(){
     ? 'https://ok.ru/group/70000058576368'
     : 'https://vk.ru/club241751605';
 }
+
+// [OK-PAY] Обработчик результата оплаты от ОК.
+window.API_callback = function(method, result, data){
+  console.log('[OK-PAY] callback:', method, result, JSON.stringify(data));
+  if(method !== 'showPayment') return;
+  if(result === 'ok' || result === 'success'){
+    const code = (data && (data.product_code || data.code)) || '';
+    if(code === 'bombs_pack'){     bombsAvailable += 5;  save.bombs = bombsAvailable; persist(); updateBombButton(); }
+    if(code === 'bombs_pack_big'){ bombsAvailable += 20; save.bombs = bombsAvailable; persist(); updateBombButton(); }
+    if(code === 'remove_ads'){     save.purchases.remove_ads = true; persist(); }
+    showToast('Покупка успешна!');
+    if(screen === 'shop') shopMenu();
+  } else {
+    showToast('Покупка отменена');
+  }
+};
 
 const VK_APP_ID = 54764920;   // VK App ID
 const OK_APP_ID = 512004990432; // OK App ID (для справки, в коде пока не используется)
@@ -525,6 +542,17 @@ async function adCheckAvailable(kind){
 }
 
 // [AD-FIX] Сериализует показы и обновляет лимиты только после успешного показа.
+// [AD-FIX] Предзагрузка rewarded — VK рекомендует вызывать заранее.
+function preloadRewarded(){
+  if(!vkReady || !window.vkBridge) return;
+  if(save.purchases.remove_ads) return;
+  try{
+    vkBridge.send('VKWebAppCheckNativeAds', {ad_format:'reward'})
+      .then(r => console.warn('[Ads] preload reward:', JSON.stringify(r)))
+      .catch(e => console.warn('[Ads] preload failed:', e?.message||e));
+  }catch(e){}
+}
+
 async function adShow(kind){
   if(!vkReady) return false;
   const gate = adCanShow(kind);
@@ -1635,6 +1663,7 @@ function start(m,n){
     addViruses(14, 6);
   }
   clearInput();hide();spawn();updateHUD();tell('noticeStart');
+  if(__rewardedAdsAvailable) preloadRewarded();
   if(m==='training') showTrainingStep(1);
   // [TIMER-FIX] Сбрасывает ввод и базовое время при старте новой игры.
   pointer = null;
@@ -2466,6 +2495,7 @@ async function boot(){
   $('boot').hidden=true;
   clearTimeout(failsafe);
   setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
+  preloadRewarded();
 
   if(vkReady&&window.vkBridge){
     try{
