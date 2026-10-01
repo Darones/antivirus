@@ -125,6 +125,20 @@ body:not(.duel-mode) .mini-opp{display:none}
   position:relative;height:100%;max-height:100%;
   aspect-ratio:2/3;max-width:100%;
 }
+.duel-countdown{
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  font-size:96px;font-weight:900;color:#6366f1;
+  text-shadow:0 4px 24px rgba(99,102,241,.45);
+  pointer-events:none;z-index:5;
+  background:rgba(15,23,42,.15);
+  border-radius:30px;
+  backdrop-filter:blur(3px);
+  transition:font-size .15s;
+  text-align:center;
+  padding:0 16px;
+  line-height:1.15;
+}
 canvas#board{
   display:block;width:100%;height:100%;
   background:#fff;
@@ -465,7 +479,7 @@ const AD_INTERSTITIAL_COOLDOWN = 60 * 1000;
 const AD_REWARDED_COOLDOWN     = 30 * 1000;
 const AD_DAILY_LIMIT           = 15;
 const AD_CHECK_TIMEOUT         = 1500;
-const AD_SHOW_TIMEOUT          = 8000;
+const AD_SHOW_TIMEOUT          = 15000;  // [AD-FIX] длинные ролики не влезали
 
 let lastInterstitialAt = 0;
 let lastRewardedAt     = 0;
@@ -525,7 +539,8 @@ async function adShow(kind){
       vkBridge.send('VKWebAppShowNativeAds', {ad_format: fmt}),
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('show timeout')), AD_SHOW_TIMEOUT))
     ]);
-    const shown = !!r?.result;
+    // [AD-FIX] VK Bridge может возвращать {success:true}
+    const shown = !!(r?.result || r?.success);
     if(shown){
       adDailyCount++;
       if(kind === 'interstitial') lastInterstitialAt = Date.now();
@@ -604,6 +619,7 @@ const LOCALES = {
     duelConnLost:'Соединение потеряно',
     duelGarbage:'Мусор! +',
     duelGarbageSent:'Мусор сопернику: +',
+    duelStarting:'Дуэль начинается!',
     noticeStart:'Соберите 4 одинаковых цвета в ряд!',
     noticeBomb:'Бомба! Выберите место взрыва',
     noticeClear:'Область 3×3 очищена!',
@@ -613,7 +629,7 @@ const LOCALES = {
     noticeWave:w=>`Волна ${w}`,
     noticeNoBombs:'Нет бомб. Соберите 10+ клеток за ход',
     noticeRescueFail:'Реклама недоступна',
-    adBombEarned:'+1 💣 за рекламу!',
+    adBombEarned:'+3 💣 за рекламу!',
     adBombFailed:'Реклама недоступна',
     adCooldown:s=>`Подождите ${s}с`,
     cloudLocal:'Локальное сохранение', cloudCloud:'Синхронизировано с VK', cloudSave:'Сохранено в VK',
@@ -677,6 +693,7 @@ const LOCALES = {
     duelConnLost:'Connection lost',
     duelGarbage:'Garbage! +',
     duelGarbageSent:'Garbage sent: +',
+    duelStarting:'Duel starts!',
     noticeStart:'Match four identical colors!',
     noticeBomb:'Bomb! Choose spot',
     noticeClear:'3×3 cleared!',
@@ -686,7 +703,7 @@ const LOCALES = {
     noticeWave:w=>`Wave ${w}`,
     noticeNoBombs:'No bombs. Clear 10+ cells in one move',
     noticeRescueFail:'Ad unavailable',
-    adBombEarned:'+1 💣 via ad!',
+    adBombEarned:'+3 💣 via ad!',
     adBombFailed:'Ad unavailable',
     adCooldown:s=>`Wait ${s}s`,
     cloudLocal:'Local save', cloudCloud:'Synced with VK', cloudSave:'Saved to VK',
@@ -712,6 +729,7 @@ function normalizeLang(raw){if(!raw)return null;const c=String(raw).toLowerCase(
 
 const fresh = () => ({
   unlocked:1, stars:Array(N).fill(0), best:{kills:0,time:0,score:0},
+  bombs:1,
   settings:{sound:true,music:true,voice:true,allowShare:false,sensitivity:30,lang:'auto',theme:0},
   purchases:{remove_ads:false,unlock_all:false}
 });
@@ -723,6 +741,7 @@ function normalize(raw){
   for(let i=0;i<N;i++)if(s.stars[i])s.unlocked=Math.max(s.unlocked,Math.min(N,i+2));
   for(const k of ['kills','time','score'])s.best[k]=num(raw.best?.[k]);
   s.best.kills=Math.floor(s.best.kills);
+  s.bombs = Math.floor(num(raw.bombs, 0, 99));
   const o=raw.settings||{};
   for(const k of ['sound','music','voice'])s.settings[k]=o[k]!==false;
   s.settings.allowShare = o.allowShare === true;
@@ -799,7 +818,7 @@ async function vkCloudSave(){
   let ok = false;
   try{
     const r = await Promise.race([
-      vkBridge.send('VKWebAppStorageSet',{key:'progress',value:JSON.stringify({unlocked:save.unlocked,stars:save.stars,best:save.best,purchases:save.purchases})}),
+      vkBridge.send('VKWebAppStorageSet',{key:'progress',value:JSON.stringify({unlocked:save.unlocked,stars:save.stars,best:save.best,purchases:save.purchases,bombs:save.bombs})}),
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('save timeout')), CLOUD_SAVE_TIMEOUT))
     ]);
     if(r && r.result !== false){
@@ -903,7 +922,9 @@ async function requestBombViaAd(){
     showToast(t('adBombFailed'));
     return;
   }
-  bombsAvailable += 1;
+  bombsAvailable += 3;
+  save.bombs = bombsAvailable;
+  persist();
   updateBombButton();
   fireworkAtBomb();
   showToast(t('adBombEarned'));
@@ -915,7 +936,7 @@ let mode='campaign', level=1, wave=1, score=0, kills=0, elapsed=0, moves=0;
 let running=false, paused=false, platformPaused=false, screen='boot';
 let state='idle', fall=0, phase=0, combo=0, matches=[], particles=[];
 let moveCleared=0, bombAwarded=false, bombsAvailable=0;
-let last=performance.now(), clock=0, hudTick=0, noticeLeft=0;
+let last=performance.now(), clock=0, hudTick=0, noticeLeft = 0;
 let pressed=new Set(), pointer=null, tapTimer=null, lastTap=0, buttonHold=null;
 let levelsCompleted=0;
 let trainingStage = 0;
@@ -1071,6 +1092,7 @@ const duelState = {
   pendingShareLink: null,
   stateSendTimer: null,
   duelStartTimer: null,
+  countdownTimer: null,
   botGarbageFired: false
 };
 
@@ -1304,23 +1326,61 @@ function duelStart(mode){
   $('app').inert = false;
   start('campaign', 1);
 
-  if(mode !== 'bot'){
-    clearTimeout(duelState.duelStartTimer);
-    duelState.duelStartTimer = setTimeout(() => {
-      if(!duelMode || !duelState.started || duelState.botMode) return;
-      console.warn('[Duel] start send state');
-      duelSend({
-        type: 'state',
-        state: {
-          viruses: 0,
-          score: 0,
-          board: grid.map(row => row.map(c => c ? { type: c.type, color: c.color } : null))
-        }
-      });
-    }, 300);
-  }
+  /* [DUEL-FIX] перенесено после отсчёта */
 
-  if(mode === 'bot') duelStartBot();
+  // [DUEL-FIX] Отсчёт 10→1 — оверлей поверх колбы
+  active = null;
+  state = 'idle';
+  noticeLeft = 0;
+  const cdWrap = document.querySelector('.canvas-inner');
+  let cdEl = $('duelCountdown');
+  if(!cdEl && cdWrap){
+    cdEl = document.createElement('div');
+    cdEl.id = 'duelCountdown';
+    cdEl.className = 'duel-countdown';
+    cdWrap.appendChild(cdEl);
+  }
+  if(cdEl){ cdEl.hidden = false; cdEl.style.fontSize = ''; }
+  let n = 10;
+  const tick = () => {
+    if(!duelMode || !duelState.started){
+      clearTimeout(duelState.countdownTimer);
+      if(cdEl) cdEl.hidden = true;
+      return;
+    }
+    if(n > 0){
+      if(cdEl) cdEl.textContent = String(n);
+      n--;
+      duelState.countdownTimer = setTimeout(tick, 1000);
+    } else {
+      const msg = t('duelStarting') || 'Дуэль начинается!';
+      if(cdEl){ cdEl.textContent = msg; cdEl.style.fontSize = '30px'; }
+      setTimeout(()=>{
+        if(cdEl){ cdEl.hidden = true; cdEl.style.fontSize = ''; }
+      }, 1500);
+      // [DUEL-FIX] Запускаем игру для обоих режимов
+      spawn();
+      last = performance.now();
+      if(mode === 'bot'){
+        duelStartBot();
+      } else {
+        // [DUEL-FIX] Отправляем стартовое состояние сопернику после отсчёта
+        clearTimeout(duelState.duelStartTimer);
+        duelState.duelStartTimer = setTimeout(() => {
+          if(!duelMode || !duelState.started || duelState.botMode) return;
+          duelSend({
+            type: 'state',
+            state: {
+              viruses: 0,
+              score: 0,
+              board: grid.map(row => row.map(c => c ? { type: c.type, color: c.color } : null))
+            }
+          });
+        }, 100);
+      }
+    }
+  };
+  tick();
 }
 function duelStartBot(){
   duelStopBot();
@@ -1366,6 +1426,9 @@ function duelEnd(won, reason){
   duelState.started = false;
   duelStopBot();
   clearTimeout(duelState.botTimeout);
+  // [DUEL-FIX] Скрываем оверлей отсчёта и гасим таймер при прерывании партии
+  clearTimeout(duelState.countdownTimer);
+  const cdEl = $('duelCountdown'); if(cdEl) cdEl.hidden = true;
   duelMode = false;
   document.body.classList.remove('duel-mode');
   $('bombButton').style.display = '';
@@ -1404,6 +1467,7 @@ function duelLeave(){
   duelMode = false;
   document.body.classList.remove('duel-mode');
   $('bombButton').style.display = '';
+  const cd = $('duelCountdown'); if(cd) cd.hidden = true;
 }
 
 function duelEnqueueGarbage(cells){
@@ -1477,13 +1541,14 @@ function updateGarbage(dt){
       g.fallAcc -= stepTime;
       const nextY = g.y + 1;
       if(nextY >= H || (g.y >= 0 && grid[nextY] && grid[nextY][g.x])){
-        if(g.y >= 0) grid[g.y][g.x] = { type: 'virus', color: g.color };
+        // [DUEL-FIX] type:'garbage' — отрисуется как пилюля, не считается вирусом
+        if(g.y >= 0) grid[g.y][g.x] = { type: 'garbage', color: g.color };
         garbagePieces.splice(i, 1);
         break;
       } else {
         g.y = nextY;
         if(g.y >= 0 && grid[g.y] && grid[g.y][g.x]){
-          if(g.y - 1 >= 0) grid[g.y - 1][g.x] = { type: 'virus', color: g.color };
+          if(g.y - 1 >= 0) grid[g.y - 1][g.x] = { type: 'garbage', color: g.color };
           garbagePieces.splice(i, 1);
           break;
         }
@@ -1541,13 +1606,15 @@ function start(m,n){
   active=null;next=pair();serial=1;
   score=kills=elapsed=moves=fall=phase=combo=0;
   matches=[];particles=[];garbagePieces=[];
-  moveCleared=0;bombAwarded=false;bombsAvailable=1;
+  moveCleared=0;bombAwarded=false;bombsAvailable=save.bombs;
   updateBombButton();
   running=true;paused=false;state='fall';last=performance.now();
   document.querySelectorAll('.friend').forEach(e=>e.classList.remove('hurt'));
   const d=difficulty(n);
   if(duelMode){
-    addViruses(DUEL_TARGET, 4);
+    addViruses(DUEL_TARGET, 4);  // top=4 → вирусы с 5-й строки (индекс 4)
+    // [DUEL-FIX] Гарантируем, что верхние 4 строки пусты на старте
+    for(let y=0;y<4;y++)for(let x=0;x<W;x++)grid[y][x]=null;
   } else if(m==='training'){
     addViruses(5, 6);
     ensureTrainingColors();
@@ -1616,7 +1683,7 @@ function action(a){
 function useBomb(){
   if(!playable()||state!=='fall'||!active)return;
   if(bombsAvailable<=0){tell('noticeNoBombs');return;}
-  bombsAvailable--;active.bomb=true;updateBombButton();tell('noticeBomb');bombSpawnSound();
+  bombsAvailable--;save.bombs=bombsAvailable;persist();active.bomb=true;updateBombButton();tell('noticeBomb');bombSpawnSound();
 }
 function gravity(){
   const links=new Map();
@@ -1651,7 +1718,7 @@ function erase(bomb=false){
     node.classList.add('hurt');
   });
   if(!bomb&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded&&!duelMode){
-    bombAwarded=true;bombsAvailable++;updateBombButton();fireworkAtBomb();praise();tell('noticeBombEarned',moveCleared);
+    bombAwarded=true;bombsAvailable++;save.bombs=bombsAvailable;persist();updateBombButton();fireworkAtBomb();praise();tell('noticeBombEarned',moveCleared);
   } else if(!bomb&&duelMode&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded){
     bombAwarded=true;
     duelMyPiecesCleared(moveCleared);
@@ -1968,7 +2035,8 @@ function draw(){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x])drawCell(x,y,grid[y][x]);
 
   for(const gm of garbagePieces){
-    if(gm.y>=0) drawCell(gm.x,gm.y,{type:'virus',color:gm.color});
+    // [DUEL-FIX] Мусор рисуем как одинарную пилюлю, не как вирус
+    if(gm.y>=0) drawCell(gm.x,gm.y,{type:'garbage',color:gm.color});
     else {
       ctx.save();
       ctx.globalAlpha=0.6;
