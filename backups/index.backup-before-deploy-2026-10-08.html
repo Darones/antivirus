@@ -121,136 +121,6 @@ body:not(.duel-mode) .mini-opp{display:none}
   display:flex;align-items:center;justify-content:center;
   padding-right:52px;padding-left:2px;
 }
-.canvas-inner.shake-light{
-  animation: board-shake-light 0.15s ease-in-out;
-}
-.canvas-inner.shake-medium{
-  animation: board-shake-medium 0.25s ease-in-out;
-}
-.canvas-inner.shake-heavy{
-  animation: board-shake-heavy 0.4s ease-in-out;
-}
-.canvas-inner.shake-overflow{
-  animation: board-shake-overflow 0.6s ease-in-out;
-}
-@keyframes board-shake-light{
-  0%,100%{ transform:translate(0,0); }
-  25%    { transform:translate(-2px,1px); }
-  50%    { transform:translate(2px,-1px); }
-  75%    { transform:translate(-1px,2px); }
-}
-@keyframes board-shake-medium{
-  0%,100%{ transform:translate(0,0); }
-  20%    { transform:translate(-4px,2px); }
-  40%    { transform:translate(4px,-2px); }
-  60%    { transform:translate(-3px,-3px); }
-  80%    { transform:translate(3px,3px); }
-}
-@keyframes board-shake-heavy{
-  0%,100%{ transform:translate(0,0); }
-  15%    { transform:translate(-6px,3px); }
-  30%    { transform:translate(6px,-3px); }
-  45%    { transform:translate(-5px,-4px); }
-  60%    { transform:translate(5px,4px); }
-  75%    { transform:translate(-3px,2px); }
-  90%    { transform:translate(3px,-2px); }
-}
-@keyframes board-shake-overflow{
-  0%,100%{ transform:translate(0,0); }
-  10%    { transform:translate(-8px,4px); }
-  20%    { transform:translate(8px,-4px); }
-  30%    { transform:translate(-7px,-5px); }
-  40%    { transform:translate(7px,5px); }
-  50%    { transform:translate(-6px,3px); }
-  60%    { transform:translate(6px,-3px); }
-  70%    { transform:translate(-4px,2px); }
-  80%    { transform:translate(4px,-2px); }
-  90%    { transform:translate(-2px,1px); }
-}
-.character-svg{display:block;margin:0 auto;width:128px;height:auto;max-width:100%}
-.character-svg.large{width:200px}
-.characters-test-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0}
-.characters-test-grid>div{background:#f8fafc;border-radius:12px;padding:8px;text-align:center}
-.characters-test-grid>div>small{display:block;font-size:11px;color:#64748b;margin-top:4px}
-.story-card{text-align:center}
-.story-card .illustration{margin:0 auto 12px;min-height:180px;display:flex;align-items:center;justify-content:center}
-.story-card .illustration svg{width:180px;height:auto;max-width:100%}
-.story-card h2{font-size:20px;margin:8px 0 10px}
-.story-card .story-text{font-size:15px;line-height:1.55;color:#0f172a;background:#f8fafc;border-radius:12px;padding:12px 14px;margin:8px 0;text-align:left}
-.story-card .story-fact{font-size:13px;line-height:1.5;color:#0f172a;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:12px;padding:10px 12px;margin:12px 0;text-align:left}
-.story-card .story-fact b{color:#78350f}
-.story-card .story-progress{font-size:12px;color:#64748b;margin:8px 0;font-weight:700}
-.story-card .story-skip{font-size:12px;color:#64748b;background:none;border:none;padding:6px;margin-top:4px;text-decoration:underline;cursor:pointer}
-.story-card .story-skip:active{opacity:0.6}
-
-.score-popup{
-  position:absolute;
-  font-size:24px; font-weight:900;
-  color:#0f172a;
-  background:rgba(255,255,255,0.85);
-  padding:2px 8px;
-  border-radius:8px;
-  border:2px solid #0f172a;
-  text-shadow:none;
-  pointer-events:none;
-  z-index:99;
-  white-space:nowrap;
-  font-family:system-ui, sans-serif;
-  transform:translate(-50%,-50%);
-  box-shadow:0 2px 6px rgba(0,0,0,.2);
-}
-.score-popup.combo{
-  color:#78350f;
-  background:rgba(254,243,199,0.95);
-  border-color:#f59e0b;
-  font-size:28px;
-}
-.score-popup.big{
-  color:#7c2d12;
-  background:rgba(254,215,170,0.95);
-  border-color:#f97316;
-  font-size:32px;
-}
-@keyframes score-float{
-  0%  { opacity:0; transform:translate(-50%,-50%) scale(0.6); }
-  15% { opacity:1; transform:translate(-50%,-50%) scale(1.1); }
-  30% { opacity:1; transform:translate(-50%,-50%) scale(1); }
-  100%{ opacity:0; transform:translate(-50%,-150%) scale(1); }
-}
-.boss-avatar{position:absolute;top:8px;right:8px;width:90px;height:90px;opacity:0.55;pointer-events:none;z-index:4}
-.boss-avatar svg{width:100%;height:100%;display:block}
-.boss-hint{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:800;color:#78350f;text-align:center;max-width:88%;z-index:6;box-shadow:0 4px 12px rgba(245,158,11,.35);opacity:0;transition:opacity .3s ease;pointer-events:none;line-height:1.35}
-.stat strong#score::before{content:' ';font-size:12px;margin-right:1px}
-.stat strong#score{color:#d97706;font-weight:900;font-size:15px}
-.boss-hint.show{opacity:1}
-@keyframes boss-attack{0%{transform:scale(1) rotate(0)}20%{transform:scale(1.3) rotate(-8deg)}40%{transform:scale(1.3) rotate(8deg)}60%{transform:scale(1.2) rotate(-6deg)}80%{transform:scale(1.1) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
-
-.combo-popup{
-  position:absolute;
-  left:50%; top:15%;
-  transform:translateX(-50%) scale(0.5);
-  font-size:48px; font-weight:900;
-  color:#f59e0b;
-  text-shadow:0 2px 8px rgba(0,0,0,.35), 0 0 20px rgba(245,158,11,.6);
-  pointer-events:none;
-  z-index:100;
-  opacity:0;
-  transition:none;
-  font-family:system-ui, sans-serif;
-  letter-spacing:1px;
-  white-space:nowrap;
-}
-.combo-popup.show{
-  animation:combo-appear 0.5s ease-out forwards;
-}
-.combo-popup.x3{ color:#f97316; font-size:56px; }
-.combo-popup.x4{ color:#ef4444; font-size:64px; }
-@keyframes combo-appear{
-  0%  { opacity:0; transform:translateX(-50%) scale(0.5); }
-  40% { opacity:1; transform:translateX(-50%) scale(1.2); }
-  70% { opacity:1; transform:translateX(-50%) scale(1.0); }
-  100%{ opacity:0; transform:translateX(-50%) scale(1.0) translateY(-40px); }
-}
 .canvas-inner{
   position:relative;height:100%;max-height:100%;
   aspect-ratio:2/3;max-width:100%;
@@ -497,7 +367,7 @@ body.duel-mode .bomb-btn{display:none}
 <div class="app" id="app" hidden>
   <header class="top-bar">
     <div class="stat"><strong id="level">1</strong><small id="levelLabel">Ур.</small></div>
-    <div class="stat"><strong id="score">0</strong><small data-i18n="coinsLabel">Монеты</small></div>
+    <div class="stat"><strong id="score">0</strong><small>Очки</small></div>
     <div class="stat"><strong id="viruses">0</strong><small>Вирусы</small></div>
     <div class="stat"><strong id="timer">0:00</strong><small>Время</small></div>
     <button id="settingsButton" class="icon-btn" aria-label="Настройки">⚙</button>
@@ -618,12 +488,6 @@ const RESCUE_ROWS = 5;
 const INTERSTITIAL_EVERY = 2;
 const FALL_SLOWDOWN = 1.75;
 const MIN_FALL_INTERVAL = 0.6;
-const BOSSES={
-  5:{name:'Ангинозус',color:'#ef4444',emoji:''},10:{name:'Риновирус',color:'#94a3b8',emoji:''},
-  15:{name:'Пневмоний',color:'#10b981',emoji:''},20:{name:'Гемолитикус',color:'#8b5cf6',emoji:''},
-  25:{name:'Энтеровирус',color:'#f97316',emoji:''},30:{name:'Менингит',color:'#7c2d12',emoji:''}
-};
-let bossState=null;
 
 const DUEL_TARGET = 15;
 const DUEL_MAX_GARBAGE = 5;
@@ -761,7 +625,7 @@ const LOCALES = {
     settingsSave:'Сохранить', settingsStatus:'Ниже порог — чувствительнее свайпы.',
     pauseRestart:'Перезапустить', pauseMenu:'Главное меню',
     endWin:'Колба очищена!', endLose:'Колба переполнена!',
-    endScore:'Очки', coinsLabel:'Монеты', coinsEarned:n=>`Заработано: ${n} монет`, coinsEarnedWithMult:(n,base,mult)=>`Заработано: ${n} монет (база ${base} × ${mult})`, coinsInMenu:n=>`Монет: ${n}`, endViruses:'Вирусы', endTime:'Время',
+    endScore:'Очки', endViruses:'Вирусы', endTime:'Время',
     endNext:'Следующий уровень', endRetry:'Заново', endMenu:'В меню',
     endRescue:'Продолжить за рекламу', endRescueHint:'Сотрём 5 верхних рядов и продолжим',
     recordsTitle:'Рекорды', recordsBest:'Лучшая бесконечная сессия',
@@ -836,7 +700,7 @@ const LOCALES = {
     settingsSave:'Save', settingsStatus:'Lower threshold = more sensitive swipes.',
     pauseRestart:'Restart', pauseMenu:'Main menu',
     endWin:'Flask cleaned!', endLose:'Flask overflow!',
-    endScore:'Score', coinsLabel:'Coins', coinsEarned:n=>`Earned: ${n} coins`, coinsEarnedWithMult:(n,base,mult)=>`Earned: ${n} coins (base ${base} × ${mult})`, coinsInMenu:n=>`Coins: ${n}`, endViruses:'Viruses', endTime:'Time',
+    endScore:'Score', endViruses:'Viruses', endTime:'Time',
     endNext:'Next level', endRetry:'Try again', endMenu:'Menu',
     endRescue:'Continue with ad', endRescueHint:'Clear 5 top rows and continue',
     recordsTitle:'Records', recordsBest:'Best endless session',
@@ -901,20 +765,6 @@ const LOCALES = {
     trainingDoneMenu:'Main menu'
   }
 };
-const STORY = {
-  intro:[
-    {npc:'nika',state:'happy',title:'Ника играет',text:'Ника играет в своей комнате. Ей пять лет. Она смеётся и строит башню из кубиков.'},
-    {npc:'nika',state:'sick',title:'Апчхи!',text:'Вдруг — «Апчхи!» Мама трогает лоб: «Ой, Ника, у тебя жар. Ложись в кровать».'},
-    {npc:'nika',state:'sleeping',title:'Внутри начинается война',text:'Ника засыпает. А внутри её организма уже началась война — вирусы атакуют!'},
-    {npc:'leu',state:'point',title:'Ты — Иммунитет',text:'Лейкоцит: «Слушай, Иммунитет! Ты — наша главная защита. Помоги Нике победить вирусы! Начнём с горла!»'}
-  ],
-  boss5:[{npc:'nika',state:'better',title:'Нике лучше',text:'Ника перестала кашлять. Пьёт чай с мёдом. «Мама, мне уже лучше!»'},{npc:'leu',state:'point',title:'Вирусы убежали в нос',text:'Лейкоцит: «Горло чистое! Но вирусы убежали в нос. Начинается насморк — вперёд!»',fact:'Слизь в носу ловит вирусы и выводит их наружу. Насморк — это защита!'}],
-  boss10:[{npc:'nika',state:'better',title:'Нос свободен',text:'Ника дышит носом. Больше не чихает. «Ура, нос свободен!»'},{npc:'leu',state:'point',title:'Глубже в лёгкие',text:'Лейкоцит: «Вирусы спустились в лёгкие. Здесь кислород попадает в кровь. Нельзя пускать их дальше!»',fact:'В лёгких кислород из воздуха попадает в кровь. Если лёгкие болеют — дышать трудно.'}],
-  boss15:[{npc:'nika',state:'better',title:'Легко дышать',text:'Ника глубоко вдыхает. «Дышать так легко! Спасибо!»'},{npc:'leu',state:'point',title:'Вирусы в крови',text:'Лейкоцит: «Плохие новости: вирусы пробрались в кровь. Там их надо ловить быстро!»',fact:'По крови путешествуют клетки-защитники. Они находят вирусы и уничтожают их.'}],
-  boss20:[{npc:'nika',state:'better',title:'Кровь чистая',text:'Ника порозовела. «Я чувствую, как силы возвращаются!»'},{npc:'leu',state:'point',title:'Атака на кишечник',text:'Лейкоцит: «Вирусы в кишечнике! Здесь живут полезные бактерии — их надо спасти!»',fact:'В кишечнике живут полезные бактерии. Они помогают переваривать еду.'}],
-  boss25:[{npc:'nika',state:'better',title:'Живот прошёл',text:'Ника съела целую тарелку супа. «Живот больше не болит!»'},{npc:'leu',state:'point',title:'Финальная битва',text:'Лейкоцит: «Вирусы в мозге. Это финальная битва. Температура поднялась — организм борется!»',fact:'Мозг командует всем телом. Температура — это способ организма убить вирусы.'}],
-  boss30:[{npc:'nika',state:'happy',title:'Ника здорова!',text:'Ника встала с кровати. Температуры нет! «Я здорова!»'},{npc:'leu',state:'cheer',title:'Победа!',text:'Лейкоцит: «Мы победили! Ты — настоящий Иммунитет! Ника здорова благодаря тебе».'},{npc:'nika',state:'happy',title:'КОНЕЦ ИСТОРИИ',text:'Ника: «Спасибо, Иммунитет! Теперь я знаю, как организм борется с болезнями!»'}]
-};
 let currentLang = 'ru';
 function t(key, ...args){const v=LOCALES[currentLang]?.[key]??LOCALES.en[key]??key;return typeof v==='function'?v(...args):v;}
 function normalizeLang(raw){if(!raw)return null;const c=String(raw).toLowerCase().replace('_','-').slice(0,2);return LOCALES[c]?c:null;}
@@ -923,8 +773,6 @@ const fresh = () => ({
   unlocked:1, stars:Array(N).fill(0), best:{kills:0,time:0,score:0},
   bombs:1,
   settings:{sound:true,music:true,voice:true,allowShare:false,sensitivity:30,lang:'auto',theme:0},
-  coins:0,
-  story:{intro:false,boss5:false,boss10:false,boss15:false,boss20:false,boss25:false,boss30:false},
   purchases:{remove_ads:false,unlock_all:false}
 });
 const num = (v,min=0,max=1e9)=>Math.max(min,Math.min(max,Number.isFinite(Number(v))?Number(v):min));
@@ -936,9 +784,6 @@ function normalize(raw){
   for(const k of ['kills','time','score'])s.best[k]=num(raw.best?.[k]);
   s.best.kills=Math.floor(s.best.kills);
   s.bombs = Math.floor(num(raw.bombs, 0, 99));
-  s.coins = Math.floor(num(raw.coins, 0, 9999999));
-  const st=raw.story||{};
-  s.story={intro:st.intro===true,boss5:st.boss5===true,boss10:st.boss10===true,boss15:st.boss15===true,boss20:st.boss20===true,boss25:st.boss25===true,boss30:st.boss30===true};
   const o=raw.settings||{};
   for(const k of ['sound','music','voice'])s.settings[k]=o[k]!==false;
   s.settings.allowShare = o.allowShare === true;
@@ -1134,7 +979,6 @@ let active=null, next=[0,2], serial=1;
 let mode='campaign', level=1, wave=1, score=0, kills=0, elapsed=0, moves=0;
 let running=false, paused=false, platformPaused=false, screen='boot';
 let state='idle', fall=0, phase=0, combo=0, matches=[], particles=[];
-let startVirusCount=0, bossWaveCount=0;
 let moveCleared=0, bombAwarded=false, bombsAvailable=0;
 let last=performance.now(), clock=0, hudTick=0, noticeLeft = 0;
 let pressed=new Set(), pointer=null, tapTimer=null, lastTap=0, buttonHold=null;
@@ -1162,12 +1006,6 @@ function sync(){
   $('pauseButton').textContent=paused?'▶':'Ⅱ';
   if(!playing)stopSpeech();
   syncAudio();
-  const bb=$('bossBar');
-  if(bb&&bb.classList.contains('show')){
-    const overlayOpen=!$('overlay').hidden;
-    if(paused||overlayOpen||!running)bb.classList.remove('show');
-    else if(bossState&&bossState.active)bb.classList.add('show');
-  }
 }
 function show(html,name){
   clearInput(); screen=name;
@@ -1197,7 +1035,8 @@ function menu(){
   const stars=save.stars.reduce((a,b)=>a+b,0);
   show(`
     <img class="menu-logo" src="logo.png" alt="Antivirus" onerror="this.style.display='none'">
-    <p>Собрано звёзд: <b>${stars}</b> / ${N*3}<br>${t('coinsInMenu',save.coins)}</p>
+    <h2>ANTIVIRUS</h2>
+    <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
     <div class="stack">
       ${btn('\u{1F393} ' + t('menuTraining'),'training')}
       ${btn(t('menuCampaign'),'levels',true)}
@@ -1812,11 +1651,6 @@ function start(m,n){
   if(platformPaused||document.hidden)return;
   if(m==='campaign'&&(!Number.isInteger(n)||n<1||n>N))return;
   if(m==='campaign'&&n>save.unlocked&&!save.purchases.unlock_all && !duelMode)return;
-  if(m==='campaign'&&n===1&&!save.story.intro&&!duelMode){
-    save.story.intro=true;persist();
-    showStorySequence('intro',()=>start(m,n));
-    return;
-  }
   mode=m;level=n;wave=1;
   grid=Array.from({length:H},()=>Array(W).fill(null));
   active=null;next=pair();serial=1;
@@ -1839,15 +1673,7 @@ function start(m,n){
   } else {
     addViruses(14, 6);
   }
-  if(m==='campaign'&&BOSSES[n]&&!duelMode)bossState={...BOSSES[n],active:true};
-  else bossState=null;
-  startVirusCount=count();bossWaveCount=0;
-  const oldAvatar=document.querySelector('.boss-avatar');if(oldAvatar)oldAvatar.remove();
-  if(bossState&&bossState.active){const inner=document.querySelector('.canvas-inner');if(inner)inner.insertAdjacentHTML('beforeend',getBossSVG());}
   clearInput();hide();spawn();updateHUD();tell('noticeStart');
-  if(bossState&&bossState.active){
-    setTimeout(()=>showBossHint(`⚠ ${bossState.name}! Он атакует 3 раза — готовься!`,5000),1200);
-  }
   if(__rewardedAdsAvailable) preloadRewarded();
   if(m==='training') showTrainingStep(1);
   // [TIMER-FIX] Сбрасывает ввод и базовое время при старте новой игры.
@@ -1879,13 +1705,7 @@ function spawn(){
 }
 function move(dx,dy){if(!active)return false;const p={...active,x:active.x+dx,y:active.y+dy};if(!valid(p))return false;active=p;return true;}
 function rotate(){if(!active)return;for(const [dx,dy]of[[0,0],[-1,0],[1,0],[0,-1],[0,1]]){const p={...active,x:active.x+dx,y:active.y+dy,rotation:(active.rotation+1)%4};if(valid(p)){active=p;sound('turn');return;}}}
-function bombArea(p){
-  const isVertical = (p.rotation === 1 || p.rotation === 3);
-  const x = Math.max(0, Math.min(W-3, p.x - 1));
-  const yOffset = isVertical ? 0 : -1;
-  const y = Math.max(0, Math.min(H-3, p.y + yOffset));
-  return {x, y};
-}
+function bombArea(p){return{x:Math.max(0,Math.min(W-3,p.x-1)),y:Math.max(0,Math.min(H-3,p.y-1))};}
 function lock(){
   if(!active)return;
   const p=active;active=null;moves++;phase=0;combo=0;
@@ -1893,7 +1713,7 @@ function lock(){
   if(p.bomb){
     const a=bombArea(p);matches=[];
     for(let y=a.y;y<a.y+3;y++)for(let x=a.x;x<a.x+3;x++)if(grid[y][x])matches.push(y*W+x);
-    combo=1;erase(true);state='gravity';explosionSound();shakeBoard('heavy');tell('noticeClear');
+    combo=1;erase(true);state='gravity';explosionSound();tell('noticeClear');
   }else{
     for(const c of cells(p))grid[c.y][c.x]={type:'pill',color:c.color,link:p.id};
     state='scan';sound('drop');
@@ -1938,19 +1758,7 @@ function erase(bomb=false){
     for(let n=0;n<6;n++)particles.push({x:x*50+25,y:y*50+25,vx:(Math.random()-.5)*170,vy:(Math.random()-.7)*180,life:.55,color:COLORS[c.color]});
     grid[y][x]=null;
   }
-  let sumX = 0, sumY = 0, cnt = 0;
-  for(const i of new Set(matches)){
-    sumX += i % W;
-    sumY += Math.floor(i / W);
-    cnt++;
-  }
-  const cx = cnt ? sumX / cnt : 0;
-  const cy = cnt ? sumY / cnt : 0;
-  // score — это монеты, начисляются за вирусы
-  const pointsEarned = removed * 1 * Math.max(1, Math.min(combo, 4));
-  kills+=removed;score+=pointsEarned;
-  if(pointsEarned > 0) showScorePopup(pointsEarned, combo, cx, cy);
-  matches=[];
+  kills+=removed;score+=removed*10*Math.max(1,Math.min(combo,4));matches=[];
   moveCleared+=cleared;
   const virusEls=document.querySelectorAll('.virus-column .friend');
   affected.forEach(colorIdx=>{
@@ -1986,125 +1794,38 @@ function erase(bomb=false){
   if(duelMode) duelMyVirusesChanged(kills);
   record();
 }
-function showBossHint(text,duration){
-  const inner=document.querySelector('.canvas-inner');
-  if(!inner)return;
-  const old=inner.querySelector('.boss-hint');
-  if(old)old.remove();
-  const el=document.createElement('div');el.className='boss-hint show';el.textContent=text;inner.appendChild(el);
-  setTimeout(()=>el.classList.remove('show'),(duration||4000)-300);
-  setTimeout(()=>{if(el.parentNode)el.remove();},duration||4000);
-}
-function getBossSVG(){
-  if(!bossState||!bossState.active)return '';
-  const c=bossState.color;
-  const rays=[...Array(12)].map((_,i)=>{const a=i*Math.PI/6;return `<line x1="${50+Math.cos(a)*24}" y1="${50+Math.sin(a)*24}" x2="${50+Math.cos(a)*38}" y2="${50+Math.sin(a)*38}"/><circle cx="${50+Math.cos(a)*38}" cy="${50+Math.sin(a)*38}" r="4"/>`;}).join('');
-  return `<div class="boss-avatar" style="--boss-color:${c}"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g stroke="${c}" stroke-width="3" fill="${c}">${rays}</g><circle cx="50" cy="50" r="26" fill="${c}"/><circle cx="42" cy="46" r="6" fill="#fff"/><circle cx="58" cy="46" r="6" fill="#fff"/><circle cx="42" cy="47" r="3" fill="#0f172a"/><circle cx="58" cy="47" r="3" fill="#0f172a"/><path d="M40 62 Q50 72 60 62" stroke="#0f172a" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>`;
-}
-function bossSound(){}
-function triggerBossWave(){
-  if(!bossState||!bossState.active)return;
-  if(bossWaveCount>=3)return;
-  bossWaveCount++;const waveNumber=bossWaveCount;bossSound();
-  const av=document.querySelector('.boss-avatar');
-  if(av){av.style.animation='boss-attack 0.6s ease-out';setTimeout(()=>{av.style.animation='';},700);}
-  const waveSize=Math.min(level,15),spaces=[];
-  for(let y=4;y<H;y++)for(let x=0;x<W;x++)if(!grid[y][x])spaces.push([x,y]);
-  for(let i=spaces.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[spaces[i],spaces[j]]=[spaces[j],spaces[i]];}
-  let added=0;
-  for(const [x,y] of spaces){if(added>=waveSize)break;const color=Math.floor(Math.random()*3);for(let k=0;k<3;k++){grid[y][x]={type:'virus',color:(color+k)%3};if(!findMatches().length){added++;break;}grid[y][x]=null;}}
-  setTimeout(()=>showBossHint(` ${bossState.name} — волна ${waveNumber}/3! Появилось ${added} вирусов!`,4000),400);
-  if(audio&&save.settings.sound){try{const now=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type='sawtooth';o.frequency.setValueAtTime(120,now);o.frequency.exponentialRampToValueAtTime(60,now+.5);g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.25,now+.02);g.gain.exponentialRampToValueAtTime(.0001,now+.6);o.connect(g);g.connect(effectsBus);o.start(now);o.stop(now+.62);}catch(e){}}
-}
-function showComboPopup(n){
-  if(n < 2) return;
-  const inner = document.querySelector('.canvas-inner');
-  if(!inner) return;
-  const old = inner.querySelector('.combo-popup');
-  if(old) old.remove();
-  const el = document.createElement('div');
-  el.className = 'combo-popup show' + (n >= 4 ? ' x4' : n >= 3 ? ' x3' : '');
-  el.textContent = 'КОМБО ×' + Math.min(n, 9);
-  inner.appendChild(el);
-  setTimeout(() => { if(el.parentNode) el.remove(); }, 600);
-}
-function shakeBoard(intensity){
-  const inner = document.querySelector('.canvas-inner');
-  if(!inner) return;
-  inner.classList.remove('shake-light','shake-medium','shake-heavy','shake-overflow');
-  void inner.offsetWidth;
-  const cls = 'shake-' + (intensity || 'light');
-  inner.classList.add(cls);
-  setTimeout(() => inner.classList.remove(cls), 700);
-}
-function showScorePopup(points, combo, cellX, cellY){
-  const inner = document.querySelector('.canvas-inner');
-  if(!inner) return;
-  const el = document.createElement('div');
-  el.className = 'score-popup';
-  if(combo >= 3) el.classList.add('big');
-  else if(combo === 2) el.classList.add('combo');
-  let text = '+' + points;
-  if(combo > 1) text += ' ×' + Math.min(combo, 4);
-  el.textContent = text;
-  const xPct = (cellX / W) * 100;
-  const yPct = (cellY / H) * 100 + 5;
-  el.style.left = xPct + '%';
-  el.style.top = yPct + '%';
-  el.style.animation = 'score-float 0.7s ease-out forwards';
-  inner.appendChild(el);
-  setTimeout(() => { if(el.parentNode) el.remove(); }, 750);
-}
 function resolution(dt){
   if(state === 'waiting_garbage') return;
   phase+=dt;
   if(state==='scan'){
     matches=findMatches();phase=0;
-    if(matches.length){combo++;
-      showComboPopup(combo);
-      if(combo === 2) shakeBoard('light');
-      else if(combo >= 3) shakeBoard('medium');
-      state='flash';}
+    if(matches.length){combo++;state='flash';}
     else if(!count()){
       if(mode==='campaign'&&!duelMode)finish(true);
       else if(mode==='training'&&!duelMode)trainingComplete();
       else{wave++;if(!addViruses(Math.min(36,12+wave*2),4)){if(!duelMode)finish(false);}else{tell('noticeWave',wave);spawn();}}
     }
     else spawn();
-  }else if(state==='flash'&&phase>=.28){erase();if(bossState&&bossState.active&&bossWaveCount<3&&startVirusCount>0&&mode==='campaign'){const remaining=count();const threshold=startVirusCount*(1-.25*(bossWaveCount+1));if(remaining<=Math.floor(threshold))triggerBossWave();}state='gravity';phase=0;}
+  }else if(state==='flash'&&phase>=.28){erase();state='gravity';phase=0;}
   else if(state==='gravity'&&phase>=.075){phase=0;if(!gravity())state='scan';}
 }
 function finish(won){
-  if(!won) shakeBoard('overflow');
-  const av=document.querySelector('.boss-avatar');if(av)av.remove();
-  running=false;bossState=null;paused=false;active=null;state='end';
+  running=false;paused=false;active=null;state='end';
   clearInput();record();
   if(duelMode){ duelMyGameOver(won); return; }
-  let coinsEarned = 0, coinMultiplier = 1;
   let text='';
   if(won&&mode==='campaign'){
     const target=difficulty(level).target;
     const stars=elapsed<=target?3:elapsed<=target*1.7?2:1;
-    coinMultiplier = stars;
-    coinsEarned = score * coinMultiplier;
-    save.coins = Math.min(9999999, save.coins + coinsEarned);
     save.stars[level-1]=Math.max(save.stars[level-1],stars);
     save.unlocked=Math.max(save.unlocked,Math.min(N,level+1));persist();
     text=`<div style="font-size:32px;color:#f59e0b;margin:8px 0">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>`;
     levelsCompleted++;
-  } else if(mode==='campaign'){
-    coinsEarned = score;
-    save.coins = Math.min(9999999, save.coins + coinsEarned);
-    persist();
-  } else if(mode==='endless'){
-    coinsEarned = score;
-    save.coins = Math.min(9999999, save.coins + coinsEarned);
-    persist();
   }
   const showNext=won&&mode==='campaign'&&level<N;
   const showRescue=!won&&!duelMode&&__rewardedAdsAvailable;
   show(`<h2>${won?t('endWin'):t('endLose')}</h2>${text}
-    <p>${coinsEarned>0?(coinMultiplier>1?t('coinsEarnedWithMult',coinsEarned,score,coinMultiplier):t('coinsEarned',coinsEarned)):t('coinsEarned',0)}<br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
+    <p>${t('endScore')}: <b>${score}</b><br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
       ${showNext?btn(t('endNext'),'next',true):''}
       ${showRescue?`<button data-menu="rescue" class="primary" id="rescueBtn">${t('endRescue')}</button>`:''}
@@ -2651,13 +2372,7 @@ $('dialog').addEventListener('click',async e=>{
   if(a==='duel-cancel'){duelLeave();duelMenu();return;}
 
   switch(a){
-    case'menu':
-      if(mode==='campaign'&&level===30&&!save.story.boss30){
-        save.story.boss30=true;persist();
-        showStorySequence('boss30',()=>menu());
-        break;
-      }
-      record();menu();break;
+    case'menu':record();menu();break;
     case'levels':levelsMenu();break;
     case 'training':
       trainingStage = 1;
@@ -2704,15 +2419,6 @@ $('dialog').addEventListener('click',async e=>{
     case'resume':resume();break;
     case'restart':record();start(mode,level);break;
     case'next':{
-      const bossKey='boss'+level;
-      if(level%5===0&&level<30&&save.story[bossKey]===false){
-        save.story[bossKey]=true;persist();
-        showStorySequence(bossKey,()=>{
-          if(levelsCompleted>0&&levelsCompleted%INTERSTITIAL_EVERY===0)showInterstitial();
-          start('campaign',level+1);
-        });
-        break;
-      }
       if(levelsCompleted>0&&levelsCompleted%INTERSTITIAL_EVERY===0)showInterstitial();
       start('campaign',level+1);break;
     }
@@ -2832,42 +2538,6 @@ boot();
 setInterval(()=>{
   if(vkReady && cloudDirty && !cloudSaving) vkCloudSave();
 }, 30000);
-
-function showStorySequence(key,onDone){
-  const cards=STORY[key];
-  if(!cards||!cards.length){if(onDone)onDone();return;}
-  let idx=0;
-  function renderCard(){
-    const c=cards[idx],last=idx===cards.length-1;
-    const svg=c.npc==='leu'?getLeukocyteSVG(c.state||'idle'):getNikaSVG(c.state||'happy');
-    const fact=c.fact?`<div class="story-fact"><b> Знаешь ли ты?</b><br>${c.fact}</div>`:'';
-    show(`<div class="story-card"><div class="illustration">${svg}</div><h2>${c.title||''}</h2><div class="story-text">${c.text||''}</div>${fact}<div class="story-progress">${idx+1} / ${cards.length}</div><div class="stack"><button data-story="next" class="primary">${last?'✓ Продолжить':'Далее →'}</button></div>${!last?'<button class="story-skip" data-story="skip">Пропустить</button>':''}</div>`,'story');
-    const dlg=$('dialog'),next=dlg.querySelector('[data-story="next"]'),skip=dlg.querySelector('[data-story="skip"]');
-    if(next)next.onclick=()=>{if(last){if(onDone)onDone();}else{idx++;renderCard();}};
-    if(skip)skip.onclick=()=>{if(onDone)onDone();};
-  }
-  renderCard();
-}
-
-function getNikaSVG(state){
-  const s=state||'happy', sick=s==='sick', better=s==='better', sleeping=s==='sleeping';
-  const eyes=sleeping?'<path d="M30 52q5 5 10 0M60 52q5 5 10 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>':sick?'<path d="M28 53q7-5 14 0M58 53q7-5 14 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>':'<ellipse cx="36" cy="51" rx="9" ry="11" fill="#fff"/><ellipse cx="64" cy="51" rx="9" ry="11" fill="#fff"/><circle cx="37" cy="53" r="5"/><circle cx="63" cy="53" r="5"/><circle cx="39" cy="50" r="1.8" fill="#fff"/><circle cx="65" cy="50" r="1.8" fill="#fff"/>';
-  const mouth=sick?'<path d="M43 70q7-6 14 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>':sleeping?'<path d="M45 69q5 4 10 0" fill="none" stroke="#7c2d12" stroke-width="2" stroke-linecap="round"/>':'<path d="M40 68q10 12 20 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>';
-  const blanket=sick?'<path d="M15 91Q50 78 85 91v25H15Z" fill="#f9a8d4" stroke="#7c2d12" stroke-width="1.5"/>':sleeping?'<path d="M15 83Q50 72 85 83v33H15Z" fill="#f9a8d4" stroke="#7c2d12" stroke-width="1.5"/>':better?'<path d="M20 91Q50 83 80 91v22H20Z" fill="#f9a8d4" stroke="#7c2d12" stroke-width="1.5"/>':'';
-  const arms=better?'<path d="M25 91q-12-7-13-18M75 91q14-13 9-25" fill="none" stroke="#ffe0cc" stroke-width="7" stroke-linecap="round"/><path d="M84 66l3-4m-3 4l-4-2" stroke="#7c2d12" stroke-width="2" stroke-linecap="round"/>':sick||sleeping?'':'<path d="M25 91q-15-20-8-34M75 91q15-20 8-34" fill="none" stroke="#ffe0cc" stroke-width="7" stroke-linecap="round"/>';
-  const extras=sick?'<circle cx="50" cy="61" r="3" fill="#f43f5e"/><path d="M76 34q5 6 0 11q-5-5 0-11" fill="#93c5fd"/>':sleeping?'<text x="76" y="27" font-size="14" font-weight="900" fill="#6366f1">Z</text><text x="86" y="17" font-size="10" font-weight="900" fill="#6366f1">Z</text>':s==='happy'?'<path d="M12 42l3 5 5 1-4 3 1 5-5-3-5 3 1-5-4-3 5-1zM82 55l2 4 4 1-3 2 1 4-4-2-4 2 1-4-3-2 4-1z" fill="#f59e0b"/>':'';
-  return `<svg class="character-svg" viewBox="0 0 100 140" aria-label="Ника" xmlns="http://www.w3.org/2000/svg"><g stroke="#7c2d12" stroke-width="1.5" stroke-linejoin="round"><ellipse cx="50" cy="25" rx="24" ry="10" fill="#f5d76e"/><path d="M28 27q-12 2-9 15M72 27q12 2 9 15" fill="none" stroke="#f5d76e" stroke-width="9" stroke-linecap="round"/><circle cx="20" cy="43" r="4" fill="#f9a8d4"/><circle cx="80" cy="43" r="4" fill="#f9a8d4"/><circle cx="50" cy="54" r="28" fill="#ffe0cc"/><path d="M29 37q21-20 42 0" fill="#f5d76e" stroke="none"/>${eyes}<circle cx="32" cy="64" r="4" fill="#ffb7ca" stroke="none"/><circle cx="68" cy="64" r="4" fill="#ffb7ca" stroke="none"/>${mouth}<path d="M38 91h24v27H38z" fill="#f9a8d4"/><path d="M42 99l8-4 8 4-8 4zM43 110l7-4 7 4-7 4z" fill="#fff" stroke="none"/>${arms}${blanket}<path d="M40 117v12M60 117v12" stroke="#ffe0cc" stroke-width="6" stroke-linecap="round"/>${extras}</g></svg>`;
-}
-function getLeukocyteSVG(state){
-  const s=state||'idle', point=s==='point', cheer=s==='cheer';
-  const arms=point?'<path d="M22 58Q8 49 15 28" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/><path d="M15 28l-3 6m3-6l6 2" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>':cheer?'<path d="M25 61Q10 48 10 30M75 61Q90 48 90 30" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/>':'<path d="M23 62Q10 70 12 78M77 62Q90 70 88 78" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/>';
-  const mouth=point?'<ellipse cx="50" cy="69" rx="8" ry="6" fill="#1e293b"/>':cheer?'<path d="M32 66Q50 88 68 66" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>':'<path d="M39 68q11 9 22 0" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>';
-  const spark=cheer?'<path d="M12 18v12m-6-6h12M88 18v12m-6-6h12" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>':'';
-  return `<svg class="character-svg" viewBox="0 0 100 100" aria-label="Лейкоцит" xmlns="http://www.w3.org/2000/svg"><g stroke="#93c5fd" stroke-width="2"><ellipse cx="50" cy="52" rx="35" ry="29" fill="#fff"/><circle cx="27" cy="38" r="12" fill="#fff" stroke="none"/><circle cx="73" cy="38" r="12" fill="#fff" stroke="none"/>${arms}<ellipse cx="37" cy="51" rx="7" ry="9" fill="#0f172a"/><ellipse cx="63" cy="51" rx="7" ry="9" fill="#0f172a"/><circle cx="39" cy="48" r="2" fill="#fff" stroke="none"/><circle cx="65" cy="48" r="2" fill="#fff" stroke="none"/>${mouth}${spark}</g></svg>`;
-}
-function showCharactersTest(){
-  show(`<h2>Тест персонажей</h2><p style="margin:8px 0 4px">Ника</p><div class="characters-test-grid"><div>${getNikaSVG('sick')}<small>sick — болеет</small></div><div>${getNikaSVG('better')}<small>better — лучше</small></div><div>${getNikaSVG('happy')}<small>happy — здорова</small></div><div>${getNikaSVG('sleeping')}<small>sleeping — спит</small></div></div><p style="margin:8px 0 4px">Лейкоцит</p><div class="characters-test-grid"><div>${getLeukocyteSVG('idle')}<small>idle</small></div><div>${getLeukocyteSVG('point')}<small>point</small></div><div>${getLeukocyteSVG('cheer')}<small>cheer</small></div></div><div class="stack" style="margin-top:12px"><button data-menu="menu" class="primary">Закрыть</button></div>`, 'characters-test');
-}
 
 (function initViruses(){
   const palettes=[
