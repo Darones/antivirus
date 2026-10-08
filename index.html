@@ -440,11 +440,12 @@ body.duel-mode .bomb-btn{display:none}
 // через VKWebAppGetLaunchParams.
 let __vkPlatform = '';
 let __vkSearchParams = null;
+let __vkClient = '';
 try {
   __vkSearchParams = new URLSearchParams(location.search);
   __vkPlatform = __vkSearchParams.get('vk_platform') || '';
-  const __vkClient = __vkSearchParams.get('vk_client') || '';
-} catch(e){ __vkPlatform = ''; }
+  __vkClient = __vkSearchParams.get('vk_client') || '';
+} catch(e){ __vkPlatform = ''; __vkClient = ''; }
 const __isOkPlatform = (__vkClient === 'ok') || /_ok$/i.test(__vkPlatform);
 window.Platform = { mode: __isOkPlatform ? 'ok' : 'vk' };
 const __isWebPlatform = /web$/.test(__vkPlatform);
