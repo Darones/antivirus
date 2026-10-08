@@ -443,8 +443,10 @@ let __vkSearchParams = null;
 try {
   __vkSearchParams = new URLSearchParams(location.search);
   __vkPlatform = __vkSearchParams.get('vk_platform') || '';
+  const __vkClient = __vkSearchParams.get('vk_client') || '';
 } catch(e){ __vkPlatform = ''; }
-window.Platform = { mode: /^ok/i.test(__vkPlatform) ? 'ok' : 'vk' };
+const __isOkPlatform = (__vkClient === 'ok') || /_ok$/i.test(__vkPlatform);
+window.Platform = { mode: __isOkPlatform ? 'ok' : 'vk' };
 const __isWebPlatform = /web$/.test(__vkPlatform);
 const __rewardedAdsAvailable = !__isWebPlatform;
 if(!__rewardedAdsAvailable){
@@ -627,7 +629,7 @@ const LOCALES = {
     endRescue:'Продолжить за рекламу', endRescueHint:'Сотрём 5 верхних рядов и продолжим',
     recordsTitle:'Рекорды', recordsBest:'Лучшая бесконечная сессия',
     recordsViruses:'Вирусы', recordsScore:'Очки', recordsTime:'Время', recordsBack:'Назад',
-    shopTitle:'Магазин', shopDesc:'Покупки за голоса ВКонтакте.', shopBack:'Назад',
+    shopTitle:'Магазин', shopDesc:() => window.Platform.mode === 'ok' ? 'Покупки за ОКи.' : 'Покупки за голоса ВКонтакте.', shopBack:'Назад',
     shopError:'Не удалось совершить покупку',
     shopRemoveAdsTitle:'Убрать рекламу', shopRemoveAdsDesc:'Реклама между уровнями больше не показывается',
     shopBombsPackTitle:'Набор бомб', shopBombsPackDesc:'Три дополнительные бомбы',
@@ -702,7 +704,7 @@ const LOCALES = {
     endRescue:'Continue with ad', endRescueHint:'Clear 5 top rows and continue',
     recordsTitle:'Records', recordsBest:'Best endless session',
     recordsViruses:'Viruses', recordsScore:'Score', recordsTime:'Time', recordsBack:'Back',
-    shopTitle:'Shop', shopDesc:'Purchases via VK votes.', shopBack:'Back',
+    shopTitle:'Shop', shopDesc:() => window.Platform.mode === 'ok' ? 'Purchases for OKs.' : 'Purchases via VK votes.', shopBack:'Back',
     shopError:'Purchase failed',
     shopRemoveAdsTitle:'Remove ads', shopRemoveAdsDesc:'Interstitial ads between levels will no longer appear',
     shopBombsPackTitle:'Bomb pack', shopBombsPackDesc:'Three extra bombs',
@@ -806,6 +808,8 @@ async function detectPlatform(){
       vkBridge.send('VKWebAppGetLaunchParams'),
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('launch params timeout')),1500))
     ]);
+    const client = String(r?.vk_client || '').toLowerCase();
+    if(client === 'ok') { window.Platform.mode = 'ok'; return; }
     const p = String(r?.vk_platform || '').toLowerCase();
     if(p){
       window.Platform.mode = p.includes('ok') ? 'ok' : 'vk';
@@ -917,6 +921,18 @@ async function vkPurchase(itemId){
     return false;
   }
   console.log('[Shop] purchase item:', itemId, 'platform =', window.Platform.mode);
+  if(isOK()){
+    const item = (SHOP_ITEMS||[]).find(i=>i.id===itemId);
+    if(!item) return false;
+    try{
+      FAPI.UI.showPayment(item.title, item.desc, itemId, item.price, null, null, 'ok', 'true');
+      return true;
+    }catch(e){
+      console.error('[OK-PAY] showPayment error:', e);
+      window.__lastShopError = e?.message || 'OK payment error';
+      return false;
+    }
+  }
   try{
     const r = await vkBridge.send(
       'VKWebAppShowOrderBox',
@@ -1033,9 +1049,9 @@ function menu(){
     <h2>ANTIVIRUS</h2>
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
     <div class="stack">
-      ${btn('\u{1F393} ' + t('menuTraining'),'training',true)}
+      ${btn('\u{1F393} ' + t('menuTraining'),'training')}
       ${btn(t('menuCampaign'),'levels',true)}
-      ${SHOP_ENABLED ? btn(t('menuShop'),'shop',true) : ''}
+      ${SHOP_ENABLED ? btn(t('menuShop'),'shop') : ''}
       ${btn(t('menuEndless'),'endless')}
       ${btn(t('menuMultiplayer'),'multiplayer')}
       ${btn(t('menuRecords'),'records')}
@@ -1107,7 +1123,7 @@ function shopMenu(){
     return `<div class="shop-item">
       <div class="icon">${item.icon}</div>
       <div class="info"><b>${item.title}</b><small>${item.desc}</small></div>
-      <button class="price" data-buy="${item.id}" ${owned?'disabled':''}>${owned?'✓ Куплено':item.price+' голосов'}</button>
+      <button class="price" data-buy="${item.id}" ${owned?'disabled':''}>${owned?'✓ Куплено':item.price+(window.Platform.mode === 'ok' ? ' ОКов' : ' голосов')}</button>
     </div>`;
   }).join('');
   show(`<h2>${t('shopTitle')}</h2><p>${t('shopDesc')}</p>${items}
@@ -1154,6 +1170,12 @@ function duelMenu(){
   sync();
 }
 
+function duelShareLink(roomId){
+  return window.Platform.mode === 'ok'
+    ? `https://ok.ru/app/512004990432?custom_args=duel=${roomId}`
+    : `https://vk.com/app${VK_APP_ID}#duel=${roomId}`;
+}
+
 function duelConnect(){
   return new Promise((resolve, reject) => {
     if(duelState.socket && duelState.socket.readyState === 1) return resolve();
@@ -1187,7 +1209,7 @@ function duelFindRandom(){
 function duelInvite(){
   const roomId = Math.random().toString(36).slice(2,10);
   duelConnect().then(()=>duelSend({type:'join_room',roomId}));
-  const link = `https://vk.com/app${VK_APP_ID}#duel=${roomId}`;
+  const link = duelShareLink(roomId);
   duelState.pendingShareLink = link;
   if(vkReady && window.vkBridge && save.settings.allowShare){
     show(`<h2>${t('shareConfirmTitle')}</h2>
@@ -1212,7 +1234,7 @@ function duelShowWaiting(){
   dlg.innerHTML = `
     <h2>${t('duelWaiting')}</h2>
     <p style="font-size:12px;word-break:break-all;background:#f1f5f9;padding:8px;border-radius:8px">
-      https://vk.com/app${VK_APP_ID}#duel=${duelState.roomId||''}
+      ${duelShareLink(duelState.roomId||'')}
     </p>
     <div class="stack">
       <button data-duel="copy">${t('duelCopyLink')}</button>
@@ -2296,13 +2318,16 @@ $('dialog').addEventListener('click',async e=>{
     buy.disabled = true;
     console.log('[Shop] Покупка:', itemId);
     const ok = await vkPurchase(itemId);
-    if(ok){
+    if(ok && !isOK()){
       if(itemId === 'remove_ads')   save.purchases.remove_ads = true;
       if(itemId === 'unlock_all')   save.purchases.unlock_all = true;  // legacy, товар больше не продаётся
       if(itemId === 'bombs_pack'){     bombsAvailable += 5;  save.bombs = bombsAvailable; updateBombButton(); }
       if(itemId === 'bombs_pack_big'){ bombsAvailable += 20; save.bombs = bombsAvailable; updateBombButton(); }
       persist();
       shopMenu();
+    } else if(ok && isOK()){
+      // Для OK начисление произойдёт в API_callback
+      return;
     } else {
       buy.disabled = false;
       const errText = (window.__lastShopError || '') + '';
@@ -2346,7 +2371,7 @@ $('dialog').addEventListener('click',async e=>{
       duelShowWaiting();
     }
     else if(action==='copy') {
-      navigator.clipboard.writeText(`https://vk.com/app${VK_APP_ID}#duel=${duelState.roomId}`).then(()=>showToast(t('mpCopied')));
+      navigator.clipboard.writeText(duelShareLink(duelState.roomId)).then(()=>showToast(t('mpCopied')));
     }
     else if(action==='cancel') { duelLeave(); duelMenu(); }
     else if(action==='menu') { duelLeave(); menu(); }
