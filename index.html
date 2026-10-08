@@ -429,7 +429,7 @@ body.duel-mode .bomb-btn{display:none}
 <div id="fireworkLayer" aria-hidden="true"></div>
 
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-<script src="https://connect.ok.ru/connect.js"></script>
+<script src="https://api.ok.ru/js/fapi5.js" defer></script>
 
 <script>
 'use strict';
@@ -925,6 +925,11 @@ async function vkPurchase(itemId){
   if(isOK()){
     const item = (SHOP_ITEMS||[]).find(i=>i.id===itemId);
     if(!item) return false;
+    if(typeof FAPI === 'undefined' || !FAPI.UI || !FAPI.UI.showPayment){
+      window.__lastShopError = 'FAPI SDK не загружен';
+      console.error('[OK-PAY] FAPI недоступен');
+      return false;
+    }
     try{
       FAPI.UI.showPayment(item.title, item.desc, itemId, item.price, null, null, 'ok', 'true');
       return true;
@@ -2478,9 +2483,33 @@ function applyLanguage(lang){
 
 // [BUG-FIX] Не допускает повторной инициализации приложения и RAF-цикла.
 let _bootRan = false;
+async function initOK(){
+  if(!isOK()) return false;
+  if(typeof FAPI === 'undefined' || !FAPI.Util){
+    console.warn('[OK] FAPI SDK не загружен');
+    return false;
+  }
+  try{
+    const params = FAPI.Util.getRequestParameters();
+    await new Promise((resolve, reject) => {
+      FAPI.init(
+        params['api_server'],
+        params['apiconnection'],
+        () => resolve(true),
+        () => reject(new Error('FAPI init failed'))
+      );
+    });
+    console.warn('[OK] FAPI init OK');
+    return true;
+  }catch(e){
+    console.warn('[OK] FAPI init error:', e);
+    return false;
+  }
+}
 async function boot(){
   if(_bootRan) return;
   _bootRan = true;
+  if(isOK()) await initOK();
   const failsafe=setTimeout(()=>{
     if($('app').hidden){
       try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{}
