@@ -3270,6 +3270,13 @@ async function boot(){
   console.warn('[Boot] Antivirus v2 loaded. Backups: stage7. Features: ad manager, cooldowns, timers.');
 }
 boot();
+// [DEBUG] ??????? ??? ?????? ?? ??????? ????????
+window.addBombs = (n=10) => { bombsAvailable += n; save.bombs = bombsAvailable; persist(); updateBombButton(); return bombsAvailable; };
+window.addCoins = (n=100) => { save.coins = Math.min(9999999, save.coins + n); persist(); return save.coins; };
+window.unlockAll = () => { save.unlocked = 30; persist(); return 'unlocked 30'; };
+window.resetSave = () => { localStorage.removeItem(getSaveKey()); location.reload(); };
+window.giveStars = (n=3) => { for(let i=0;i<30;i++)save.stars[i]=Math.max(save.stars[i]||0, n); save.unlocked=30; persist(); return 'stars set'; };
+window.showMe = () => ({ coins: save.coins, bombs: save.bombs, unlocked: save.unlocked, stars: save.stars.slice() });
 
 // [2.3.8] Периодическая синхронизация каждые 30 сек,
 // если есть несохранённые изменения.
