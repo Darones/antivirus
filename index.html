@@ -225,6 +225,113 @@ body:not(.duel-mode) .mini-opp{display:none}
 .boss-hint.show{opacity:1}
 @keyframes boss-attack{0%{transform:scale(1) rotate(0)}20%{transform:scale(1.3) rotate(-8deg)}40%{transform:scale(1.3) rotate(8deg)}60%{transform:scale(1.2) rotate(-6deg)}80%{transform:scale(1.1) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
 
+.menu-coins-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;margin:6px auto 10px;
+  background:linear-gradient(135deg,#fef3c7,#fde68a);
+  border:2px solid #f59e0b;border-radius:999px;
+  font-size:16px;font-weight:900;color:#78350f;
+  cursor:pointer;transition:transform .1s;
+  box-shadow:0 3px 10px rgba(245,158,11,.35);
+}
+.menu-coins-btn:active{transform:scale(.96)}
+.shop-item .price.coin-price{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:900}
+.shop-item .price.coin-price:disabled{opacity:.4;background:linear-gradient(135deg,#94a3b8,#64748b)}
+/* CSS-иконка монеты */
+.s-coins::before{
+  content:'';
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#fef3c7,#f59e0b 60%,#d97706);
+  border:1.5px solid #92400e;
+  margin-right:3px;
+  vertical-align:-1px;
+  box-shadow:inset 0 -1px 1px rgba(0,0,0,.2);
+}
+.streak-bar .s-coins{position:relative}
+/* CSS-иконка бомбы */
+.s-bombs::before{
+  content:'';
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#6b7280,#1f2937 60%,#000);
+  border:1.5px solid #000;
+  margin-right:3px;
+  vertical-align:-1px;
+  position:relative;
+  box-shadow:inset 0 -1px 1px rgba(0,0,0,.4);
+}
+.streak-bar .s-bombs{position:relative}
+.streak-bar .s-bombs.empty::before,
+.streak-bar .s-bombs.empty::after{
+  display:none;
+}
+/* Искра на бомбе */
+.s-bombs::after{
+  content:'';
+  position:absolute;
+  top:-2px;
+  right:-1px;
+  width:3px;
+  height:3px;
+  border-radius:50%;
+  background:#f59e0b;
+  box-shadow:0 0 3px #f59e0b;
+}
+.streak-bar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  grid-template-rows:auto auto auto;
+  gap:4px;
+  margin:10px 0;
+  align-items:stretch;
+}
+.streak-bar .s-header,
+.streak-bar .s-coins,
+.streak-bar .s-bombs{
+  text-align:center;
+  padding:6px 2px;
+  border-radius:8px;
+  background:#f1f5f9;
+  font-weight:900;
+}
+.streak-bar .s-header{
+  font-size:14px;
+  color:#0f172a;
+  padding:8px 2px;
+}
+.streak-bar .s-coins{
+  font-size:12px;
+  color:#d97706;
+  padding:8px 2px;
+}
+.streak-bar .s-bombs{
+  font-size:12px;
+  color:#92400e;
+  padding:8px 2px;
+  min-height:24px;
+}
+.streak-bar .s-header.past,
+.streak-bar .s-coins.past,
+.streak-bar .s-bombs.past{
+  background:#d1fae5;
+  opacity:0.7;
+}
+.streak-bar .s-header.current,
+.streak-bar .s-coins.current,
+.streak-bar .s-bombs.current{
+  background:linear-gradient(135deg,#fef3c7,#fde68a);
+  box-shadow:0 0 0 2px rgba(245,158,11,.35);
+}
+.streak-bar .s-header.future,
+.streak-bar .s-coins.future,
+.streak-bar .s-bombs.future{
+  opacity:0.5;
+}
 .combo-popup{
   position:absolute;
   left:50%; top:15%;
@@ -740,11 +847,47 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
   : 'wss://antivirus-duel-server.relaxdev.ru';
 
 const SHOP_ITEMS = [
-  { id:'bombs_pack', icon:'💣', titleKey:'shopBombsPackTitle', descKey:'shopBombsPackDesc', title:'Набор бомб ×5', desc:'Мгновенно +5 бомб', price:10 },
-  { id:'bombs_pack_big', icon:'💣', titleKey:'shopBombsPackBigTitle', descKey:'shopBombsPackBigDesc', title:'Набор бомб ×20', desc:'Мгновенно +20 бомб', price:25 },
-  { id:'remove_ads', icon:'🚫', titleKey:'shopRemoveAdsTitle', descKey:'shopRemoveAdsDesc', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:10 }
+  { id:'bombs_pack', icon:'💣', title:'5 бомб', desc:'Мгновенно +5 бомб', price:5 },
+  { id:'bombs_pack_big', icon:'💣', title:'20 бомб', desc:'Мгновенно +20 бомб', price:15 },
+  { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:10 }
+];
+const SHOP_ITEMS_COIN = [
+  { id:'coin_bombs_5', icon:'💣', title:'5 бомб', desc:'Мгновенно +5 бомб', price:150, bombs:5 },
+  { id:'coin_bombs_20', icon:'💣', title:'20 бомб', desc:'Мгновенно +20 бомб', price:500, bombs:20 }
+];
+const STREAK_REWARDS = [
+  { day:1, coins:20,  bombs:0 },
+  { day:2, coins:40,  bombs:0 },
+  { day:3, coins:60,  bombs:1 },
+  { day:4, coins:100, bombs:0 },
+  { day:5, coins:150, bombs:1 },
+  { day:6, coins:250, bombs:0 },
+  { day:7, coins:500, bombs:3 }
 ];
 const SHOP_ENABLED = true;
+function todayStr(){
+  return new Date().toISOString().slice(0,10);
+}
+function yesterdayStr(){
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0,10);
+}
+function checkStreak(){
+  const today = todayStr();
+  const yesterday = yesterdayStr();
+  if(save.dailyLastVisit === today) return;
+  if(save.dailyLastVisit === yesterday){
+    save.dailyStreak = Math.min(7, save.dailyStreak + 1);
+  } else {
+    save.dailyStreak = 1;
+  }
+  save.dailyLastVisit = today;
+  persist();
+}
+function canClaimDaily(){
+  return save.dailyLastClaim !== todayStr();
+}
 
 const $ = id => document.getElementById(id);
 const ctx = $('board').getContext('2d');
@@ -753,7 +896,7 @@ const LOCALES = {
   ru: {
     hudLevel:'Ур.', hudWave:'Волна',
     settingsTitle:'Настройки', pauseTitle:'Пауза', pauseResume:'Продолжить',
-    menuCampaign:'Кампания · 30 уровней', menuEndless:'Бесконечная игра',
+    menuCampaign:'Кампания · 30 уровней + Боссы', menuEndless:'Бесконечная игра',
     menuShop:'Магазин', menuRecords:'Рекорды', menuMultiplayer:'Дуэль 1×1', menuSupport:'Поддержка',
     levelsTitle:'Кампания', levelsDesc:'Соберите 4 одинаковых цвета в ряд.', levelsBack:'Назад',
     settingsSound:'Звуковые эффекты', settingsMusic:'Музыка', settingsVoice:'Голосовая похвала',
@@ -828,7 +971,7 @@ const LOCALES = {
   en: {
     hudLevel:'Lv.', hudWave:'Wave',
     settingsTitle:'Settings', pauseTitle:'Pause', pauseResume:'Resume',
-    menuCampaign:'Campaign · 30 levels', menuEndless:'Endless mode',
+    menuCampaign:'Campaign · 30 levels + Bosses', menuEndless:'Endless mode',
     menuShop:'Shop', menuRecords:'Records', menuMultiplayer:'Duel 1v1', menuSupport:'Support',
     levelsTitle:'Campaign', levelsDesc:'Match 4 same colors in a row.', levelsBack:'Back',
     settingsSound:'Sound', settingsMusic:'Music', settingsVoice:'Voice',
@@ -924,6 +1067,10 @@ const fresh = () => ({
   bombs:1,
   settings:{sound:true,music:true,voice:true,allowShare:false,sensitivity:30,lang:'auto',theme:0},
   coins:0,
+  trainingDone:false,
+  dailyStreak:0,
+  dailyLastClaim:'',
+  dailyLastVisit:'',
   story:{intro:false,boss5:false,boss10:false,boss15:false,boss20:false,boss25:false,boss30:false},
   purchases:{remove_ads:false,unlock_all:false}
 });
@@ -939,6 +1086,10 @@ function normalize(raw){
   s.coins = Math.floor(num(raw.coins, 0, 9999999));
   const st=raw.story||{};
   s.story={intro:st.intro===true,boss5:st.boss5===true,boss10:st.boss10===true,boss15:st.boss15===true,boss20:st.boss20===true,boss25:st.boss25===true,boss30:st.boss30===true};
+  s.trainingDone = raw.trainingDone === true;
+  s.dailyStreak = Math.floor(num(raw.dailyStreak, 0, 7));
+  s.dailyLastClaim = typeof raw.dailyLastClaim === 'string' ? raw.dailyLastClaim : '';
+  s.dailyLastVisit = typeof raw.dailyLastVisit === 'string' ? raw.dailyLastVisit : '';
   const o=raw.settings||{};
   for(const k of ['sound','music','voice'])s.settings[k]=o[k]!==false;
   s.settings.allowShare = o.allowShare === true;
@@ -1097,6 +1248,18 @@ async function vkPurchase(itemId){
     return false;
   }
 }
+function buyWithCoins(itemId){
+  const item = SHOP_ITEMS_COIN.find(i => i.id === itemId);
+  if(!item){ showToast('Товар не найден'); return; }
+  if(save.coins < item.price){ showToast('Недостаточно монет'); return; }
+  save.coins -= item.price;
+  save.bombs = Math.min(99, save.bombs + item.bombs);
+  bombsAvailable = save.bombs;
+  updateBombButton();
+  persist();
+  showToast(`+${item.bombs} бомб! Осталось монет: ${save.coins}`);
+  shopMenu();
+}
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
 
 // [AD-FIX] Блокирует повторные rewarded-запросы с игровой кнопки.
@@ -1139,6 +1302,7 @@ let moveCleared=0, bombAwarded=false, bombsAvailable=0;
 let last=performance.now(), clock=0, hudTick=0, noticeLeft = 0;
 let pressed=new Set(), pointer=null, tapTimer=null, lastTap=0, buttonHold=null;
 let levelsCompleted=0;
+let lastCoinsEarned = 0;
 let trainingStage = 0;
 let trainingBombTipShown = false;
 
@@ -1174,7 +1338,8 @@ function show(html,name){
   $('dialog').innerHTML=html;
   $('overlay').hidden=false;
   $('app').inert=true;
-  $('dialog').querySelector('button:not(:disabled),input,select')?.focus();
+  // ????????? ?????? ?? input/select (??? ????????), ?????? ?? ???????
+  $('dialog').querySelector('input,select')?.focus();
   sync();
 }
 function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPaused;sync();}
@@ -1197,9 +1362,15 @@ function menu(){
   const stars=save.stars.reduce((a,b)=>a+b,0);
   show(`
     <img class="menu-logo" src="logo.png" alt="Antivirus" onerror="this.style.display='none'">
-    <p>Собрано звёзд: <b>${stars}</b> / ${N*3}<br>${t('coinsInMenu',save.coins)}</p>
+    <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
+  <button class="menu-coins-btn" data-menu="shop"> <span>${save.coins}</span> монет →</button>
     <div class="stack">
-      ${btn('\u{1F393} ' + t('menuTraining'),'training')}
+      ${!save.trainingDone
+        ? btn('\u{1F393} ' + t('menuTraining'),'training')
+        : `<button data-menu="daily" style="position:relative;background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#f59e0b;color:#78350f;font-weight:900">
+            ${canClaimDaily() ? ' \u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 \u0431\u043e\u043d\u0443\u0441' : ' \u0411\u043e\u043d\u0443\u0441 \u043f\u043e\u043b\u0443\u0447\u0435\u043d'}
+            ${canClaimDaily() ? '<span style="position:absolute;top:6px;right:8px;width:10px;height:10px;background:#ef4444;border-radius:50%;box-shadow:0 0 8px #ef4444"></span>' : ''}
+          </button>`}
       ${btn(t('menuCampaign'),'levels',true)}
       ${SHOP_ENABLED ? btn(t('menuShop'),'shop') : ''}
       ${btn(t('menuEndless'),'endless')}
@@ -1268,18 +1439,83 @@ function recordsMenu(){
 }
 function shopMenu(){
   if(!SHOP_ENABLED){ menu(); return; }
-  const items=SHOP_ITEMS.map(item=>{
-    const owned=item.id==='remove_ads'?save.purchases.remove_ads:item.id==='unlock_all'?save.purchases.unlock_all:false;
+  const coinItems = SHOP_ITEMS_COIN.map(item => {
+    const canAfford = save.coins >= item.price;
     return `<div class="shop-item">
       <div class="icon">${item.icon}</div>
       <div class="info"><b>${item.title}</b><small>${item.desc}</small></div>
-      <button class="price" data-buy="${item.id}" ${owned?'disabled':''}>${owned?'✓ Куплено':item.price+(window.Platform.mode === 'ok' ? ' ОКов' : ' голосов')}</button>
+      <button class="price coin-price" data-buy-coin="${item.id}" ${canAfford ? '' : 'disabled'}> ${item.price}</button>
     </div>`;
   }).join('');
-  show(`<h2>${t('shopTitle')}</h2><p>${t('shopDesc')}</p>${items}
-    <div class="stack" style="margin-top:12px">${btn(t('shopBack'),'menu')}</div>`,'shop');
+  const voteItems = SHOP_ITEMS.map(item => {
+    const owned = item.id==='remove_ads' ? save.purchases.remove_ads : false;
+    return `<div class="shop-item">
+      <div class="icon">${item.icon}</div>
+      <div class="info"><b>${item.title}</b><small>${item.desc}</small></div>
+      <button class="price" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? '✓ Куплено' : item.price + (window.Platform.mode === 'ok' ? ' ОКов' : ' голосов')}</button>
+    </div>`;
+  }).join('');
+  show(`<h2>${t('shopTitle')}</h2>
+    <p style="font-size:14px;color:#78350f;background:#fef3c7;border-radius:10px;padding:8px 12px;margin:6px 0 12px;font-weight:800"> Монет: ${save.coins}</p>
+    <h3 style="font-size:15px;color:#78350f;margin:12px 0 6px;text-align:left"> За монеты</h3>
+    ${coinItems}
+    <h3 style="font-size:15px;color:#0f172a;margin:16px 0 6px;text-align:left"> За голоса</h3>
+    ${voteItems}
+    <div class="stack" style="margin-top:12px">${btn(t('shopBack'),'menu')}</div>`,
+    'shop');
 }
 
+function dailyMenu(){
+  const today = todayStr();
+  const streak = save.dailyStreak || 1;
+  const claimed = !canClaimDaily();
+  const currentReward = STREAK_REWARDS[streak - 1] || STREAK_REWARDS[0];
+  const canClaim = !claimed;
+
+  let headerRow = '';
+  let coinsRow = '';
+  let bombsRow = '';
+  STREAK_REWARDS.forEach(r => {
+    const isPast = r.day < streak;
+    const isCurrent = r.day === streak;
+    const isFuture = r.day > streak;
+    const cls = isPast ? 'past' : isCurrent ? 'current' : 'future';
+    headerRow += `<div class="s-header ${cls}">${isPast ? '✓' : r.day}</div>`;
+    coinsRow  += `<div class="s-coins ${cls}">${r.coins}</div>`;
+    bombsRow  += `<div class="s-bombs ${cls}${r.bombs ? '' : ' empty'}">${r.bombs ? '+' + r.bombs : ''}</div>`;
+  });
+  const days = headerRow + coinsRow + bombsRow;
+
+  show(`
+    <h2> \u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 \u0431\u043e\u043d\u0443\u0441</h2>
+    <p style="margin:6px 0">\u0414\u0435\u043d\u044c <b>${streak}</b> \u0438\u0437 7</p>
+    <div class="streak-bar">${days}</div>
+    ${canClaim
+      ? `<p style="font-size:14px;margin:14px 0">\u041d\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u0441\u0435\u0433\u043e\u0434\u043d\u044f:<br><b style="font-size:18px;color:#d97706">${currentReward.coins} монет${currentReward.bombs ? ' + ' + currentReward.bombs + ' бомб' : ''}</b></p>
+         <div class="stack"><button data-daily="claim" class="primary">\u041f\u043e\u043b\u0443\u0447\u0438\u0442\u044c</button></div>`
+      : `<p style="font-size:14px;margin:14px 0;color:#64748b">\u0411\u043e\u043d\u0443\u0441 \u043f\u043e\u043b\u0443\u0447\u0435\u043d!<br>\u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0439\u0441\u044f \u0437\u0430\u0432\u0442\u0440\u0430.</p>
+         <div class="stack"><button data-menu="menu" class="primary">\u0412 \u043c\u0435\u043d\u044e</button></div>`
+    }
+  `, 'daily');
+
+  const claimBtn = $('dialog').querySelector('[data-daily="claim"]');
+  if(claimBtn){
+    claimBtn.onclick = () => {
+      claimBtn.disabled = true;
+      const r = currentReward;
+      save.coins = Math.min(9999999, save.coins + r.coins);
+      if(r.bombs > 0){
+        save.bombs = Math.min(99, save.bombs + r.bombs);
+        bombsAvailable = save.bombs;
+        updateBombButton();
+      }
+      save.dailyLastClaim = today;
+      persist();
+      showToast(`+${r.coins} \u043c\u043e\u043d\u0435\u0442${r.bombs ? ' \u0438 ' + r.bombs + ' \u0431\u043e\u043c\u0431' : ''}!`);
+      setTimeout(() => { if(screen === 'daily') dailyMenu(); }, 1200);
+    };
+  }
+}
 const duelState = {
   socket: null,
   roomId: null,
@@ -1818,6 +2054,7 @@ function start(m,n){
     return;
   }
   mode=m;level=n;wave=1;
+  lastCoinsEarned = 0;
   grid=Array.from({length:H},()=>Array(W).fill(null));
   active=null;next=pair();serial=1;
   score=kills=elapsed=moves=fall=phase=combo=0;
@@ -2008,7 +2245,7 @@ function triggerBossWave(){
   bossWaveCount++;const waveNumber=bossWaveCount;bossSound();
   const av=document.querySelector('.boss-avatar');
   if(av){av.style.animation='boss-attack 0.6s ease-out';setTimeout(()=>{av.style.animation='';},700);}
-  const waveSize=Math.min(level,15),spaces=[];
+  const waveSize=Math.max(2,Math.round(level*0.3)),spaces=[];
   for(let y=4;y<H;y++)for(let x=0;x<W;x++)if(!grid[y][x])spaces.push([x,y]);
   for(let i=spaces.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[spaces[i],spaces[j]]=[spaces[j],spaces[i]];}
   let added=0;
@@ -2081,9 +2318,11 @@ function finish(won){
   clearInput();record();
   if(duelMode){ duelMyGameOver(won); return; }
   let coinsEarned = 0, coinMultiplier = 1;
+  lastCoinsEarned = 0;
   let text='';
   if(won&&mode==='campaign'){
-    const target=difficulty(level).target;
+    const isBossLevel = mode==='campaign' && BOSSES[level];
+    const target = isBossLevel ? (level * 60) : difficulty(level).target;
     const stars=elapsed<=target?3:elapsed<=target*1.7?2:1;
     coinMultiplier = stars;
     coinsEarned = score * coinMultiplier;
@@ -2101,11 +2340,13 @@ function finish(won){
     save.coins = Math.min(9999999, save.coins + coinsEarned);
     persist();
   }
+  lastCoinsEarned = coinsEarned;
   const showNext=won&&mode==='campaign'&&level<N;
   const showRescue=!won&&!duelMode&&__rewardedAdsAvailable;
   show(`<h2>${won?t('endWin'):t('endLose')}</h2>${text}
     <p>${coinsEarned>0?(coinMultiplier>1?t('coinsEarnedWithMult',coinsEarned,score,coinMultiplier):t('coinsEarned',coinsEarned)):t('coinsEarned',0)}<br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
+      ${coinsEarned > 0 && !duelMode && !save.purchases.remove_ads && __rewardedAdsAvailable ? `<button data-menu="double-coins" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent"> Удвоить монеты (+${coinsEarned})</button>` : ''}
       ${showNext?btn(t('endNext'),'next',true):''}
       ${showRescue?`<button data-menu="rescue" class="primary" id="rescueBtn">${t('endRescue')}</button>`:''}
       ${showRescue?`<p class="status" style="margin:0">${t('endRescueHint')}</p>`:''}
@@ -2140,6 +2381,8 @@ function finish(won){
   }
 }
 function trainingComplete(){
+  save.trainingDone = true;
+  persist();
   running=false;paused=false;active=null;state='end';
   clearInput();
   sound('win');
@@ -2578,7 +2821,9 @@ if(virusColumn){
 
 $('dialog').addEventListener('click',async e=>{
   const b=e.target.closest('[data-menu]');
+  const buyCoin=e.target.closest('[data-buy-coin]');
   const buy=e.target.closest('[data-buy]');
+  if(buyCoin && !buyCoin.disabled){ buyWithCoins(buyCoin.dataset.buyCoin); return; }
   const dl=e.target.closest('[data-duel]');
 
   if(buy && !buy.disabled && SHOP_ENABLED){
@@ -2651,6 +2896,26 @@ $('dialog').addEventListener('click',async e=>{
   if(a==='duel-cancel'){duelLeave();duelMenu();return;}
 
   switch(a){
+    case'double-coins':{
+      const dblBtn = $('dialog').querySelector('[data-menu="double-coins"]');
+      if(!dblBtn || dblBtn.disabled) break;
+      dblBtn.disabled = true;
+      dblBtn.textContent = ' Загрузка...';
+      const adOk = await showRewarded();
+      if(adOk){
+        save.coins = Math.min(9999999, save.coins + lastCoinsEarned);
+        persist();
+        showToast('+' + lastCoinsEarned + ' монет! Всего: ' + save.coins);
+        dblBtn.textContent = '✓ +' + lastCoinsEarned + ' монет';
+        dblBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+      } else {
+        showToast('Реклама недоступна');
+        dblBtn.disabled = false;
+        dblBtn.textContent = ' Удвоить монеты (+' + lastCoinsEarned + ')';
+      }
+      break;
+    }
+    case'daily': dailyMenu(); break;
     case'menu':
       if(mode==='campaign'&&level===30&&!save.story.boss30){
         save.story.boss30=true;persist();
@@ -2674,13 +2939,21 @@ $('dialog').addEventListener('click',async e=>{
         last = performance.now();
       }
       break;
-    case 'training-done-campaign': levelsMenu(); break;
+    case 'training-done-campaign':
+      save.trainingDone = true;
+      persist();
+      levelsMenu();
+      break;
     case 'training-done-restart':
       trainingStage = 1;
       trainingBombTipShown = false;
       start('training', 0);
       break;
-    case 'training-done-menu': menu(); break;
+    case 'training-done-menu':
+      save.trainingDone = true;
+      persist();
+      menu();
+      break;
     case'endless':start('endless',1);break;
     case'settings':settingsMenu();break;
     case 'support': {
@@ -2760,6 +3033,7 @@ let _bootRan = false;
 async function boot(){
   if(_bootRan) return;
   _bootRan = true;
+  checkStreak();
   const failsafe=setTimeout(()=>{
     if($('app').hidden){
       try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{}
