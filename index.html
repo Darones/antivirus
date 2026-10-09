@@ -468,7 +468,7 @@ body.stopped .friend{animation-play-state:paused}
   border-color:#34d399;color:#065f46;gap:0;
 }
 .ad-btn .ad-emoji{font-size:18px;line-height:1}
-.ad-btn .ad-plus{font-size:9px;font-weight:900;margin-top:1px;line-height:1}
+.ad-btn .ad-plus{font-size:7px;font-weight:800;margin-top:1px;line-height:1.05;text-align:center;letter-spacing:-0.2px}
 body.duel-mode .ad-btn{display:none}
 body.no-rewarded-ads .ad-btn{display:none}
 .left-btn{grid-column:1;grid-row:2}
@@ -633,8 +633,8 @@ body.duel-mode .bomb-btn{display:none}
     <div class="controls-v2" id="controls">
       <button class="ctrl-btn drop-btn" data-act="drop" aria-label="Быстрое падение">⤓</button>
       <button class="ctrl-btn ad-btn" id="adBombButton" data-act="adbomb" aria-label="Бомба за рекламу">
-        <span class="ad-emoji">📺</span>
-        <span class="ad-plus">+💣</span>
+        <span class="ad-emoji"></span>
+        <span class="ad-plus">3 бомбы<br>за рекламу</span>
       </button>
       <button class="ctrl-btn rotate-btn" data-act="rotate" aria-label="Поворот">↻</button>
       <button class="ctrl-btn left-btn" data-act="left" aria-label="Влево">←</button>
@@ -685,11 +685,51 @@ try {
 } catch(e){ __vkPlatform = ''; __vkClient = ''; }
 const __isOkPlatform = (__vkClient === 'ok') || /_ok$/i.test(__vkPlatform);
 window.Platform = { mode: __isOkPlatform ? 'ok' : 'vk' };
-const __isWebPlatform = /web$/.test(__vkPlatform);
+const __isWebPlatform = /(^|_)web($|_)/.test(__vkPlatform);
 const __rewardedAdsAvailable = !__isWebPlatform;
 if(!__rewardedAdsAvailable){
   document.body.classList.add('no-rewarded-ads');
 }
+
+const STATS_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:3000/stats/event'
+  : 'https://antivirus-duel-server.relaxdev.ru/stats/event';
+const Stats = (() => {
+  const queue = [];
+  const sessionId = Math.random().toString(36).slice(2, 10);
+  const sessionStart = Math.floor(Date.now() / 1000);
+  function playerId(){
+    try { if(typeof vkUserId !== 'undefined' && vkUserId) return String(vkUserId); } catch {}
+    return 'anon_' + sessionId;
+  }
+  function track(ev, props){
+    queue.push(Object.assign({
+      t: Math.floor(Date.now() / 1000), sessionId, playerId: playerId(),
+      platform: window.Platform.mode, ev
+    }, props || {}));
+    if(queue.length >= 40) flush();
+  }
+  function flush(beacon){
+    if(queue.length === 0) return;
+    const body = JSON.stringify({ events: queue.slice() });
+    queue.length = 0;
+    if(beacon && navigator.sendBeacon){
+      try {
+        const blob = new Blob([body], { type: 'application/json' });
+        if(navigator.sendBeacon(STATS_URL, blob)) return;
+      } catch {}
+    }
+    try {
+      fetch(STATS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(()=>{});
+    } catch {}
+  }
+  function endSession(){
+    track('session_end', { duration: Math.floor(Date.now()/1000) - sessionStart });
+    flush(true);
+  }
+  setInterval(flush, 20000);
+  return { track, flush, endSession, sessionStart };
+})();
 
 function isOK(){ return window.Platform.mode === 'ok'; }
 function getSaveKey(){ return isOK() ? 'antivirus-ok-1' : 'antivirus-vk-1'; }
@@ -730,6 +770,8 @@ const BOSSES={
   15:{name:'Пневмоний',color:'#10b981',emoji:''},20:{name:'Гемолитикус',color:'#8b5cf6',emoji:''},
   25:{name:'Энтеровирус',color:'#f97316',emoji:''},30:{name:'Менингит',color:'#7c2d12',emoji:''}
 };
+const BOSS_WAVE_SIZE={5:5,10:8,15:10,20:12,25:13,30:15};
+const BOSS_WAVE_THRESHOLDS=[0.50,0.25,0.10];
 let bossState=null;
 
 const DUEL_TARGET = 15;
@@ -823,8 +865,10 @@ async function adShow(kind){
       if(kind === 'interstitial') lastInterstitialAt = Date.now();
       if(kind === 'rewarded')     lastRewardedAt     = Date.now();
       console.warn('[Ads] show ' + kind + ' ok');
+      Stats.track('ad_watch', { kind, ok: true });
     }else{
       console.warn('[Ads] show ' + kind + ' failed');
+      Stats.track('ad_watch', { kind, ok: false });
     }
     return shown;
   }catch(e){
@@ -899,7 +943,7 @@ const LOCALES = {
     menuCampaign:'Кампания · 30 уровней + Боссы', menuEndless:'Бесконечная игра',
     menuShop:'Магазин', menuRecords:'Рекорды', menuMultiplayer:'Дуэль 1×1', menuSupport:'Поддержка',
     levelsTitle:'Кампания', levelsDesc:'Соберите 4 одинаковых цвета в ряд.', levelsBack:'Назад',
-    settingsSound:'Звуковые эффекты', settingsMusic:'Музыка', settingsVoice:'Голосовая похвала',
+    settingsSound:'Звуковые эффекты', settingsMusic:'Музыка', settingsMusicVolume:'Громкость музыки', settingsVoice:'Голосовая похвала',
     settingsSwipe:'Порог свайпа', settingsTheme:'Мелодия', settingsLang:'Язык', settingsLangAuto:'Авто',
     settingsSave:'Сохранить', settingsStatus:'Ниже порог — чувствительнее свайпы.',
     pauseRestart:'Перезапустить', pauseMenu:'Главное меню',
@@ -974,7 +1018,7 @@ const LOCALES = {
     menuCampaign:'Campaign · 30 levels + Bosses', menuEndless:'Endless mode',
     menuShop:'Shop', menuRecords:'Records', menuMultiplayer:'Duel 1v1', menuSupport:'Support',
     levelsTitle:'Campaign', levelsDesc:'Match 4 same colors in a row.', levelsBack:'Back',
-    settingsSound:'Sound', settingsMusic:'Music', settingsVoice:'Voice',
+    settingsSound:'Sound', settingsMusic:'Music', settingsMusicVolume:'Music volume', settingsVoice:'Voice',
     settingsSwipe:'Swipe threshold', settingsTheme:'Melody', settingsLang:'Language', settingsLangAuto:'Auto',
     settingsSave:'Save', settingsStatus:'Lower threshold = more sensitive swipes.',
     pauseRestart:'Restart', pauseMenu:'Main menu',
@@ -1062,10 +1106,19 @@ let currentLang = 'ru';
 function t(key, ...args){const v=LOCALES[currentLang]?.[key]??LOCALES.en[key]??key;return typeof v==='function'?v(...args):v;}
 function normalizeLang(raw){if(!raw)return null;const c=String(raw).toLowerCase().replace('_','-').slice(0,2);return LOCALES[c]?c:null;}
 
+const MUSIC_TRACKS = [
+  { name: 'Трек 1', file: 'music/track1.mp3', boss: false },
+  { name: 'Трек 2', file: 'music/track2.mp3', boss: false },
+  { name: 'Трек 3', file: 'music/track3.mp3', boss: false },
+  { name: 'Боссовый трек', file: 'music/track4.mp3', boss: true },
+  { name: 'Трек 5', file: 'music/track5.mp3', boss: false },
+  { name: 'Трек 6', file: 'music/track6.mp3', boss: false }
+];
+const BOSS_TRACK_IDX = 3;
 const fresh = () => ({
   unlocked:1, stars:Array(N).fill(0), best:{kills:0,time:0,score:0},
   bombs:1,
-  settings:{sound:true,music:true,voice:true,allowShare:false,sensitivity:30,lang:'auto',theme:0},
+  settings:{sound:true,music:true,voice:true,allowShare:false,sensitivity:30,lang:'auto',musicTrack:0,musicVolume:0.7},
   coins:0,
   trainingDone:false,
   dailyStreak:0,
@@ -1094,8 +1147,11 @@ function normalize(raw){
   for(const k of ['sound','music','voice'])s.settings[k]=o[k]!==false;
   s.settings.allowShare = o.allowShare === true;
   s.settings.sensitivity=num(o.sensitivity??30,15,65);
+  s.settings.musicVolume=num(o.musicVolume??0.7,0,1);
   s.settings.lang=['auto','ru','en'].includes(o.lang)?o.lang:'auto';
-  s.settings.theme=Math.floor(num(o.theme,0,3));
+  const regularTrackIdxs=MUSIC_TRACKS.map((track,index)=>index).filter(index=>!MUSIC_TRACKS[index].boss);
+  const savedMusicTrack=o.musicTrack;
+  s.settings.musicTrack=savedMusicTrack==='random'?'random':(regularTrackIdxs.includes(Number(savedMusicTrack))?Number(savedMusicTrack):'random');
   const p=raw.purchases||{};
   s.purchases.remove_ads=!!p.remove_ads;
   s.purchases.unlock_all=!!p.unlock_all;
@@ -1240,6 +1296,7 @@ async function vkPurchase(itemId){
       console.warn('[Shop] not success', r);
       return false;
     }
+    Stats.track('purchase', { item: itemId, currency: 'votes' });
     return true;
   }catch(e){
     window.__lastShopError = e?.message || String(e);
@@ -1253,6 +1310,7 @@ function buyWithCoins(itemId){
   if(!item){ showToast('Товар не найден'); return; }
   if(save.coins < item.price){ showToast('Недостаточно монет'); return; }
   save.coins -= item.price;
+  Stats.track('purchase', { item: itemId, currency: 'coins' });
   save.bombs = Math.min(99, save.bombs + item.bombs);
   bombsAvailable = save.bombs;
   updateBombButton();
@@ -1296,6 +1354,7 @@ let grid = Array.from({length:H},()=>Array(W).fill(null));
 let active=null, next=[0,2], serial=1;
 let mode='campaign', level=1, wave=1, score=0, kills=0, elapsed=0, moves=0;
 let running=false, paused=false, platformPaused=false, screen='boot';
+let inSettings = false;
 let state='idle', fall=0, phase=0, combo=0, matches=[], particles=[];
 let startVirusCount=0, bossWaveCount=0;
 let moveCleared=0, bombAwarded=false, bombsAvailable=0;
@@ -1335,6 +1394,8 @@ function sync(){
 }
 function show(html,name){
   clearInput(); screen=name;
+  inSettings = (name === 'settings');
+  Stats.track('screen', { screen: name });
   $('dialog').innerHTML=html;
   $('overlay').hidden=false;
   $('app').inert=true;
@@ -1354,6 +1415,7 @@ function menu(){
   clearTimeout(tapTimer);
   clearTimeout(duelState.duelStartTimer);
   adRequestPending = false;
+  if(running && state !== 'end') Stats.track('level_abandon', { mode, level, time: Math.floor(elapsed) });
   if(duelMode)duelLeave();
   running=false;paused=false;active=null;state='idle';
   duelMode=false;
@@ -1405,10 +1467,14 @@ function settingsMenu(){
   show(`<h2>${t('settingsTitle')}</h2>
     <label class="row">${t('settingsSound')}<input id="set-sound" type="checkbox" ${s.sound?'checked':''}></label>
     <label class="row">${t('settingsMusic')}<input id="set-music" type="checkbox" ${s.music?'checked':''}></label>
+    <label class="row">${t('settingsMusicVolume')}<input id="set-music-vol" type="range" min="0" max="100" value="${Math.round((s.musicVolume ?? 0.7) * 100)}"></label>
     <label class="row">${t('settingsVoice')}<input id="set-voice" type="checkbox" ${s.voice?'checked':''}></label>
     <label class="row">${t('settingsAllowShare')}<input id="set-allow-share" type="checkbox" ${s.allowShare?'checked':''}></label>
     <label class="row">${t('settingsSwipe')}<input id="set-swipe" type="range" min="15" max="65" value="${s.sensitivity}"></label>
-    <label class="row">${t('settingsTheme')}<select id="set-theme">${themes.map((tm,i)=>`<option value="${i}" ${(s.theme??0)===i?'selected':''}>${tm.name}</option>`).join('')}</select></label>
+    <label class="row">${t('settingsTheme')}<select id="set-music-track">
+      <option value="random" ${s.musicTrack==='random'?'selected':''}>Рандом по уровням</option>
+      ${MUSIC_TRACKS.filter(t=>!t.boss).map((tr,i)=>`<option value="${i}" ${s.musicTrack===i?'selected':''}>${tr.name}</option>`).join('')}
+    </select></label>
     <label class="row">${t('settingsLang')}<select id="set-lang">
       <option value="auto" ${s.lang==='auto'?'selected':''}>${t('settingsLangAuto')}</option>
       <option value="ru" ${s.lang==='ru'?'selected':''}>Русский</option>
@@ -1416,6 +1482,29 @@ function settingsMenu(){
     </select></label>
     <p class="status">${t('settingsStatus')}</p>
     <div class="stack">${btn(t('settingsSave'),'saveSettings',true)}${btn(t('levelsBack'),'back')}</div>`,'settings');
+  const mvol = $('set-music-vol');
+  if(mvol){
+    mvol.addEventListener('input',()=>{
+      const v=Math.max(0,Math.min(1,Number(mvol.value)/100));
+      if(musicAudio){
+        musicAudio.volume=0.15*v/0.7;
+      }
+    });
+  }
+  const mtSel = $('set-music-track');
+  if(mtSel){
+    mtSel.addEventListener('change', () => {
+      const v = mtSel.value;
+      if(!audio) initAudio();
+      musicPreviewing = true;
+      if(v === 'random'){ musicStart(pickNextTrack()); }
+      else { const n = Number(v); if(!MUSIC_TRACKS[n].boss) musicStart(n); }
+      clearTimeout(musicPreviewTimer);
+      musicPreviewTimer = setTimeout(()=>{ musicPreviewing = false; syncAudio(); },4000);
+      syncAudio();
+    });
+  }
+  syncAudio();
 }
 function pauseMenu(){
   if(!running)return;
@@ -2054,6 +2143,7 @@ function start(m,n){
     return;
   }
   mode=m;level=n;wave=1;
+  Stats.track('level_start', { mode: m, level: n });
   lastCoinsEarned = 0;
   grid=Array.from({length:H},()=>Array(W).fill(null));
   active=null;next=pair();serial=1;
@@ -2062,6 +2152,16 @@ function start(m,n){
   moveCleared=0;bombAwarded=false;bombsAvailable=save.bombs;
   updateBombButton();
   running=true;paused=false;state='fall';last=performance.now();
+  if(save.settings.music){
+    const isBoss=(m==='campaign')&&BOSSES[n]&&!duelMode;
+    if(isBoss){musicStart(BOSS_TRACK_IDX);}
+    else{
+      const pref=save.settings.musicTrack;
+      const regularIdxs=MUSIC_TRACKS.map((track,index)=>index).filter(index=>!MUSIC_TRACKS[index].boss);
+      if(pref==='random'||pref==null){musicStart(pickNextTrack());}
+      else{const p=Number(pref);if(Number.isFinite(p)&&regularIdxs.includes(p))musicStart(p);else musicStart(pickNextTrack());}
+    }
+  }
   document.querySelectorAll('.friend').forEach(e=>e.classList.remove('hurt'));
   const d=difficulty(n);
   if(duelMode){
@@ -2130,7 +2230,7 @@ function lock(){
   if(p.bomb){
     const a=bombArea(p);matches=[];
     for(let y=a.y;y<a.y+3;y++)for(let x=a.x;x<a.x+3;x++)if(grid[y][x])matches.push(y*W+x);
-    combo=1;erase(true);state='gravity';explosionSound();shakeBoard('heavy');tell('noticeClear');
+    combo=1;erase(true);checkBossWave();state='gravity';explosionSound();shakeBoard('heavy');tell('noticeClear');
   }else{
     for(const c of cells(p))grid[c.y][c.x]={type:'pill',color:c.color,link:p.id};
     state='scan';sound('drop');
@@ -2197,7 +2297,15 @@ function erase(bomb=false){
     void node.offsetWidth;
     node.classList.add('hurt');
   });
-  if(!bomb&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded&&!duelMode){
+  if(!bomb && mode==='training' && !bombAwarded && removed > 0){
+    bombAwarded = true;
+    bombsAvailable++;
+    save.bombs = bombsAvailable;
+    persist();
+    updateBombButton();
+    fireworkAtBomb();
+    tell('noticeBombEarned', moveCleared || 4);
+  } else if(!bomb&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded&&!duelMode){
     bombAwarded=true;bombsAvailable++;save.bombs=bombsAvailable;persist();updateBombButton();fireworkAtBomb();praise();tell('noticeBombEarned',moveCleared);
   } else if(!bomb&&duelMode&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded){
     bombAwarded=true;
@@ -2239,13 +2347,22 @@ function getBossSVG(){
   return `<div class="boss-avatar" style="--boss-color:${c}"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g stroke="${c}" stroke-width="3" fill="${c}">${rays}</g><circle cx="50" cy="50" r="26" fill="${c}"/><circle cx="42" cy="46" r="6" fill="#fff"/><circle cx="58" cy="46" r="6" fill="#fff"/><circle cx="42" cy="47" r="3" fill="#0f172a"/><circle cx="58" cy="47" r="3" fill="#0f172a"/><path d="M40 62 Q50 72 60 62" stroke="#0f172a" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>`;
 }
 function bossSound(){}
+function checkBossWave(){
+  if(!bossState || !bossState.active) return;
+  if(bossWaveCount >= 3) return;
+  if(!startVirusCount || startVirusCount <= 0) return;
+  if(mode !== 'campaign') return;
+  const remaining = count();
+  const threshold = startVirusCount * BOSS_WAVE_THRESHOLDS[bossWaveCount];
+  if(remaining <= Math.floor(threshold)) triggerBossWave();
+}
 function triggerBossWave(){
   if(!bossState||!bossState.active)return;
   if(bossWaveCount>=3)return;
   bossWaveCount++;const waveNumber=bossWaveCount;bossSound();
   const av=document.querySelector('.boss-avatar');
   if(av){av.style.animation='boss-attack 0.6s ease-out';setTimeout(()=>{av.style.animation='';},700);}
-  const waveSize=Math.max(2,Math.round(level*0.3)),spaces=[];
+  const waveSize=BOSS_WAVE_SIZE[level]||Math.max(2,Math.round(level*0.3)),spaces=[];
   for(let y=4;y<H;y++)for(let x=0;x<W;x++)if(!grid[y][x])spaces.push([x,y]);
   for(let i=spaces.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[spaces[i],spaces[j]]=[spaces[j],spaces[i]];}
   let added=0;
@@ -2308,7 +2425,11 @@ function resolution(dt){
       else{wave++;if(!addViruses(Math.min(36,12+wave*2),4)){if(!duelMode)finish(false);}else{tell('noticeWave',wave);spawn();}}
     }
     else spawn();
-  }else if(state==='flash'&&phase>=.28){erase();if(bossState&&bossState.active&&bossWaveCount<3&&startVirusCount>0&&mode==='campaign'){const remaining=count();const threshold=startVirusCount*(1-.25*(bossWaveCount+1));if(remaining<=Math.floor(threshold))triggerBossWave();}state='gravity';phase=0;}
+  }else if(state==='flash'&&phase>=.28){
+    erase();
+    checkBossWave();
+    state='gravity';phase=0;
+  }
   else if(state==='gravity'&&phase>=.075){phase=0;if(!gravity())state='scan';}
 }
 function finish(won){
@@ -2316,6 +2437,7 @@ function finish(won){
   const av=document.querySelector('.boss-avatar');if(av)av.remove();
   running=false;bossState=null;paused=false;active=null;state='end';
   clearInput();record();
+  if(!duelMode) Stats.track('level_end', { mode, level, won: !!won, time: Math.floor(elapsed), kills, coins: Math.floor(score) });
   if(duelMode){ duelMyGameOver(won); return; }
   let coinsEarned = 0, coinMultiplier = 1;
   lastCoinsEarned = 0;
@@ -2342,11 +2464,11 @@ function finish(won){
   }
   lastCoinsEarned = coinsEarned;
   const showNext=won&&mode==='campaign'&&level<N;
-  const showRescue=!won&&!duelMode&&__rewardedAdsAvailable;
+  const showRescue=!won&&!duelMode&&__rewardedAdsAvailable&&vkReady;
   show(`<h2>${won?t('endWin'):t('endLose')}</h2>${text}
     <p>${coinsEarned>0?(coinMultiplier>1?t('coinsEarnedWithMult',coinsEarned,score,coinMultiplier):t('coinsEarned',coinsEarned)):t('coinsEarned',0)}<br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
-      ${coinsEarned > 0 && !duelMode && !save.purchases.remove_ads && __rewardedAdsAvailable ? `<button data-menu="double-coins" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent"> Удвоить монеты (+${coinsEarned})</button>` : ''}
+      ${coinsEarned > 0 && !duelMode && !save.purchases.remove_ads && __rewardedAdsAvailable && vkReady ? `<button data-menu="double-coins" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent"> Удвоить монеты (+${coinsEarned})</button>` : ''}
       ${showNext?btn(t('endNext'),'next',true):''}
       ${showRescue?`<button data-menu="rescue" class="primary" id="rescueBtn">${t('endRescue')}</button>`:''}
       ${showRescue?`<p class="status" style="margin:0">${t('endRescueHint')}</p>`:''}
@@ -2631,13 +2753,8 @@ function draw(){
   ctx.globalAlpha=1;
 }
 
-let audio=null,musicBus=null,effectsBus=null,noteAt=0,musicStep=0;
-const themes=[
-  {name:'Спокойная лаборатория',step:.34,type:'sine',chords:[[262,330,392],[220,262,330],[175,220,262],[196,247,294]]},
-  {name:'Космос',step:.48,type:'sine',chords:[[220,262,330,494],[175,220,262,392],[262,330,392,494],[196,247,294,440]]},
-  {name:'Подводный мир',step:.43,type:'sine',chords:[[294,349,440,523],[233,294,349,440],[175,220,262,392],[262,330,392,587]]},
-  {name:'Весёлая лаборатория',step:.27,type:'triangle',chords:[[262,330,392,523],[175,220,262,349],[220,262,330,440],[196,247,294,392]]}
-];
+let audio=null,musicBus=null,effectsBus=null;
+
 function initAudio(){
   if(platformPaused||document.hidden)return;
   try{
@@ -2652,15 +2769,59 @@ function initAudio(){
     syncAudio();
   }catch{}
 }
+let musicAudio = null;
+let musicCurrentIdx = -1;
+let musicFadeTimer = null;
+let musicPreviewing = false;
+let musicPreviewTimer = null;
+function musicStart(idx){
+  if(idx<0||idx>=MUSIC_TRACKS.length)return;
+  const track=MUSIC_TRACKS[idx];
+  if(!musicAudio){musicAudio=new Audio();musicAudio.loop=true;musicAudio.preload='auto';}
+  if(musicCurrentIdx===idx&&!musicAudio.paused){musicFadeTo(targetMusicVolume(),250);return;}
+  musicAudio.pause();musicAudio.src=track.file;musicAudio.currentTime=0;musicAudio.volume=0;musicCurrentIdx=idx;
+  const p=musicAudio.play();
+  if(p&&p.catch)p.catch(e=>console.warn('[Music] play failed:',e.message));
+  musicFadeTo(targetMusicVolume(),600);
+}
+function musicStop(){
+  if(musicAudio){musicAudio.pause();musicAudio.currentTime=0;}
+  musicCurrentIdx=-1;
+}
+function targetMusicVolume(){
+  if(!save.settings.music) return 0;
+  if(platformPaused || document.hidden) return 0;
+  const userVol = Number(save.settings.musicVolume ?? 0.7);
+  const norm = userVol / 0.7;
+  if(inSettings) return 0.15 * norm;
+  if(paused) return 0;
+  if(running && screen === 'game') return 0.35 * norm;
+  return 0.15 * norm;
+}
+function musicFadeTo(target,ms){
+  if(!musicAudio)return;
+  clearInterval(musicFadeTimer);
+  const start=musicAudio.volume,steps=Math.max(1,Math.round(ms/30));let i=0;
+  musicFadeTimer=setInterval(()=>{
+    i++;const k=i/steps;musicAudio.volume=Math.max(0,Math.min(1,start+(target-start)*k));
+    if(i>=steps){clearInterval(musicFadeTimer);musicFadeTimer=null;}
+  },30);
+}
 function syncAudio(){
+  if(musicAudio)musicFadeTo(targetMusicVolume(),250);
   if(!audio)return;
-  const now=audio.currentTime;
-  const blocked=paused||platformPaused||document.hidden;
-  const mt=(!blocked&&running&&save.settings.music)?.16:0;
+  const now=audio.currentTime,blocked=paused||platformPaused||document.hidden;
   const st=(!blocked&&save.settings.sound)?.3:0;
-  musicBus.gain.cancelScheduledValues(now);musicBus.gain.setValueAtTime(mt,now);
   effectsBus.gain.cancelScheduledValues(now);effectsBus.gain.setValueAtTime(st,now);
 }
+function pickNextTrack(){
+  const regular=MUSIC_TRACKS.map((t,i)=>i).filter(i=>!MUSIC_TRACKS[i].boss);
+  if(regular.length===0)return 0;
+  let idx=regular[Math.floor(Math.random()*regular.length)];
+  if(regular.length>1&&idx===musicCurrentIdx)idx=regular[(regular.indexOf(idx)+1)%regular.length];
+  return idx;
+}
+
 function tone(f,d,t0,bus,type='sine',vol=.15){
   if(!audio||!bus)return;
   const o=audio.createOscillator(),g=audio.createGain();
@@ -2708,21 +2869,6 @@ function praise(){
   p.voice=voice;p.lang=voice.lang;p.volume=.7;
   speechSynthesis.speak(p);
 }
-// [TIMER-FIX] Не допускает повторного музыкального интервала.
-let _musicTimer = null;
-if(_musicTimer) clearInterval(_musicTimer);
-_musicTimer = setInterval(()=>{
-  if(!audio||audio.state!=='running'||!playable()||!save.settings.music){noteAt=0;return;}
-  const theme=themes[save.settings.theme??0];
-  const now=audio.currentTime;
-  if(noteAt<now)noteAt=now+.04;
-  while(noteAt<now+.18){
-    const chord=theme.chords[Math.floor(musicStep/8)%4];
-    tone(chord[[0,1,2,1,0,2,1,2][musicStep%8]%chord.length]*2,theme.step*1.7,noteAt,musicBus,theme.type,.12);
-    if(musicStep%8===0)chord.forEach(f=>tone(f,theme.step*7.5,noteAt,musicBus,'sine',.045));
-    noteAt+=theme.step;musicStep++;
-  }
-},90);
 
 function frame(now){
   const dt=Math.min((now-last)/1000,.1);
@@ -2964,10 +3110,19 @@ $('dialog').addEventListener('click',async e=>{
     case'saveSettings':
       save.settings.sound=$('set-sound').checked;
       save.settings.music=$('set-music').checked;
+      save.settings.musicVolume=Math.max(0,Math.min(1,Number($('set-music-vol').value)/100));
       save.settings.voice=$('set-voice').checked;
       save.settings.allowShare=$('set-allow-share').checked;
       save.settings.sensitivity=Number($('set-swipe').value);
-      save.settings.theme=Number($('set-theme').value);
+      const mt = $('set-music-track').value;
+      save.settings.musicTrack = (mt === 'random') ? 'random' : Number(mt);
+      if(save.settings.musicTrack !== 'random'){
+        const p = save.settings.musicTrack;
+        const regularIdxs = MUSIC_TRACKS.map((t,i)=>i).filter(i=>!MUSIC_TRACKS[i].boss);
+        if(Number.isFinite(p) && regularIdxs.includes(p) && p !== musicCurrentIdx){
+          musicStart(p);
+        }
+      }
       save.settings.lang=$('set-lang').value;
       if(save.settings.lang!=='auto')applyLanguage(save.settings.lang);
       else applyLanguage(vkLaunchParams.vk_language||navigator.language);
@@ -3016,7 +3171,9 @@ window.addEventListener('blur',()=>{
 });
 window.addEventListener('pagehide',()=>{
   if(duelMode){ leaveDuelByDisconnect(); return; }
-  pause();record();writeLocal();if(cloudDirty)vkCloudSave();
+  pause();record();Stats.track('app_close', { screen: screen, mode: mode, level: level });
+  Stats.endSession();
+  writeLocal();if(cloudDirty)vkCloudSave();
 });
 
 function platformPause(){if(platformPaused)return;platformPaused=true;if(running&&!paused)pauseMenu();clearInput();$('app').inert=true;$('overlay').inert=true;$('platform-mask').hidden=false;sync();}
@@ -3072,9 +3229,22 @@ async function boot(){
   menu();
   $('app').hidden=false;
   $('boot').hidden=true;
+  Stats.track('session_start');
   clearTimeout(failsafe);
   setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
+  if(!vkReady){ document.body.classList.add('no-rewarded-ads'); }
   preloadRewarded();
+  if(save.settings.music && musicCurrentIdx < 0){
+    const pref = save.settings.musicTrack;
+    const regularIdxs = MUSIC_TRACKS.map((t,i)=>i).filter(i=>!MUSIC_TRACKS[i].boss);
+    if(pref === 'random' || pref == null){
+      musicStart(pickNextTrack());
+    } else {
+      const p = Number(pref);
+      if(Number.isFinite(p) && regularIdxs.includes(p)) musicStart(p);
+      else musicStart(pickNextTrack());
+    }
+  }
 
   if(vkReady&&window.vkBridge){
     try{
