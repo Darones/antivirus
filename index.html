@@ -1598,9 +1598,12 @@ function showTip(n){
 function levelsMenu(){
   show(`<h2>${t('levelsTitle')}</h2><p>${t('levelsDesc')}</p>
     <div class="levels">${Array.from({length:N},(_,i)=>{
-      const locked=(i+1>save.unlocked)&&!save.purchases.unlock_all;
-      const stars=save.stars[i];
-      return `<button data-menu="level:${i+1}" ${locked?'disabled':''}>${locked?'🔒':i+1}<small>${'★'.repeat(stars)||'—'}</small></button>`;
+      const n = i + 1;
+      const locked = (n > save.unlocked) && !save.purchases.unlock_all;
+      const stars = save.stars[i];
+      const isBoss = !!BOSSES[n];
+      const icon = locked ? (isBoss ? '👹' : '🔒') : n;
+      return `<button data-menu="level:${n}" ${locked?'disabled':''}>${icon}<small>${'★'.repeat(stars)||'—'}</small></button>`;
     }).join('')}</div>
     <div class="stack">${btn(t('levelsBack'),'menu')}</div>`,'levels');
 }
