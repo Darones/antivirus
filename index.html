@@ -504,7 +504,7 @@ body.stopped .friend{animation-play-state:paused}
   border-color:#34d399;color:#065f46;gap:0;
 }
 .ad-btn .ad-emoji{font-size:18px;line-height:1}
-.ad-btn .ad-plus{font-size:7px;font-weight:800;margin-top:1px;line-height:1.05;text-align:center;letter-spacing:-0.2px}
+.ad-btn .ad-plus{font-size:9px;font-weight:800;margin-top:2px;line-height:1.15;text-align:center;letter-spacing:0;padding:0 2px}
 body.duel-mode .ad-btn{display:none}
 body.no-rewarded-ads .ad-btn{display:none}
 .left-btn{grid-column:1;grid-row:2}
@@ -681,7 +681,6 @@ body.duel-mode .bomb-btn{display:none}
     <div class="controls-v2" id="controls">
       <button class="ctrl-btn drop-btn" data-act="drop" aria-label="Быстрое падение">⤓</button>
       <button class="ctrl-btn ad-btn" id="adBombButton" data-act="adbomb" aria-label="Бомба за рекламу">
-        <span class="ad-emoji"></span>
         <span class="ad-plus">3 бомбы<br>за рекламу</span>
       </button>
       <button class="ctrl-btn rotate-btn" data-act="rotate" aria-label="Поворот">↻</button>
@@ -2787,30 +2786,28 @@ function updateAdButton(){
   if(!btn) return;
   const plus = btn.querySelector('.ad-plus');
   const gate = adCanShow('rewarded');
+  const baseText = '3 бомбы<br>за рекламу';
 
   if(gate.ok){
-    if(btn.disabled) console.warn('[Ads] button ready');
     if(btn.disabled) btn.disabled = false;
     if(btn.style.opacity !== '') btn.style.opacity = '';
-    if(plus && plus.textContent !== '+') plus.textContent = '+';
+    if(plus && plus.innerHTML !== baseText) plus.innerHTML = baseText;
     return;
   }
 
   if(gate.reason === 'cooldown'){
     const left = Math.max(0, Math.ceil((AD_REWARDED_COOLDOWN - (Date.now()-lastRewardedAt))/1000));
-    if(!btn.disabled) console.warn('[Ads] button cooldown', left + 's');
     if(!btn.disabled) btn.disabled = true;
     if(btn.style.opacity !== '.5') btn.style.opacity = '.5';
-    if(plus && plus.textContent !== left + 'с') plus.textContent = left + 'с';
+    const txt = 'Подожди<br>' + left + ' сек';
+    if(plus && plus.innerHTML !== txt) plus.innerHTML = txt;
     return;
   }
 
-  // [AD-FIX] Блокирует кнопку при daily_limit, pending или недоступном VK.
   if(!btn.disabled) btn.disabled = true;
   if(btn.style.opacity !== '.5') btn.style.opacity = '.5';
-  if(plus && plus.textContent !== '+') plus.textContent = '+';
-}
-function fireworkAtBomb(){
+  if(plus && plus.innerHTML !== baseText) plus.innerHTML = baseText;
+}function fireworkAtBomb(){
   const btn=$('bombButton');
   if(!btn) return;
   btn.classList.remove('firework');void btn.offsetWidth;btn.classList.add('firework');
