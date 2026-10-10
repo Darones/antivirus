@@ -1270,7 +1270,12 @@ async function vkCloudLoad(){
       new Promise((_,reject)=>setTimeout(()=>reject(new Error('storage timeout')),1500))
     ]);
     const it=r.keys.find(k=>k.key==='progress');
-    if(it?.value)return JSON.parse(it.value);
+    if(it && it.value){
+      try {
+        const parsed = JSON.parse(it.value);
+        if(parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) return parsed;
+      } catch(e){}
+    }
   }catch(e){console.warn('[VK] cloud load skipped:',e.message||e);}
   return null;
 }
@@ -1619,7 +1624,7 @@ function settingsMenu(){
     <p class="status">${t('settingsStatus')}</p>
     <div class="stack">${btn(t('settingsSave'),'saveSettings',true)}${btn(t('levelsBack'),'back')}</div>
     <div class="stack" style="margin-top:12px">
-      <button data-menu="reset-save" style="background:#fee2e2;border-color:#fecaca;color:#991b1b"> Сбросить прогресс</button>
+      <button data-menu="reset-save" style="background:#fee2e2;border-color:#fecaca;color:#991b1b">Сбросить прогресс</button>
     </div>`,'settings');
   const mvol = $('set-music-vol');
   if(mvol){
@@ -3177,11 +3182,17 @@ $('dialog').addEventListener('click',async e=>{
 
   switch(a){
     case 'reset-save': {
-      if(!confirm('Сбросить весь прогресс? Это удалит монеты, звёзды, бомбы.')) break;
-      localStorage.removeItem(getSaveKey());
-      if(window.vkBridge && vkReady){
-        try { await vkBridge.send('VKWebAppStorageSet',{key:'progress',value:''}); } catch(e){}
-      }
+      $('dialog').innerHTML =
+        '<h2>Сбросить прогресс?</h2>' +
+        '<p>Удалятся монеты, звёзды, бомбы, обучение. Это нельзя отменить.</p>' +
+        '<div class="stack">' +
+          '<button data-menu="reset-yes" class="primary" style="background:linear-gradient(135deg,#ef4444,#dc2626)">Да, сбросить</button>' +
+          '<button data-menu="settings">Отмена</button>' +
+        '</div>';
+      break;
+    }
+    case 'reset-yes': {
+      localStorage.setItem('antivirus-pending-reset','1');
       location.reload();
       break;
     }
@@ -3323,15 +3334,12 @@ let _bootRan = false;
 async function boot(){
   try {
     const rp = new URLSearchParams(
-      (location.search || '').replace(/^\?/, '') + '&' +
-      (location.hash || '').replace(/^#/, '')
+      (location.search || '').replace(/^\?/,'') + '&' +
+      (location.hash || '').replace(/^#/,'')
     );
     if(rp.get('reset') === '1'){
-      localStorage.removeItem(getSaveKey());
-      if(window.vkBridge){
-        try { await vkBridge.send('VKWebAppStorageSet',{key:'progress',value:''}); } catch(e){}
-      }
-      const clean = location.href.replace(/[?&]reset=1/, '').replace(/#reset=1/, '');
+      localStorage.setItem('antivirus-pending-reset','1');
+      const clean = location.href.replace(/[?&]reset=1/,'').replace(/#reset=1/,'');
       location.replace(clean);
       return;
     }
@@ -3350,6 +3358,20 @@ async function boot(){
 
   let ok=false;
   try{ok=await vkInit();}catch(e){console.warn('[Boot]',e);}
+
+  // Обработка отложенного сброса после vkInit
+  if(localStorage.getItem('antivirus-pending-reset') === '1'){
+    try {
+      localStorage.removeItem(getSaveKey());
+      if(vkReady && window.vkBridge){
+        await vkBridge.send('VKWebAppStorageSet',{key:'progress',value:'{}'});
+      }
+    } catch(e){ console.warn('[Reset] cloud clear failed:', e); }
+    localStorage.removeItem('antivirus-pending-reset');
+    save = fresh();
+    writeLocal();
+  }
+
   if(save.settings.lang==='auto'){
     try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{applyLanguage('ru');}
   }else{
@@ -3360,7 +3382,7 @@ async function boot(){
   requestAnimationFrame(frame);
 
   // Загружаем облако до показа меню, с таймаутом, чтобы не залипнуть.
-  if(vkReady){
+  if(vkReady && !localStorage.getItem('antivirus-pending-reset')){
     try{
       const cloud = await Promise.race([
         vkCloudLoad(),
