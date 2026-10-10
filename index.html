@@ -235,6 +235,42 @@ body:not(.duel-mode) .mini-opp{display:none}
   box-shadow:0 3px 10px rgba(245,158,11,.35);
 }
 .menu-coins-btn:active{transform:scale(.96)}
+.tip-overlay{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,rgba(254,243,199,.97),
+    rgba(253,230,138,.97));
+  border:2px solid #f59e0b;border-radius:14px;
+  padding:14px 18px;text-align:center;
+  max-width:92%;z-index:9;line-height:1.55;
+  box-shadow:0 6px 20px rgba(245,158,11,.35);
+  backdrop-filter:blur(3px);color:#78350f;
+  font-size:15px;font-weight:800;
+}
+.tip-text{margin-bottom:10px}
+.tip-ok{
+  background:linear-gradient(135deg,#6366f1,#ec4899);
+  border:none;color:#fff;padding:8px 22px;border-radius:10px;
+  font-size:14px;font-weight:800;cursor:pointer;
+  box-shadow:0 3px 10px rgba(99,102,241,.35);font-family:inherit;
+}
+.tip-ok:active{transform:scale(.96)}
+.menu-money-btn{
+  position:relative;
+  border-radius:14px;
+  border:2px solid #f59e0b;
+  background:linear-gradient(135deg,#fef3c7,#fde68a);
+  color:#78350f;font-size:15px;font-weight:800;
+  min-height:48px;padding:10px 14px;
+  cursor:pointer;transition:transform .08s;
+  font-family:inherit;
+}
+.menu-money-btn:active{transform:scale(.98)}
+.menu-money-btn:disabled{opacity:.6;cursor:default}
+.menu-money-btn .dot{
+  position:absolute;top:8px;right:10px;
+  width:10px;height:10px;background:#ef4444;border-radius:50%;
+  box-shadow:0 0 8px #ef4444;
+}
 .shop-item .price.coin-price{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:900}
 .shop-item .price.coin-price:disabled{opacity:.4;background:linear-gradient(135deg,#94a3b8,#64748b)}
 /* CSS-иконка монеты */
@@ -597,6 +633,15 @@ body.duel-mode .bomb-btn{display:none}
   .friend{width:40px;height:50px}
   .mini-opp canvas{width:52px;height:78px}
 }
+.welcome-full{position:fixed;inset:0;z-index:300;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.welcome-full[hidden]{display:none!important}
+.welcome-bg{position:absolute;inset:0;background-image:url('welcome.png');background-size:cover;background-position:center;background-repeat:no-repeat;z-index:0}
+.welcome-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,23,42,.05) 0%,rgba(15,23,42,.25) 55%,rgba(15,23,42,.65) 100%);z-index:1}
+.welcome-content{position:relative;z-index:2;text-align:center;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;max-width:480px;margin:0 auto;transform:translateY(18vh)}
+.welcome-title{margin:0;font-size:34px;font-weight:900;letter-spacing:3px;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.7),0 0 30px rgba(255,255,255,.3);background:none}
+.welcome-sub{margin:0 0 14px;font-size:17px;font-weight:800;color:#fef3c7;text-shadow:0 2px 10px rgba(0,0,0,.7)}
+.welcome-play-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:18px 56px;border-radius:14px;border:3px solid #f59e0b;background:linear-gradient(180deg,#fbbf24,#f59e0b);color:#fff;font-size:22px;font-weight:900;letter-spacing:1px;box-shadow:0 10px 28px rgba(245,158,11,.55),inset 0 -3px 0 rgba(120,53,15,.3);cursor:pointer;transition:transform .1s;text-shadow:0 2px 4px rgba(120,53,15,.45);font-family:inherit}
+.welcome-play-btn:active{transform:scale(.96);box-shadow:0 5px 16px rgba(245,158,11,.6)}
 </style>
 </head>
 <body>
@@ -620,6 +665,7 @@ body.duel-mode .bomb-btn{display:none}
     <div class="canvas-wrap">
       <div class="canvas-inner">
         <canvas id="board" width="400" height="600" aria-label="Игровое поле 8×12"></canvas>
+        <div class="tip-overlay" id="tipOverlay" hidden></div>
         <div class="virus-column" aria-hidden="true">
           <div class="friend"></div>
           <div class="friend"></div>
@@ -715,8 +761,9 @@ const Stats = (() => {
     queue.length = 0;
     if(beacon && navigator.sendBeacon){
       try {
-        const blob = new Blob([body], { type: 'application/json' });
-        if(navigator.sendBeacon(STATS_URL, blob)) return;
+        // sendBeacon ? application/json ???????? preflight, ??????? VK iframe
+        // ?? ??????????. text/plain ?? ??????? preflight, CORS ?????????.
+        if(navigator.sendBeacon(STATS_URL, body)) return;
       } catch {}
     }
     try {
@@ -932,6 +979,9 @@ function checkStreak(){
 function canClaimDaily(){
   return save.dailyLastClaim !== todayStr();
 }
+function canShare(){
+  return save.dailyShareDate !== todayStr();
+}
 
 const $ = id => document.getElementById(id);
 const ctx = $('board').getContext('2d');
@@ -942,6 +992,12 @@ const LOCALES = {
     settingsTitle:'Настройки', pauseTitle:'Пауза', pauseResume:'Продолжить',
     menuCampaign:'Кампания · 30 уровней + Боссы', menuEndless:'Бесконечная игра',
     menuShop:'Магазин', menuRecords:'Рекорды', menuMultiplayer:'Дуэль 1×1', menuSupport:'Поддержка',
+    menuShare:'Поделить с друзьям',
+    shareReward:'+100 монет и +1 бомба за первый шеринг дня',
+    shareDone:'✓ Поделился сегодня',
+    shareThanks:'Спасибо за шеринг! +100 монет, +1 бомба',
+    shareCancelled:'Шеринг отменён',
+    shareFail:'Не удалось поделить',
     levelsTitle:'Кампания', levelsDesc:'Соберите 4 одинаковых цвета в ряд.', levelsBack:'Назад',
     settingsSound:'Звуковые эффекты', settingsMusic:'Музыка', settingsMusicVolume:'Громкость музыки', settingsVoice:'Голосовая похвала',
     settingsSwipe:'Порог свайпа', settingsTheme:'Мелодия', settingsLang:'Язык', settingsLangAuto:'Авто',
@@ -1001,22 +1057,24 @@ const LOCALES = {
     settingsAllowShare:'Публикация на стене', shareConfirmTitle:'Публикация на стене',
     shareConfirmText:'Приглашение будет опубликовано на вашей стене ВКонтакте. Продолжить?', shareConfirmOk:'Опубликовать',
     shareConfirmCancel:'Отмена', shareSkipped:'Публикация отключена. Ссылка скопирована.',
-    menuTraining:'Обучение', trainingTitle:'Обучение', trainingContinue:'Продолжить',
-    training1:'В колбе находятся вирусы трёх цветов — красные, жёлтые и синие. Они не должны вырваться наружу. Чтобы победить — уничтожьте их все.',
-    training2:'Вниз падают пилюли двух цветов. Управляйте ими кнопками или свайпами: ← → влево-вправо, ↑ поворот, ↓ ускорить.',
-    training3:'Соберите 4 и больше одинаковых цветов в ряд — они исчезнут, а вирусы рядом погибнут. За 10+ клеток за один ход получите бомбу \u{1F4A3} — она взрывает область 3×3.',
-    trainingBomb:'Вы получили бомбу! Нажмите \u{1F4A3}, затем поставьте её в нужное место — она уничтожит вирусы в области 3×3.',
-    trainingDoneTitle:'ПОЗДРАВЛЯЕМ!',
-    trainingDoneText:'Обучение пройдено!<br><br>Ты научился управлять пилюлями, собирать 4 в ряд, использовать бомбу \u{1F4A3} и получил первое комбо.<br><br>Впереди — 30 уровней заражения.<br>Удачи, антивирусолог!',
-    trainingDoneCampaign:'Начать кампанию',
-    trainingDoneRestart:'Пройти обучение заново',
-    trainingDoneMenu:'В меню'
+    welcomeTitle:'АНТИВИРУС',
+    welcomeSubtitle:'Спаси Нику от вирусов!',
+    welcomePlay:'Играть',
+    tip1:'Собери 4 и больше одинаковых цветов в ряд — они исчезнут, а вирусы рядом погибнут.',
+    tip2:'За 10+ клеток за один ход получишь бомбу  — она взрывает область 3×3.',
+    tip3:'Нажми  внизу и поставь её на поле — она уничтожит вирусы в области 3×3.',
   },
   en: {
     hudLevel:'Lv.', hudWave:'Wave',
     settingsTitle:'Settings', pauseTitle:'Pause', pauseResume:'Resume',
     menuCampaign:'Campaign · 30 levels + Bosses', menuEndless:'Endless mode',
     menuShop:'Shop', menuRecords:'Records', menuMultiplayer:'Duel 1v1', menuSupport:'Support',
+    menuShare:'Share with friends',
+    shareReward:'+100 coins and +1 bomb for the first share of the day',
+    shareDone:'? Shared today',
+    shareThanks:'Thanks for sharing! +100 coins, +1 bomb',
+    shareCancelled:'Sharing cancelled',
+    shareFail:'Sharing failed',
     levelsTitle:'Campaign', levelsDesc:'Match 4 same colors in a row.', levelsBack:'Back',
     settingsSound:'Sound', settingsMusic:'Music', settingsMusicVolume:'Music volume', settingsVoice:'Voice',
     settingsSwipe:'Swipe threshold', settingsTheme:'Melody', settingsLang:'Language', settingsLangAuto:'Auto',
@@ -1076,16 +1134,12 @@ const LOCALES = {
     settingsAllowShare:'Publish to wall', shareConfirmTitle:'Publish to wall',
     shareConfirmText:'The invitation will be posted on your VK wall. Continue?', shareConfirmOk:'Publish',
     shareConfirmCancel:'Cancel', shareSkipped:'Publishing disabled. Link copied.',
-    menuTraining:'Training', trainingTitle:'Training', trainingContinue:'Continue',
-    training1:'The flask contains viruses of three colors — red, yellow and blue. They must not escape. Destroy them all to win.',
-    training2:'Pills of two colors fall down. Control with buttons or swipes: ← → left-right, ↑ rotate, ↓ speed up.',
-    training3:'Match 4+ same colors in a row — they disappear and nearby viruses die. Clear 10+ cells in one move to get a bomb \u{1F4A3} — it explodes a 3×3 area.',
-    trainingBomb:'You got a bomb! Press \u{1F4A3}, then place it — it destroys viruses in a 3×3 area.',
-    trainingDoneTitle:'CONGRATULATIONS!',
-    trainingDoneText:'Training complete!<br><br>You learned to control pills, match 4 in a row, use the bomb \u{1F4A3} and got your first combo.<br><br>Ahead — 30 levels of infection.<br>Good luck, antivirus specialist!',
-    trainingDoneCampaign:'Start campaign',
-    trainingDoneRestart:'Retake training',
-    trainingDoneMenu:'Main menu'
+    welcomeTitle:'ANTIVIRUS',
+    welcomeSubtitle:'Save Nika from viruses!',
+    welcomePlay:'Play',
+    tip1:'Match 4+ same colors in a row — they disappear and nearby viruses die.',
+    tip2:'Clear 10+ cells in one move to get a bomb  — it explodes a 3×3 area.',
+    tip3:'Press  below and place it on the board — it destroys viruses in a 3×3 area.',
   }
 };
 const STORY = {
@@ -1121,9 +1175,11 @@ const fresh = () => ({
   settings:{sound:true,music:true,voice:true,allowShare:false,sensitivity:30,lang:'auto',musicTrack:0,musicVolume:0.7},
   coins:0,
   trainingDone:false,
+  welcomeShown:false,
   dailyStreak:0,
   dailyLastClaim:'',
   dailyLastVisit:'',
+  dailyShare:'', dailyShareDate:'',
   story:{intro:false,boss5:false,boss10:false,boss15:false,boss20:false,boss25:false,boss30:false},
   purchases:{remove_ads:false,unlock_all:false}
 });
@@ -1140,9 +1196,12 @@ function normalize(raw){
   const st=raw.story||{};
   s.story={intro:st.intro===true,boss5:st.boss5===true,boss10:st.boss10===true,boss15:st.boss15===true,boss20:st.boss20===true,boss25:st.boss25===true,boss30:st.boss30===true};
   s.trainingDone = raw.trainingDone === true;
+  s.welcomeShown = raw.welcomeShown === true;
   s.dailyStreak = Math.floor(num(raw.dailyStreak, 0, 7));
   s.dailyLastClaim = typeof raw.dailyLastClaim === 'string' ? raw.dailyLastClaim : '';
   s.dailyLastVisit = typeof raw.dailyLastVisit === 'string' ? raw.dailyLastVisit : '';
+  s.dailyShare = raw.dailyShare === true;
+  s.dailyShareDate = typeof raw.dailyShareDate === 'string' ? raw.dailyShareDate : '';
   const o=raw.settings||{};
   for(const k of ['sound','music','voice'])s.settings[k]=o[k]!==false;
   s.settings.allowShare = o.allowShare === true;
@@ -1320,6 +1379,32 @@ function buyWithCoins(itemId){
 }
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
 
+async function doShare(){
+  if(!canShare()) return;
+  if(!vkReady || !window.vkBridge){
+    showToast(t('shareFail'));
+    return;
+  }
+  const link = 'https://vk.com/app' + VK_APP_ID;
+  try{
+    await vkBridge.send('VKWebAppShare', { link });
+    // ???????
+    save.coins = Math.min(9999999, save.coins + 100);
+    save.bombs = Math.min(99, save.bombs + 1);
+    bombsAvailable = save.bombs;
+    save.dailyShare = true;
+    save.dailyShareDate = todayStr();
+    persist();
+    updateBombButton();
+    Stats.track('share', {});
+    showToast(t('shareThanks'));
+    setTimeout(() => { if(screen === 'menu') menu(); }, 1200);
+  }catch(e){
+    console.warn('[Share] failed:', e);
+    showToast(t('shareCancelled'));
+  }
+}
+
 // [AD-FIX] Блокирует повторные rewarded-запросы с игровой кнопки.
 async function requestBombViaAd(){
   if(duelMode) return;
@@ -1362,8 +1447,8 @@ let last=performance.now(), clock=0, hudTick=0, noticeLeft = 0;
 let pressed=new Set(), pointer=null, tapTimer=null, lastTap=0, buttonHold=null;
 let levelsCompleted=0;
 let lastCoinsEarned = 0;
-let trainingStage = 0;
-let trainingBombTipShown = false;
+let tipsStep = 0;
+let tipsPausedGame = false;
 
 let duelMode = false;
 let garbagePieces = [];
@@ -1406,7 +1491,32 @@ function show(html,name){
 function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPaused;sync();}
 function btn(text,act,primary=false){return `<button data-menu="${act}"${primary?' class="primary"':''}>${text}</button>`;}
 
+function welcomeScreen(){
+  running=false;paused=false;active=null;state='idle';
+  clearInput();
+  screen='welcome';
+  $('overlay').hidden = true;
+  $('app').hidden = true;
+  let el = document.getElementById('welcomeFull');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'welcomeFull';
+    el.className = 'welcome-full';
+    document.body.appendChild(el);
+  }
+  el.innerHTML =
+    '<div class="welcome-bg"></div>' +
+    '<div class="welcome-content">' +
+      '<h1 class="welcome-title">' + t('welcomeTitle') + '</h1>' +
+      '<p class="welcome-sub">' + t('welcomeSubtitle') + '</p>' +
+      '<button class="welcome-play-btn" data-menu="welcome-play">▶ ' + t('welcomePlay') + '</button>' +
+    '</div>';
+  el.hidden = false;
+  Stats.track('screen', { screen: 'welcome' });
+  sync();
+}
 function menu(){
+  tipsStep = 0;
   // [TIMER-FIX] Очищает отложенные игровые, дуэльные и рекламные операции.
   clearTimeout(cloudTimer);
   clearTimeout(duelState.botInterval);
@@ -1427,30 +1537,50 @@ function menu(){
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
   <button class="menu-coins-btn" data-menu="shop"> <span>${save.coins}</span> монет →</button>
     <div class="stack">
-      ${!save.trainingDone
-        ? btn('\u{1F393} ' + t('menuTraining'),'training')
-        : `<button data-menu="daily" style="position:relative;background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#f59e0b;color:#78350f;font-weight:900">
-            ${canClaimDaily() ? ' \u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 \u0431\u043e\u043d\u0443\u0441' : ' \u0411\u043e\u043d\u0443\u0441 \u043f\u043e\u043b\u0443\u0447\u0435\u043d'}
-            ${canClaimDaily() ? '<span style="position:absolute;top:6px;right:8px;width:10px;height:10px;background:#ef4444;border-radius:50%;box-shadow:0 0 8px #ef4444"></span>' : ''}
-          </button>`}
       ${btn(t('menuCampaign'),'levels',true)}
-      ${SHOP_ENABLED ? btn(t('menuShop'),'shop') : ''}
-      ${btn(t('menuEndless'),'endless')}
-      ${btn(t('menuMultiplayer'),'multiplayer')}
+      ${btn('⚔️ ' + t('menuMultiplayer'),'multiplayer',true)}
+      ${btn(t('menuEndless'),'endless',true)}
+      <button data-menu="daily" class="menu-money-btn">
+        ${canClaimDaily() ? '🎁 Ежедневный бонус' : '🎁 Бонус получен'}
+        ${canClaimDaily() ? '<span class="dot"></span>' : ''}
+      </button>
+      ${SHOP_ENABLED ? `<button data-menu="shop" class="menu-money-btn">🛒 ${t('menuShop')}</button>` : ''}
+      ${canShare()
+        ? `<button data-menu="share" class="menu-money-btn">📢 ${t('menuShare')}</button>`
+        : `<button disabled class="menu-money-btn">✅ ${t('shareDone')}</button>`}
       ${btn(t('menuRecords'),'records')}
       ${btn(t('settingsTitle'),'settings')}
       ${btn('🆘 ' + t('menuSupport'),'support')}
     </div>`,'menu');
 }
-function showTrainingStep(n){
-  trainingStage = n;
+function showTip(n){
+  const inner = document.querySelector('.canvas-inner');
+  if(!inner) return;
+  const old = inner.querySelector('.tip-overlay');
+  if(old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'tip-overlay';
+  el.innerHTML = '<div class="tip-text">' + t('tip' + n) + '</div>' +
+    '<button class="tip-ok">Понятно</button>';
+  inner.appendChild(el);
+  tipsPausedGame = true;
   paused = true;
-  const keys = ['training1','training2','training3'];
-  show(`<h2>\u{1F393} ${t('trainingTitle')}</h2>
-    <p>${t(keys[n-1])}</p>
-    <div class="stack">
-      <button data-menu="training-next" class="primary">${t('trainingContinue')}</button>
-    </div>`, 'training');
+  sync();
+  speak(t('tip' + n));
+  el.querySelector('.tip-ok').onclick = () => {
+    el.remove();
+    tipsStep = n;
+    if(tipsPausedGame){
+      tipsPausedGame = false;
+      paused = false;
+      last = performance.now();
+      sync();
+    }
+    if(n === 3){
+      save.trainingDone = true;
+      persist();
+    }
+  };
 }
 function levelsMenu(){
   show(`<h2>${t('levelsTitle')}</h2><p>${t('levelsDesc')}</p>
@@ -1481,7 +1611,10 @@ function settingsMenu(){
       <option value="en" ${s.lang==='en'?'selected':''}>English</option>
     </select></label>
     <p class="status">${t('settingsStatus')}</p>
-    <div class="stack">${btn(t('settingsSave'),'saveSettings',true)}${btn(t('levelsBack'),'back')}</div>`,'settings');
+    <div class="stack">${btn(t('settingsSave'),'saveSettings',true)}${btn(t('levelsBack'),'back')}</div>
+    <div class="stack" style="margin-top:12px">
+      <button data-menu="reset-save" style="background:#fee2e2;border-color:#fecaca;color:#991b1b"> Сбросить прогресс</button>
+    </div>`,'settings');
   const mvol = $('set-music-vol');
   if(mvol){
     mvol.addEventListener('input',()=>{
@@ -2168,9 +2301,6 @@ function start(m,n){
     addViruses(DUEL_TARGET, 4);  // top=4 → вирусы с 5-й строки (индекс 4)
     // [DUEL-FIX] Гарантируем, что верхние 4 строки пусты на старте
     for(let y=0;y<4;y++)for(let x=0;x<W;x++)grid[y][x]=null;
-  } else if(m==='training'){
-    addViruses(5, 6);
-    ensureTrainingColors();
   } else if(m==='campaign'){
     addViruses(d.viruses, d.top);
   } else {
@@ -2182,11 +2312,14 @@ function start(m,n){
   const oldAvatar=document.querySelector('.boss-avatar');if(oldAvatar)oldAvatar.remove();
   if(bossState&&bossState.active){const inner=document.querySelector('.canvas-inner');if(inner)inner.insertAdjacentHTML('beforeend',getBossSVG());}
   clearInput();hide();spawn();updateHUD();tell('noticeStart');
+  if(m==='campaign' && n===1 && !duelMode && !save.trainingDone){
+    tipsStep = 0;
+    setTimeout(()=>showTip(1), 700);
+  }
   if(bossState&&bossState.active){
     setTimeout(()=>showBossHint(`⚠ ${bossState.name}! Он атакует 3 раза — готовься!`,5000),1200);
   }
   if(__rewardedAdsAvailable) preloadRewarded();
-  if(m==='training') showTrainingStep(1);
   // [TIMER-FIX] Сбрасывает ввод и базовое время при старте новой игры.
   pointer = null;
   buttonHold = null;
@@ -2236,9 +2369,11 @@ function lock(){
     state='scan';sound('drop');
   }
 }
+
 function action(a){
   if(!playable())return;
   if(a==='bomb'){useBomb();return;}
+
   if(a==='adbomb'){requestBombViaAd();return;}
   if(state!=='fall'||!active)return;
   if(a==='left'){if(move(-1,0))sound('move');}
@@ -2248,6 +2383,7 @@ function action(a){
   if(a==='drop'){while(move(0,1)){}lock();}
   updateHUD();
 }
+
 function useBomb(){
   if(!playable()||state!=='fall'||!active)return;
   if(bombsAvailable<=0){tell('noticeNoBombs');return;}
@@ -2297,15 +2433,7 @@ function erase(bomb=false){
     void node.offsetWidth;
     node.classList.add('hurt');
   });
-  if(!bomb && mode==='training' && !bombAwarded && removed > 0){
-    bombAwarded = true;
-    bombsAvailable++;
-    save.bombs = bombsAvailable;
-    persist();
-    updateBombButton();
-    fireworkAtBomb();
-    tell('noticeBombEarned', moveCleared || 4);
-  } else if(!bomb&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded&&!duelMode){
+  if(!bomb&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded&&!duelMode){
     bombAwarded=true;bombsAvailable++;save.bombs=bombsAvailable;persist();updateBombButton();fireworkAtBomb();praise();tell('noticeBombEarned',moveCleared);
   } else if(!bomb&&duelMode&&moveCleared>=BOMB_THRESHOLD&&!bombAwarded){
     bombAwarded=true;
@@ -2315,21 +2443,15 @@ function erase(bomb=false){
     sound('clear');
     tell(combo>1?'noticeCombo':'noticeKilled',combo>1?Math.min(combo,4):removed);
   }
-  if(mode==='training' && !trainingBombTipShown && removed > 0){
-    trainingBombTipShown = true;
-    setTimeout(()=>{
-      if(mode==='training' && running && !paused && state !== 'end'){
-        paused = true;
-        show(`<h2>\u{1F393} ${t('trainingTitle')}</h2>
-          <p>${t('trainingBomb')}</p>
-          <div class="stack">
-            <button data-menu="training-next" class="primary">${t('trainingContinue')}</button>
-          </div>`, 'training');
-      }
-    }, 600);
-  }
   if(duelMode) duelMyVirusesChanged(kills);
   record();
+  if(mode==='campaign' && level===1 && !duelMode
+     && !save.trainingDone && removed > 0){
+    if(tipsStep === 1){ tipsStep = 2; setTimeout(()=>showTip(2), 400); }
+    else if(tipsStep === 2){ tipsStep = 3;
+      setTimeout(()=>showTip(3), 400);
+    }
+  }
 }
 function showBossHint(text,duration){
   const inner=document.querySelector('.canvas-inner');
@@ -2421,7 +2543,6 @@ function resolution(dt){
       state='flash';}
     else if(!count()){
       if(mode==='campaign'&&!duelMode)finish(true);
-      else if(mode==='training'&&!duelMode)trainingComplete();
       else{wave++;if(!addViruses(Math.min(36,12+wave*2),4)){if(!duelMode)finish(false);}else{tell('noticeWave',wave);spawn();}}
     }
     else spawn();
@@ -2502,21 +2623,23 @@ function finish(won){
     }
   }
 }
-function trainingComplete(){
-  save.trainingDone = true;
-  persist();
-  running=false;paused=false;active=null;state='end';
-  clearInput();
-  sound('win');
-  fireworkAtBomb();
-  show(`<h2>\u{1F38A} ${t('trainingDoneTitle')}</h2>
-    <p style="font-size:15px;line-height:1.6;color:#0f172a">${t('trainingDoneText')}</p>
-    <div class="stack">
-      <button data-menu="training-done-campaign" class="primary">${t('trainingDoneCampaign')}</button>
-      <button data-menu="training-done-restart">${t('trainingDoneRestart')}</button>
-      <button data-menu="training-done-menu">${t('trainingDoneMenu')}</button>
-    </div>`,'training-done');
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const voices = speechSynthesis.getVoices();
+    let v = voices.find(vv => vv.lang && vv.lang.startsWith('ru') && /female|жен|alena|alyona|milena|irina/i.test(vv.name));
+    if(!v) v = voices.find(vv => vv.lang && vv.lang.startsWith('ru'));
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ru-RU';
+    u.rate = 0.95;
+    u.pitch = 1.15;
+    u.volume = 1.0;
+    if(v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch(e){}
 }
+
 // [AD-FIX] Блокирует повторные rewarded-запросы из диалога проигрыша.
 async function rescueWithAd(){
   if(adRequestPending) return;
@@ -2745,7 +2868,12 @@ function draw(){
 
   if(active){
     const ghost={...active};while(valid({...ghost,y:ghost.y+1}))ghost.y++;
-    if(active.bomb){const a=bombArea(ghost);ctx.save();ctx.fillStyle='rgba(139,92,246,.15)';ctx.strokeStyle='#8b5cf6';ctx.setLineDash([6,4]);ctx.fillRect(a.x*50,a.y*50,150,150);ctx.strokeRect(a.x*50+2,a.y*50+2,146,146);ctx.restore();}
+    if(active.bomb){
+      const a=bombArea(ghost);
+      ctx.save();ctx.fillStyle='rgba(139,92,246,.15)';ctx.strokeStyle='#8b5cf6';
+      ctx.setLineDash([6,4]);ctx.fillRect(a.x*50,a.y*50,150,150);
+      ctx.strokeRect(a.x*50+2,a.y*50+2,146,146);ctx.restore();
+    }
     drawPiece(ghost,.2);drawPiece(active,1);
   }
   if(state==='flash'){ctx.fillStyle=`rgba(255,255,255,${.4+.4*Math.sin(phase*35)**2})`;for(const i of matches)ctx.fillRect(i%W*50+2,Math.floor(i/W)*50+2,46,46);}
@@ -3042,6 +3170,15 @@ $('dialog').addEventListener('click',async e=>{
   if(a==='duel-cancel'){duelLeave();duelMenu();return;}
 
   switch(a){
+    case 'reset-save': {
+      if(!confirm('Сбросить весь прогресс? Это удалит монеты, звёзды, бомбы.')) break;
+      localStorage.removeItem(getSaveKey());
+      if(window.vkBridge && vkReady){
+        try { await vkBridge.send('VKWebAppStorageSet',{key:'progress',value:''}); } catch(e){}
+      }
+      location.reload();
+      break;
+    }
     case'double-coins':{
       const dblBtn = $('dialog').querySelector('[data-menu="double-coins"]');
       if(!dblBtn || dblBtn.disabled) break;
@@ -3070,35 +3207,10 @@ $('dialog').addEventListener('click',async e=>{
       }
       record();menu();break;
     case'levels':levelsMenu();break;
-    case 'training':
-      trainingStage = 1;
-      trainingBombTipShown = false;
-      start('training', 0);
-      break;
-    case 'training-next':
-      if(trainingStage === 1){ showTrainingStep(2); }
-      else if(trainingStage === 2){ showTrainingStep(3); }
-      else {
-        trainingStage = 0;
-        paused = false;
-        hide();
-        last = performance.now();
-      }
-      break;
-    case 'training-done-campaign':
-      save.trainingDone = true;
+    case 'welcome-play':
+      save.welcomeShown = true;
       persist();
-      levelsMenu();
-      break;
-    case 'training-done-restart':
-      trainingStage = 1;
-      trainingBombTipShown = false;
-      start('training', 0);
-      break;
-    case 'training-done-menu':
-      save.trainingDone = true;
-      persist();
-      menu();
+      start('campaign', 1);
       break;
     case'endless':start('endless',1);break;
     case'settings':settingsMenu();break;
@@ -3145,10 +3257,22 @@ $('dialog').addEventListener('click',async e=>{
       start('campaign',level+1);break;
     }
     case'records':recordsMenu();break;
+    case'share': doShare(); break;
     case'shop':shopMenu();break;
     case'multiplayer':duelMenu();break;
     case'rescue':await rescueWithAd();break;
   }
+});
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-menu="welcome-play"]');
+  if(!b) return;
+  save.welcomeShown = true;
+  persist();
+  const el = document.getElementById('welcomeFull');
+  if(el) el.hidden = true;
+  $('app').hidden = false;
+  start('campaign', 1);
 });
 
 function pause(){clearInput();if(running&&!paused)pauseMenu();sync();}
@@ -3162,7 +3286,11 @@ function leaveDuelByDisconnect(){
 
 document.addEventListener('visibilitychange',()=>{
   if(duelMode) return;
-  if(document.hidden){pause();record();}
+  if(document.hidden){
+    pause();record();
+    Stats.track('app_close', { screen, mode, level });
+    Stats.endSession();
+  }
   sync();
 });
 window.addEventListener('blur',()=>{
@@ -3172,7 +3300,6 @@ window.addEventListener('blur',()=>{
 window.addEventListener('pagehide',()=>{
   if(duelMode){ leaveDuelByDisconnect(); return; }
   pause();record();Stats.track('app_close', { screen: screen, mode: mode, level: level });
-  Stats.endSession();
   writeLocal();if(cloudDirty)vkCloudSave();
 });
 
@@ -3188,6 +3315,21 @@ function applyLanguage(lang){
 // [BUG-FIX] Не допускает повторной инициализации приложения и RAF-цикла.
 let _bootRan = false;
 async function boot(){
+  try {
+    const rp = new URLSearchParams(
+      (location.search || '').replace(/^\?/, '') + '&' +
+      (location.hash || '').replace(/^#/, '')
+    );
+    if(rp.get('reset') === '1'){
+      localStorage.removeItem(getSaveKey());
+      if(window.vkBridge){
+        try { await vkBridge.send('VKWebAppStorageSet',{key:'progress',value:''}); } catch(e){}
+      }
+      const clean = location.href.replace(/[?&]reset=1/, '').replace(/#reset=1/, '');
+      location.replace(clean);
+      return;
+    }
+  } catch(e){}
   if(_bootRan) return;
   _bootRan = true;
   checkStreak();
@@ -3226,9 +3368,15 @@ async function boot(){
   }
 
   // Теперь показываем UI уже с актуальным прогрессом.
-  menu();
-  $('app').hidden=false;
-  $('boot').hidden=true;
+  if(!save.welcomeShown){
+    welcomeScreen();
+    $('app').hidden=true;
+    $('boot').hidden=true;
+  } else {
+    menu();
+    $('app').hidden=false;
+    $('boot').hidden=true;
+  }
   Stats.track('session_start');
   clearTimeout(failsafe);
   setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
@@ -3266,6 +3414,10 @@ async function boot(){
 
   if(vkReady&&window.vkBridge){
     try{await vkBridge.send('VKWebAppSetViewSettings',{status_bar_style:'dark',action_bar_color:'#ffffff'});}catch{}
+  }
+  if('speechSynthesis' in window){
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
   }
   console.warn('[Boot] Antivirus v2 loaded. Backups: stage7. Features: ad manager, cooldowns, timers.');
 }
