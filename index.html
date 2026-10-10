@@ -1528,6 +1528,7 @@ function welcomeScreen(){
 }
 function menu(){
   tipsStep = 0;
+  try { if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; } } catch(e){}
   // [TIMER-FIX] Очищает отложенные игровые, дуэльные и рекламные операции.
   clearTimeout(cloudTimer);
   clearTimeout(duelState.botInterval);
@@ -1577,8 +1578,9 @@ function showTip(n){
   tipsPausedGame = true;
   paused = true;
   sync();
-  speak(t('tip' + n));
+  speak(t('tip' + n), 'tip' + n);
   el.querySelector('.tip-ok').onclick = () => {
+    try { if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; } } catch(e){}
     el.remove();
     tipsStep = n;
     if(tipsPausedGame){
@@ -2634,7 +2636,33 @@ function finish(won){
     }
   }
 }
-function speak(text){
+function speak(text, audioFile){
+  // audioFile: 'tip1' | 'tip2' | 'tip3' | 'tip4' или undefined
+  try {
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+  } catch(e){}
+
+  if(audioFile){
+    try {
+      if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; }
+      voiceAudio = new Audio(audioFile + '.mp3');
+      voiceAudio.volume = 1.0;
+      const p = voiceAudio.play();
+      if(p && p.catch){
+        p.catch(e => {
+          console.warn('[Voice] mp3 fail, fallback:', e.message);
+          speakFallback(text);
+        });
+      }
+      return;
+    } catch(e){
+      console.warn('[Voice] mp3 error:', e);
+    }
+  }
+  speakFallback(text);
+}
+
+function speakFallback(text){
   if(!('speechSynthesis' in window)) return;
   try {
     speechSynthesis.cancel();
@@ -2909,6 +2937,7 @@ function initAudio(){
   }catch{}
 }
 let musicAudio = null;
+let voiceAudio = null;
 let musicCurrentIdx = -1;
 let musicFadeTimer = null;
 let musicPreviewing = false;
@@ -3000,13 +3029,13 @@ function explosionSound(){
 }
 function praise(){
   sound('praise');
-  if(!save.settings.voice||!save.settings.sound||!playable()||!('speechSynthesis'in window))return;
-  const voice=speechSynthesis.getVoices().find(v=>v.localService&&normalizeLang(v.lang)===currentLang);
-  if(!voice)return;
-  stopSpeech();
-  const p=new SpeechSynthesisUtterance(currentLang==='ru'?'Отлично!':'Excellent!');
-  p.voice=voice;p.lang=voice.lang;p.volume=.7;
-  speechSynthesis.speak(p);
+  try {
+    if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; }
+    voiceAudio = new Audio('tip4.mp3');
+    voiceAudio.volume = 1.0;
+    const p = voiceAudio.play();
+    if(p && p.catch) p.catch(()=>{});
+  } catch(e){}
 }
 
 function frame(now){
