@@ -1372,9 +1372,17 @@ async function vkPurchase(itemId){
     Stats.track('purchase', { item: itemId, currency: 'votes' });
     return true;
   }catch(e){
-    window.__lastShopError = e?.message || String(e);
-    console.error('[Shop] exception:', e, e && e.message, e && e.stack);
-    console.warn('[Shop] order fail:', e?.message||e);
+    const errType = e?.type || e?.data?.error_type || '';
+    const errMsg = String(e?.message || e || '').toLowerCase();
+    const isCancel = (errType === 'VKWebAppShowOrderBoxFailed')
+                  || (e?.data?.error_type === 'client_error')
+                  || errMsg.includes('cancel');
+    window.__lastShopError = isCancel ? 'cancelled' : JSON.stringify(e);
+    if(isCancel){
+      console.warn('[Shop] cancelled by user');
+    } else {
+      console.error('[Shop] exception:', e);
+    }
     return false;
   }
 }
@@ -3390,9 +3398,12 @@ $('dialog').addEventListener('click',async e=>{
       shopMenu();
     } else {
       buy.disabled = false;
-      const errText = (window.__lastShopError || '') + '';
+      if(window.__lastShopError === 'cancelled'){
+        // Игрок сам отменил покупку — тихо, без тостов
+        return;
+      }
+      const errText = window.__lastShopError || '';
       console.warn('[Shop] purchase failed:', errText);
-      // [SHOP-FIX] Тост вместо блокирующего alert.
       showToast(t('shopError'));
       setCloudStatus(errText ? (t('shopError') + ' · ' + errText) : t('shopError'));
       setTimeout(()=>{
