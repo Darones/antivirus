@@ -264,6 +264,9 @@ body:not(.duel-mode) .mini-opp{display:none}
   cursor:pointer;transition:transform .08s;
   font-family:inherit;
 }
+.menu-money-btn svg{display:inline-block;vertical-align:-2px;margin-right:4px;pointer-events:none}
+.menu-money-btn .icon-bullhorn{width:14px;height:14px;fill:#78350f}
+.menu-money-btn .icon-coin{width:14px;height:14px;vertical-align:-2px;margin-left:4px;margin-right:0}
 .menu-money-btn:active{transform:scale(.98)}
 .menu-money-btn:disabled{opacity:.6;cursor:default}
 .menu-money-btn .dot{
@@ -1568,7 +1571,11 @@ function menu(){
       </button>
       ${SHOP_ENABLED ? `<button data-menu="shop" class="menu-money-btn">🛒 ${t('menuShop')}</button>` : ''}
       ${canShare()
-        ? `<button data-menu="share" class="menu-money-btn"> ${t('menuShare')} +100 </button>`
+        ? `<button data-menu="share" class="menu-money-btn">` +
+          `<svg class="icon-bullhorn" viewBox="0 0 24 24"><path d="M3 10v4h3l4 4V6L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>` +
+          `${t('menuShare')} +100` +
+          `<svg class="icon-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f59e0b" stroke="#92400e" stroke-width="2"/><circle cx="12" cy="12" r="6" fill="#fbbf24"/></svg>` +
+          `</button>`
         : `<button disabled class="menu-money-btn">✅ ${t('shareDone')}</button>`}
       ${btn(t('menuRecords'),'records')}
       ${btn(t('settingsTitle'),'settings')}
@@ -2729,7 +2736,7 @@ function finish(won){
     <p>${coinsEarned>0?(coinMultiplier>1?t('coinsEarnedWithMult',coinsEarned,score,coinMultiplier):t('coinsEarned',coinsEarned)):t('coinsEarned',0)}<br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
       ${coinsEarned > 0 && !duelMode && !save.purchases.remove_ads && __rewardedAdsAvailable && vkReady ? `<button data-menu="double-coins" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent"> Удвоить монеты (+${coinsEarned})</button>` : ''}
-      ${(won && mode==='campaign' && BOSSES[level] && vkReady && window.vkBridge) ? `<button data-menu='boss-share' style='background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent'> Похвастаться</button>` : ''}
+      ${(won && mode==='campaign' && BOSSES[level] && vkReady && window.vkBridge) ? `<button data-menu='boss-share' style='background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent'><svg class="icon-bullhorn" viewBox="0 0 24 24" style="fill:#fff"><path d="M3 10v4h3l4 4V6L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg> Похвастаться</button>` : ''}
       ${showNext?btn(t('endNext'),'next',true):''}
       ${showRescue?`<button data-menu="rescue" class="primary" id="rescueBtn">${t('endRescue')}</button>`:''}
       ${showRescue?`<p class="status" style="margin:0">${t('endRescueHint')}</p>`:''}
