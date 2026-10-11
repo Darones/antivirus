@@ -1393,30 +1393,42 @@ function buyWithCoins(itemId){
 }
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
 
+async function shareWithFallback(link, successMessage){
+  if(vkReady && window.vkBridge){
+    try {
+      await vkBridge.send('VKWebAppShare', { link });
+      return true;
+    } catch(e){
+      console.warn('[Share] VKWebAppShare failed:', e?.message || e);
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast(successMessage || 'Ссылка скопирована — отправь другу!');
+    return true;
+  } catch(e){
+    console.warn('[Share] clipboard failed:', e);
+    showToast('Не удалось поделиться');
+    return false;
+  }
+}
 async function doShare(){
   if(!canShare()) return;
-  if(!vkReady || !window.vkBridge){
-    showToast(t('shareFail'));
-    return;
-  }
-  const link = isOK() ? ('https://ok.ru/game/' + OK_APP_ID) : ('https://vk.com/app' + VK_APP_ID);
-  try{
-    await vkBridge.send('VKWebAppShare', { link });
-    // ???????
-    save.coins = Math.min(9999999, save.coins + 100);
-    save.bombs = Math.min(99, save.bombs + 1);
-    bombsAvailable = save.bombs;
-    save.dailyShare = true;
-    save.dailyShareDate = todayStr();
-    persist();
-    updateBombButton();
-    Stats.track('share', {});
-    showToast(t('shareThanks'));
-    setTimeout(() => { if(screen === 'menu') menu(); }, 1200);
-  }catch(e){
-    console.warn('[Share] failed:', e);
-    showToast(t('shareCancelled'));
-  }
+  const link = isOK()
+    ? ('https://ok.ru/app/' + OK_APP_ID)
+    : ('https://vk.com/app' + VK_APP_ID);
+  const ok = await shareWithFallback(link, 'Ссылка на игру скопирована! Отправь другу.');
+  if(!ok) return;
+  save.coins = Math.min(9999999, save.coins + 100);
+  save.bombs = Math.min(99, save.bombs + 1);
+  bombsAvailable = save.bombs;
+  save.dailyShare = true;
+  save.dailyShareDate = todayStr();
+  persist();
+  updateBombButton();
+  Stats.track('share', { source: 'menu' });
+  showToast(t('shareThanks'));
+  setTimeout(() => { if(screen === 'menu') menu(); }, 1200);
 }
 
 // [AD-FIX] Блокирует повторные rewarded-запросы с игровой кнопки.
@@ -3452,26 +3464,25 @@ $('dialog').addEventListener('click',async e=>{
     case 'boss-share': {
       const btn = $('dialog').querySelector('[data-menu=boss-share]');
       if(!btn || btn.disabled) break;
-      if(!vkReady || !window.vkBridge){ showToast('Не удалось поделиться'); break; }
       const canGet = canShare();
       btn.disabled = true;
-      try {
-        const shareLink = isOK() ? ('https://ok.ru/game/' + OK_APP_ID) : ('https://vk.com/app' + VK_APP_ID);
-        await vkBridge.send('VKWebAppShare', { link: shareLink });
-        if(canGet){
-          save.coins = Math.min(9999999, save.coins + 100);
-          save.dailyShare = true;
-          save.dailyShareDate = todayStr();
-          persist();
-          Stats.track('share', { source: 'boss_win', level });
-          showToast('Спасибо! +100 монет');
-        } else {
-          showToast('Спасибо за поддержку!');
-        }
-      } catch(e){
+      const shareLink = isOK()
+        ? ('https://ok.ru/app/' + OK_APP_ID)
+        : ('https://vk.com/app' + VK_APP_ID);
+      const ok = await shareWithFallback(shareLink, 'Ссылка на игру скопирована! Отправь другу.');
+      if(!ok){
         btn.disabled = false;
-        console.warn('[Share-boss] fail:', e);
-        showToast('Шеринг отменён');
+        break;
+      }
+      if(canGet){
+        save.coins = Math.min(9999999, save.coins + 100);
+        save.dailyShare = true;
+        save.dailyShareDate = todayStr();
+        persist();
+        Stats.track('share', { source: 'boss_win', level });
+        showToast('Спасибо! +100 монет');
+      } else {
+        showToast('Спасибо за поддержку!');
       }
       break;
     }
