@@ -733,7 +733,7 @@ try {
   __vkPlatform = __vkSearchParams.get('vk_platform') || '';
   __vkClient = __vkSearchParams.get('vk_client') || '';
 } catch(e){ __vkPlatform = ''; __vkClient = ''; }
-const __isOkPlatform = (__vkClient === 'ok') || /_ok$/i.test(__vkPlatform);
+const __isOkPlatform = (__vkClient === 'ok') || /_ok$/i.test(__vkPlatform) || (__vkSearchParams.get('vk_client') === 'ok');
 window.Platform = { mode: __isOkPlatform ? 'ok' : 'vk' };
 const __isWebPlatform = /(^|_)web($|_)/.test(__vkPlatform);
 const __rewardedAdsAvailable = !__isWebPlatform;
@@ -1056,10 +1056,10 @@ const LOCALES = {
     adBombEarned:'+3 💣 за рекламу!',
     adBombFailed:'Реклама недоступна',
     adCooldown:s=>`Подождите ${s}с`,
-    cloudLocal:'Локальное сохранение', cloudCloud:'Синхронизировано с VK', cloudSave:'Сохранено в VK',
+    cloudLocal:'Локальное сохранение', cloudCloud:'Сохранено в профиле', cloudSave:'Прогресс сохранён',
     cloudError:'Ошибка синхронизации', cloudSDK:'Автономный режим: прогресс не синхронизируется',
     settingsAllowShare:'Публикация на стене', shareConfirmTitle:'Публикация на стене',
-    shareConfirmText:'Приглашение будет опубликовано на вашей стене ВКонтакте. Продолжить?', shareConfirmOk:'Опубликовать',
+    shareConfirmText:'Приглашение будет опубликовано на вашей стене. Продолжить?', shareConfirmOk:'Опубликовать',
     shareConfirmCancel:'Отмена', shareSkipped:'Публикация отключена. Ссылка скопирована.',
     welcomeTitle:'АНТИВИРУС',
     welcomeSubtitle:'Спаси Нику от вирусов!',
@@ -1239,6 +1239,8 @@ async function detectPlatform(){
     ]);
     const client = String(r?.vk_client || '').toLowerCase();
     if(client === 'ok') { window.Platform.mode = 'ok'; return; }
+    const launchClient = String(__vkSearchParams?.get('vk_client') || '').toLowerCase();
+    if(launchClient === 'ok') { window.Platform.mode = 'ok'; return; }
     const p = String(r?.vk_platform || '').toLowerCase();
     if(p){
       window.Platform.mode = p.includes('ok') ? 'ok' : 'vk';
@@ -1397,7 +1399,7 @@ async function doShare(){
     showToast(t('shareFail'));
     return;
   }
-  const link = 'https://vk.com/app' + VK_APP_ID;
+  const link = isOK() ? ('https://ok.ru/game/' + OK_APP_ID) : ('https://vk.com/app' + VK_APP_ID);
   try{
     await vkBridge.send('VKWebAppShare', { link });
     // ???????
@@ -1762,17 +1764,18 @@ function shopMenu(){
   }).join('');
   const voteItems = SHOP_ITEMS.map(item => {
     const owned = item.id==='remove_ads' ? save.purchases.remove_ads : false;
+    const priceText = owned ? '✓ Куплено' : (isOK() ? item.price + ' ОКов' : item.price + ' голосов');
     return `<div class="shop-item">
       <div class="icon">${item.icon}</div>
       <div class="info"><b>${item.title}</b><small>${item.desc}</small></div>
-      <button class="price" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? '✓ Куплено' : item.price + (window.Platform.mode === 'ok' ? ' ОКов' : ' голосов')}</button>
+      <button class="price" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${priceText}</button>
     </div>`;
   }).join('');
   show(`<h2>${t('shopTitle')}</h2>
     <p style="font-size:14px;color:#78350f;background:#fef3c7;border-radius:10px;padding:8px 12px;margin:6px 0 12px;font-weight:800"> Монет: ${save.coins}</p>
     <h3 style="font-size:15px;color:#78350f;margin:12px 0 6px;text-align:left"> За монеты</h3>
     ${coinItems}
-    <h3 style="font-size:15px;color:#0f172a;margin:16px 0 6px;text-align:left"> За голоса</h3>
+    <h3 style="font-size:15px;color:#0f172a;margin:16px 0 6px;text-align:left">${isOK() ? ' За ОКи' : ' За голоса'}</h3>
     ${voteItems}
     <div class="stack" style="margin-top:12px">${btn(t('shopBack'),'menu')}</div>`,
     'shop');
@@ -3453,7 +3456,8 @@ $('dialog').addEventListener('click',async e=>{
       const canGet = canShare();
       btn.disabled = true;
       try {
-        await vkBridge.send('VKWebAppShare', { link: 'https://vk.com/app' + VK_APP_ID });
+        const shareLink = isOK() ? ('https://ok.ru/game/' + OK_APP_ID) : ('https://vk.com/app' + VK_APP_ID);
+        await vkBridge.send('VKWebAppShare', { link: shareLink });
         if(canGet){
           save.coins = Math.min(9999999, save.coins + 100);
           save.dailyShare = true;
