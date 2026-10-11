@@ -2499,7 +2499,14 @@ function triggerBossWave(){
   bossWaveCount++;const waveNumber=bossWaveCount;bossSound();
   const av=document.querySelector('.boss-avatar');
   if(av){av.style.animation='boss-attack 0.6s ease-out';setTimeout(()=>{av.style.animation='';},700);}
-  const waveSize=BOSS_WAVE_SIZE[level]||Math.max(2,Math.round(level*0.3)),spaces=[];
+  const remaining = count();
+  const wavePct = [0.50, 0.40, 0.30][bossWaveCount - 1] || 0.30;
+  let waveSize = Math.max(2, Math.round(remaining * wavePct));
+  const MAX_AFTER_WAVE = 12;
+  if(remaining + waveSize > MAX_AFTER_WAVE){
+    waveSize = Math.max(1, MAX_AFTER_WAVE - remaining);
+  }
+  const spaces=[];
   for(let y=4;y<H;y++)for(let x=0;x<W;x++)if(!grid[y][x])spaces.push([x,y]);
   for(let i=spaces.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[spaces[i],spaces[j]]=[spaces[j],spaces[i]];}
   let added=0;
