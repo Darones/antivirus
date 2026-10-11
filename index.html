@@ -1567,9 +1567,9 @@ function menu(){
         ${canClaimDaily() ? '<span class="dot"></span>' : ''}
       </button>
       ${SHOP_ENABLED ? `<button data-menu="shop" class="menu-money-btn">🛒 ${t('menuShop')}</button>` : ''}
-      ${isOK() ? '' : (canShare()
-        ? `<button data-menu="share" class="menu-money-btn">?? ${t('menuShare')}</button>`
-        : `<button disabled class="menu-money-btn">? ${t('shareDone')}</button>`)}`
+      ${canShare()
+        ? `<button data-menu="share" class="menu-money-btn">📢 ${t('menuShare')}</button>`
+        : `<button disabled class="menu-money-btn">✅ ${t('shareDone')}</button>`}
       ${btn(t('menuRecords'),'records')}
       ${btn(t('settingsTitle'),'settings')}
       ${btn('🆘 ' + t('menuSupport'),'support')}
