@@ -1182,6 +1182,7 @@ const fresh = () => ({
   dailyLastVisit:'',
   dailyShare:'', dailyShareDate:'',
   story:{intro:false,boss5:false,boss10:false,boss15:false,boss20:false,boss25:false,boss30:false},
+  virusFirstSeen:{bronze:false, explosive:false, splitter:false, regen:false, ghost:false},
   purchases:{remove_ads:false,unlock_all:false}
 });
 const num = (v,min=0,max=1e9)=>Math.max(min,Math.min(max,Number.isFinite(Number(v))?Number(v):min));
@@ -1196,6 +1197,8 @@ function normalize(raw){
   s.coins = Math.floor(num(raw.coins, 0, 9999999));
   const st=raw.story||{};
   s.story={intro:st.intro===true,boss5:st.boss5===true,boss10:st.boss10===true,boss15:st.boss15===true,boss20:st.boss20===true,boss25:st.boss25===true,boss30:st.boss30===true};
+  const v=raw.virusFirstSeen||{};
+  s.virusFirstSeen={bronze:v.bronze===true, explosive:v.explosive===true, splitter:v.splitter===true, regen:v.regen===true, ghost:v.ghost===true};
   s.trainingDone = raw.trainingDone === true;
   s.welcomeShown = raw.welcomeShown === true;
   s.dailyStreak = Math.floor(num(raw.dailyStreak, 0, 7));
@@ -1591,6 +1594,40 @@ function showTip(n){
     if(n === 3){
       save.trainingDone = true;
       persist();
+    }
+  };
+}
+function showVirusHint(type){
+  const data = {
+    bronze: {
+      title: ' Бронированный вирус',
+      text: 'Его нужно уничтожить дважды. Первый матч только снимает броню.',
+      voiceFile: 'virus_bronze',
+      voiceText: 'Бронированный вирус! Его нужно уничтожить дважды.'
+    }
+  }[type];
+  if(!data) return;
+  const inner = document.querySelector('.canvas-inner');
+  if(!inner) return;
+  const old = inner.querySelector('.tip-overlay');
+  if(old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'tip-overlay';
+  el.innerHTML = '<div class=tip-text><b style=font-size:17px>' + data.title + '</b><br><span style=font-weight:700;font-size:13px>' + data.text + '</span></div>' +
+    '<button class=tip-ok>Понятно</button>';
+  inner.appendChild(el);
+  tipsPausedGame = true;
+  paused = true;
+  sync();
+  speak(data.voiceText, data.voiceFile);
+  el.querySelector('.tip-ok').onclick = () => {
+    try { if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; } } catch(e){}
+    el.remove();
+    if(tipsPausedGame){
+      tipsPausedGame = false;
+      paused = false;
+      last = performance.now();
+      sync();
     }
   };
 }
@@ -2422,7 +2459,17 @@ function erase(bomb=false){
   let removed=0,cleared=0;const affected=new Set();
   for(const i of new Set(matches)){
     const x=i%W,y=Math.floor(i/W),c=grid[y][x];if(!c)continue;
-    cleared++;if(c.type==='virus'){removed++;affected.add(c.color);}
+    cleared++;
+    // Бронированный вирус: первый матч только снимает броню
+    if(c.type==='virus' && c.armor > 0){
+      c.armor--;
+      affected.add(c.color);
+      // Небольшие частицы «трещины» вокруг вируса
+      for(let n=0;n<4;n++)particles.push({x:x*50+25,y:y*50+25,vx:(Math.random()-.5)*90,vy:(Math.random()-.7)*100,life:.4,color:'#cbd5e1'});
+      if(c.armor === 0){ try { sound('turn'); } catch(e){} }
+      continue;
+    }
+    if(c.type==='virus'){removed++;affected.add(c.color);}
     for(let n=0;n<6;n++)particles.push({x:x*50+25,y:y*50+25,vx:(Math.random()-.5)*170,vy:(Math.random()-.7)*180,life:.55,color:COLORS[c.color]});
     grid[y][x]=null;
   }
@@ -2725,15 +2772,37 @@ function addViruses(n,top){
   const spaces=[];
   for(let y=top;y<H;y++)for(let x=0;x<W;x++)if(!grid[y][x])spaces.push([x,y]);
   for(let i=spaces.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[spaces[i],spaces[j]]=[spaces[j],spaces[i]];}
+
+  // Правила для специальных вирусов
+  const canBronze = (mode==='campaign' && level>=2);
+  const BRONZE_CHANCE = 0.15;
+  const BRONZE_MAX = 3;
+
   let added=0;
+  let bronzeCount = 0;
   for(const [x,y]of spaces){
     if(added>=n)break;
     const color=Math.floor(Math.random()*3);
+    let placed = false;
     for(let k=0;k<3;k++){
       grid[y][x]={type:'virus',color:(color+k)%3};
-      if(!findMatches().length){added++;break;}
+      if(!findMatches().length){
+        // Решаем: сделать бронированным?
+        if(canBronze && bronzeCount < BRONZE_MAX && Math.random() < BRONZE_CHANCE){
+          grid[y][x].armor = 1;
+          bronzeCount++;
+        }
+        added++; placed = true; break;
+      }
       grid[y][x]=null;
     }
+    if(!placed) continue;
+  }
+  // Если хоть один бронированный появился — показать подсказку (один раз)
+  if(bronzeCount > 0 && !save.virusFirstSeen.bronze){
+    save.virusFirstSeen.bronze = true;
+    persist();
+    setTimeout(()=>showVirusHint('bronze'), 900);
   }
   return added;
 }
@@ -2862,6 +2931,35 @@ function drawCell(x,y,c,alpha=1){
     ctx.fillStyle='#0f172a';circle(-4,-2,2);ctx.fill();circle(6,-2,2);ctx.fill();
     ctx.strokeStyle='#0f172a';ctx.lineWidth=1.8;
     ctx.beginPath();ctx.arc(0,4,5,0,Math.PI);ctx.stroke();
+    if(c.armor > 0){
+      // Трещина на бронированном вирусе
+      ctx.strokeStyle = 'rgba(15,23,42,.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-8, -10);
+      ctx.lineTo(-2, -3);
+      ctx.lineTo(-6, 4);
+      ctx.lineTo(0, 12);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-2, -3);
+      ctx.lineTo(6, -6);
+      ctx.stroke();
+      // Маленький значок щита в углу
+      ctx.fillStyle = 'rgba(245,158,11,.95)';
+      ctx.beginPath();
+      ctx.moveTo(11,-14);
+      ctx.lineTo(16,-12);
+      ctx.lineTo(16,-7);
+      ctx.quadraticCurveTo(16,-3, 13.5,-1);
+      ctx.quadraticCurveTo(11,-3, 11,-7);
+      ctx.lineTo(11,-12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
   }else{
     const g=ctx.createLinearGradient(-14,-18,14,18);
     g.addColorStop(0,'#ffffff');g.addColorStop(.3,color);g.addColorStop(1,color+'cc');
