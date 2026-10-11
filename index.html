@@ -993,7 +993,7 @@ const LOCALES = {
     settingsTitle:'Настройки', pauseTitle:'Пауза', pauseResume:'Продолжить',
     menuCampaign:'Кампания · 30 уровней + Боссы', menuEndless:'Бесконечная игра',
     menuShop:'Магазин', menuRecords:'Рекорды', menuMultiplayer:'Дуэль 1×1', menuSupport:'Поддержка',
-    menuShare:'Поделить с друзьям',
+    menuShare:'Поделиться с друзьями',
     shareReward:'+100 монет и +1 бомба за первый шеринг дня',
     shareDone:'✓ Поделился сегодня',
     shareThanks:'Спасибо за шеринг! +100 монет, +1 бомба',
@@ -1568,7 +1568,7 @@ function menu(){
       </button>
       ${SHOP_ENABLED ? `<button data-menu="shop" class="menu-money-btn">🛒 ${t('menuShop')}</button>` : ''}
       ${canShare()
-        ? `<button data-menu="share" class="menu-money-btn">📢 ${t('menuShare')}</button>`
+        ? `<button data-menu="share" class="menu-money-btn"> ${t('menuShare')} +100 </button>`
         : `<button disabled class="menu-money-btn">✅ ${t('shareDone')}</button>`}
       ${btn(t('menuRecords'),'records')}
       ${btn(t('settingsTitle'),'settings')}
@@ -2729,6 +2729,7 @@ function finish(won){
     <p>${coinsEarned>0?(coinMultiplier>1?t('coinsEarnedWithMult',coinsEarned,score,coinMultiplier):t('coinsEarned',coinsEarned)):t('coinsEarned',0)}<br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
       ${coinsEarned > 0 && !duelMode && !save.purchases.remove_ads && __rewardedAdsAvailable && vkReady ? `<button data-menu="double-coins" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent"> Удвоить монеты (+${coinsEarned})</button>` : ''}
+      ${(won && mode==='campaign' && BOSSES[level] && vkReady && window.vkBridge) ? `<button data-menu='boss-share' style='background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent'> Похвастаться</button>` : ''}
       ${showNext?btn(t('endNext'),'next',true):''}
       ${showRescue?`<button data-menu="rescue" class="primary" id="rescueBtn">${t('endRescue')}</button>`:''}
       ${showRescue?`<p class="status" style="margin:0">${t('endRescueHint')}</p>`:''}
@@ -3436,6 +3437,31 @@ $('dialog').addEventListener('click',async e=>{
     case 'reset-yes': {
       localStorage.setItem('antivirus-pending-reset','1');
       location.reload();
+      break;
+    }
+    case 'boss-share': {
+      const btn = $('dialog').querySelector('[data-menu=boss-share]');
+      if(!btn || btn.disabled) break;
+      if(!vkReady || !window.vkBridge){ showToast('Не удалось поделиться'); break; }
+      const canGet = canShare();
+      btn.disabled = true;
+      try {
+        await vkBridge.send('VKWebAppShare', { link: 'https://vk.com/app' + VK_APP_ID });
+        if(canGet){
+          save.coins = Math.min(9999999, save.coins + 100);
+          save.dailyShare = true;
+          save.dailyShareDate = todayStr();
+          persist();
+          Stats.track('share', { source: 'boss_win', level });
+          showToast('Спасибо! +100 монет');
+        } else {
+          showToast('Спасибо за поддержку!');
+        }
+      } catch(e){
+        btn.disabled = false;
+        console.warn('[Share-boss] fail:', e);
+        showToast('Шеринг отменён');
+      }
       break;
     }
     case'double-coins':{
