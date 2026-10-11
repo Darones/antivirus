@@ -1604,6 +1604,30 @@ function showVirusHint(type){
       text: 'Его нужно уничтожить дважды. Первый матч только снимает броню.',
       voiceFile: 'virus_bronze',
       voiceText: 'Бронированный вирус! Его нужно уничтожить дважды.'
+    },
+    splitter: {
+      title: ' Делящийся вирус',
+      text: 'После уничтожения оставляет на своём месте нового вируса.',
+      voiceFile: 'virus_splitter',
+      voiceText: 'Делящийся вирус! После уничтожения он оставляет нового вируса.'
+    },
+    regen: {
+      title: '♻ Регенерирующий вирус',
+      text: 'Раз в 7 ходов возвращает одного убитого вируса рядом.',
+      voiceFile: 'virus_regen',
+      voiceText: 'Регенерирующий вирус! Он возвращает убитых вирусов обратно.'
+    },
+    explosive: {
+      title: ' Взрывной вирус',
+      text: 'При уничтожении взрывается крестом и задевает соседей.',
+      voiceFile: 'virus_explosive',
+      voiceText: 'Взрывной вирус! Он взрывается и уничтожает всё вокруг.'
+    },
+    ghost: {
+      title: ' Вирус-призрак',
+      text: 'Становится невидимым на несколько секунд. В этой фазе неуязвим.',
+      voiceFile: 'virus_ghost',
+      voiceText: 'Вирус-призрак! Он становится невидимым и неуязвимым.'
     }
   }[type];
   if(!data) return;
@@ -2457,6 +2481,8 @@ function gravity(){
 }
 function erase(bomb=false){
   let removed=0,cleared=0;const affected=new Set();
+  const splitterCells=[];
+  const explosiveCells=[];
   for(const i of new Set(matches)){
     const x=i%W,y=Math.floor(i/W),c=grid[y][x];if(!c)continue;
     cleared++;
@@ -2469,9 +2495,29 @@ function erase(bomb=false){
       if(c.armor === 0){ try { sound('turn'); } catch(e){} }
       continue;
     }
-    if(c.type==='virus'){removed++;affected.add(c.color);}
+    if(c.type==='virus'){
+      removed++;affected.add(c.color);
+      if(c.splitter) splitterCells.push([x,y]);
+      if(c.explosive) explosiveCells.push([x,y]);
+    }
     for(let n=0;n<6;n++)particles.push({x:x*50+25,y:y*50+25,vx:(Math.random()-.5)*170,vy:(Math.random()-.7)*180,life:.55,color:COLORS[c.color]});
     grid[y][x]=null;
+  }
+  const explodeAt=(x,y,depth=0)=>{
+    if(depth>5)return;
+    explosionSound();
+    shakeBoard('heavy');
+    for(const [dx,dy] of [[-2,0],[-1,0],[1,0],[2,0],[0,-2],[0,-1],[0,1],[0,2]]){
+      const xx=x+dx,yy=y+dy,c=grid[yy]?.[xx];
+      if(!c||c.type!=='virus')continue;
+      grid[yy][xx]=null;removed++;cleared++;affected.add(c.color);
+      for(let n=0;n<6;n++)particles.push({x:xx*50+25,y:yy*50+25,vx:(Math.random()-.5)*170,vy:(Math.random()-.7)*180,life:.55,color:COLORS[c.color]});
+      if(c.explosive)explodeAt(xx,yy,depth+1);
+    }
+  };
+  for(const [x,y] of explosiveCells)explodeAt(x,y);
+  for(const [x,y] of splitterCells){
+    if(!grid[y][x])grid[y][x]={type:'virus',color:Math.floor(Math.random()*3)};
   }
   let sumX = 0, sumY = 0, cnt = 0;
   for(const i of new Set(matches)){
@@ -2512,6 +2558,21 @@ function erase(bomb=false){
     if(tipsStep === 1){ tipsStep = 2; setTimeout(()=>showTip(2), 400); }
     else if(tipsStep === 2){ tipsStep = 3;
       setTimeout(()=>showTip(3), 400);
+    }
+  }
+  if(moves % 7 === 0){
+    let restored=false;
+    for(let y=0;y<H&&!restored;y++)for(let x=0;x<W&&!restored;x++){
+      const c=grid[y][x];if(!c?.regen)continue;
+      const spaces=[];
+      for(let yy=Math.max(0,y-3);yy<=Math.min(H-1,y+3);yy++)for(let xx=Math.max(0,x-3);xx<=Math.min(W-1,x+3);xx++){
+        if(!grid[yy][xx]&&Math.abs(xx-x)+Math.abs(yy-y)<=3)spaces.push([xx,yy]);
+      }
+      if(spaces.length){
+        const [xx,yy]=spaces[Math.floor(Math.random()*spaces.length)];
+        grid[yy][xx]={type:'virus',color:Math.floor(Math.random()*3)};
+        restored=true;
+      }
     }
   }
 }
@@ -2758,28 +2819,38 @@ async function rescueWithAd(){
 function findMatches(){
   const found=new Set();
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const c=grid[y][x];if(!c)continue;
+    const c=grid[y][x];if(!c||c.ghost&&!c.ghostVisible)continue;
     for(const [dx,dy]of[[1,0],[0,1]]){
-      if(grid[y-dy]?.[x-dx]?.color===c.color)continue;
+      const previous=grid[y-dy]?.[x-dx];
+      if(previous?.color===c.color&&!(previous.ghost&&!previous.ghostVisible))continue;
       const line=[];let xx=x,yy=y;
-      while(xx<W&&yy<H&&grid[yy][xx]?.color===c.color){line.push(yy*W+xx);xx+=dx;yy+=dy;}
+      while(xx<W&&yy<H&&grid[yy][xx]?.color===c.color&&!(grid[yy][xx].ghost&&!grid[yy][xx].ghostVisible)){line.push(yy*W+xx);xx+=dx;yy+=dy;}
       if(line.length>=4)line.forEach(i=>found.add(i));
     }
   }
   return [...found];
 }
+const VIRUS_RULES = [
+  { key:'bronze', minLevel:2, chance:0.15, max:3 },
+  { key:'splitter', minLevel:6, chance:0.15, max:3 },
+  { key:'regen', minLevel:11, chance:0.15, max:3 },
+  { key:'explosive', minLevel:16, chance:0.15, max:3 },
+  { key:'ghost', minLevel:21, chance:0.15, max:3 }
+];
 function addViruses(n,top){
   const spaces=[];
   for(let y=top;y<H;y++)for(let x=0;x<W;x++)if(!grid[y][x])spaces.push([x,y]);
   for(let i=spaces.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[spaces[i],spaces[j]]=[spaces[j],spaces[i]];}
 
-  // Правила для специальных вирусов
-  const canBronze = (mode==='campaign' && level>=2);
-  const BRONZE_CHANCE = 0.15;
-  const BRONZE_MAX = 3;
-
   let added=0;
-  let bronzeCount = 0;
+  const activeRules=VIRUS_RULES.filter(r=>level>=r.minLevel);
+  const placedCounts=Object.fromEntries(activeRules.map(r=>[r.key,0]));
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c=grid[y][x];
+    if(!c||c.type!=='virus')continue;
+    for(const rule of activeRules)if(c[rule.key])placedCounts[rule.key]++;
+  }
+  const firstSeen=[];
   for(const [x,y]of spaces){
     if(added>=n)break;
     const color=Math.floor(Math.random()*3);
@@ -2787,10 +2858,12 @@ function addViruses(n,top){
     for(let k=0;k<3;k++){
       grid[y][x]={type:'virus',color:(color+k)%3};
       if(!findMatches().length){
-        // Решаем: сделать бронированным?
-        if(canBronze && bronzeCount < BRONZE_MAX && Math.random() < BRONZE_CHANCE){
-          grid[y][x].armor = 1;
-          bronzeCount++;
+        for(const rule of activeRules){
+          if(placedCounts[rule.key]>=rule.max||Math.random()>=rule.chance)continue;
+          grid[y][x][rule.key]=1;placedCounts[rule.key]++;
+          if(rule.key==='bronze')grid[y][x].armor=1;
+          if(rule.key==='ghost'){grid[y][x].phase=0;grid[y][x].ghostVisible=true;}
+          if(!save.virusFirstSeen[rule.key])firstSeen.push(rule.key);
         }
         added++; placed = true; break;
       }
@@ -2798,11 +2871,10 @@ function addViruses(n,top){
     }
     if(!placed) continue;
   }
-  // Если хоть один бронированный появился — показать подсказку (один раз)
-  if(bronzeCount > 0 && !save.virusFirstSeen.bronze){
-    save.virusFirstSeen.bronze = true;
+  if(firstSeen.length){
+    for(const key of new Set(firstSeen))save.virusFirstSeen[key]=true;
     persist();
-    setTimeout(()=>showVirusHint('bronze'), 900);
+    for(const key of new Set(firstSeen))setTimeout(()=>showVirusHint(key), 900);
   }
   return added;
 }
@@ -2923,6 +2995,7 @@ function drawCell(x,y,c,alpha=1){
   const px=x*50+25,py=y*50+25,color=COLORS[c.color];
   ctx.translate(px,py);
   if(c.type==='virus'){
+    if(c.ghost&&!c.ghostVisible)ctx.globalAlpha=alpha*.35;
     ctx.rotate(Math.sin(clock*2+x+y)*.07);
     ctx.strokeStyle=color;ctx.lineWidth=3.5;ctx.fillStyle=color;
     for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.beginPath();ctx.moveTo(Math.cos(a)*13,Math.sin(a)*13);ctx.lineTo(Math.cos(a)*20,Math.sin(a)*20);ctx.stroke();circle(Math.cos(a)*20,Math.sin(a)*20,2);ctx.fill();}
@@ -2948,17 +3021,36 @@ function drawCell(x,y,c,alpha=1){
       // Маленький значок щита в углу
       ctx.fillStyle = 'rgba(245,158,11,.95)';
       ctx.beginPath();
-      ctx.moveTo(11,-14);
-      ctx.lineTo(16,-12);
-      ctx.lineTo(16,-7);
-      ctx.quadraticCurveTo(16,-3, 13.5,-1);
-      ctx.quadraticCurveTo(11,-3, 11,-7);
-      ctx.lineTo(11,-12);
+      ctx.moveTo(14,-20);
+      ctx.lineTo(22,-17);
+      ctx.lineTo(22,-9);
+      ctx.quadraticCurveTo(22,-3, 18,-2);
+      ctx.quadraticCurveTo(14,-3, 14,-2);
+      ctx.quadraticCurveTo(10,-3, 6,-9);
+      ctx.lineTo(6,-17);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = '#78350f';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
+    }
+    if(c.splitter){
+      ctx.fillStyle='rgba(16,185,129,.9)';
+      ctx.beginPath();ctx.arc(-4,-14,2.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(2,-14,2.5,0,Math.PI*2);ctx.fill();
+    }
+    if(c.regen){
+      ctx.strokeStyle='rgba(16,185,129,.9)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(14,-8);ctx.lineTo(18,-12);ctx.lineTo(14,-16);ctx.stroke();
+    }
+    if(c.explosive){
+      ctx.fillStyle='rgba(245,158,11,.95)';
+      ctx.beginPath();ctx.arc(0,-14,4,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#78350f';ctx.lineWidth=1.5;ctx.stroke();
+    }
+    if(c.ghost&&c.ghostVisible){
+      ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('👻',0,-14);
     }
   }else{
     const g=ctx.createLinearGradient(-14,-18,14,18);
@@ -3148,6 +3240,13 @@ function frame(now){
   last=now;
   if(playable()){
     elapsed+=dt;clock+=dt;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const c=grid[y][x];
+      if(!c?.ghost)continue;
+      c.phase=(c.phase||0)+dt;
+      if(c.ghostVisible&&c.phase>=5){c.ghostVisible=false;c.phase=0;}
+      else if(!c.ghostVisible&&c.phase>=3){c.ghostVisible=true;c.phase=0;}
+    }
     if(noticeLeft>0){noticeLeft-=dt;if(noticeLeft<=0)$('notice').textContent='';}
     if(buttonHold&&now>=buttonHold.at){action(buttonHold.act);if(buttonHold)buttonHold.at=now+75;}
     if(duelMode){
