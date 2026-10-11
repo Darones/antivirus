@@ -1405,22 +1405,69 @@ function buyWithCoins(itemId){
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
 
 async function shareWithFallback(link, successMessage){
+  // 1) ??????? ???????? ? ????? ? ???? user gesture ??? ???
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(link);
+    copied = true;
+    console.log('[Share] copied via clipboard API');
+  } catch(e1){
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = link;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      copied = document.execCommand('copy');
+      document.body.removeChild(ta);
+      console.log('[Share] copied via execCommand:', copied);
+    } catch(e2){
+      console.warn('[Share] copy failed:', e1?.message, e2?.message);
+    }
+  }
+
+  // 2) ??????? ???????? VKWebAppShare
+  let nativeOk = false;
   if(vkReady && window.vkBridge){
     try {
       await vkBridge.send('VKWebAppShare', { link });
-      return true;
+      nativeOk = true;
     } catch(e){
       console.warn('[Share] VKWebAppShare failed:', e?.message || e);
     }
   }
-  try {
-    await navigator.clipboard.writeText(link);
-    showToast(successMessage || 'Ссылка скопирована — отправь другу!');
+
+  // 3) ?????????
+  if(nativeOk){
     return true;
-  } catch(e){
-    console.warn('[Share] clipboard failed:', e);
-    showToast('Не удалось поделиться');
-    return false;
+  }
+  if(copied){
+    showToast(successMessage || '?????? ??????????? ? ??????? ?????!');
+    return true;
+  }
+  showShareModal(link);
+  return true;
+}
+function showShareModal(link){
+  const dlg = $('dialog');
+  $('overlay').hidden = false;
+  $('app').inert = true;
+  screen = 'share-modal';
+  dlg.innerHTML =
+    '<h2>?????????? ? ????????</h2>' +
+    '<p>???????? ?????? ? ??????? ?????:</p>' +
+    '<p style="word-break:break-all;background:#f1f5f9;padding:10px;border-radius:10px;font-size:13px;user-select:all;-webkit-user-select:all">' + link + '</p>' +
+    '<div class="stack">' +
+      '<button data-menu="share-modal-close" class="primary">???????</button>' +
+    '</div>';
+  const closeBtn = dlg.querySelector('[data-menu="share-modal-close"]');
+  if(closeBtn){
+    closeBtn.onclick = () => {
+      $('overlay').hidden = true;
+      $('app').inert = false;
+      screen = 'game';
+    };
   }
 }
 async function doShare(){
@@ -3475,6 +3522,11 @@ $('dialog').addEventListener('click',async e=>{
       location.reload();
       break;
     }
+    case 'share-modal-close':
+      $('overlay').hidden = true;
+      $('app').inert = false;
+      screen = 'game';
+      break;
     case 'boss-share': {
       const btn = $('dialog').querySelector('[data-menu=boss-share]');
       if(!btn || btn.disabled) break;
