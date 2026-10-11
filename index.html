@@ -264,6 +264,12 @@ body:not(.duel-mode) .mini-opp{display:none}
   cursor:pointer;transition:transform .08s;
   font-family:inherit;
 }
+.menu-money-btn svg{display:inline-block;vertical-align:-2px;margin-right:4px;pointer-events:none}
+.menu-money-btn .icon-bullhorn{width:14px;height:14px;fill:#78350f}
+.menu-money-btn .icon-coin{width:14px;height:14px;vertical-align:-2px;margin-left:4px;margin-right:0}
+.icon-bullhorn{width:16px;height:16px;display:inline-block;vertical-align:-3px;margin-right:6px;fill:currentColor;pointer-events:none}
+.stack button .icon-bullhorn{width:16px;height:16px;fill:#fff}
+.stack button svg{width:16px;height:16px;flex-shrink:0;vertical-align:-3px;margin-right:6px}
 .menu-money-btn:active{transform:scale(.98)}
 .menu-money-btn:disabled{opacity:.6;cursor:default}
 .menu-money-btn .dot{
@@ -730,7 +736,7 @@ try {
   __vkPlatform = __vkSearchParams.get('vk_platform') || '';
   __vkClient = __vkSearchParams.get('vk_client') || '';
 } catch(e){ __vkPlatform = ''; __vkClient = ''; }
-const __isOkPlatform = (__vkClient === 'ok') || /_ok$/i.test(__vkPlatform);
+const __isOkPlatform = (__vkClient === 'ok') || /_ok$/i.test(__vkPlatform) || (__vkSearchParams.get('vk_client') === 'ok');
 window.Platform = { mode: __isOkPlatform ? 'ok' : 'vk' };
 const __isWebPlatform = /(^|_)web($|_)/.test(__vkPlatform);
 const __rewardedAdsAvailable = !__isWebPlatform;
@@ -993,7 +999,7 @@ const LOCALES = {
     settingsTitle:'Настройки', pauseTitle:'Пауза', pauseResume:'Продолжить',
     menuCampaign:'Кампания · 30 уровней + Боссы', menuEndless:'Бесконечная игра',
     menuShop:'Магазин', menuRecords:'Рекорды', menuMultiplayer:'Дуэль 1×1', menuSupport:'Поддержка',
-    menuShare:'Поделить с друзьям',
+    menuShare:'Поделиться с друзьями',
     shareReward:'+100 монет и +1 бомба за первый шеринг дня',
     shareDone:'✓ Поделился сегодня',
     shareThanks:'Спасибо за шеринг! +100 монет, +1 бомба',
@@ -1053,10 +1059,10 @@ const LOCALES = {
     adBombEarned:'+3 💣 за рекламу!',
     adBombFailed:'Реклама недоступна',
     adCooldown:s=>`Подождите ${s}с`,
-    cloudLocal:'Локальное сохранение', cloudCloud:'Синхронизировано с VK', cloudSave:'Сохранено в VK',
+    cloudLocal:'Локальное сохранение', cloudCloud:'Сохранено в профиле', cloudSave:'Прогресс сохранён',
     cloudError:'Ошибка синхронизации', cloudSDK:'Автономный режим: прогресс не синхронизируется',
     settingsAllowShare:'Публикация на стене', shareConfirmTitle:'Публикация на стене',
-    shareConfirmText:'Приглашение будет опубликовано на вашей стене ВКонтакте. Продолжить?', shareConfirmOk:'Опубликовать',
+    shareConfirmText:'Приглашение будет опубликовано на вашей стене. Продолжить?', shareConfirmOk:'Опубликовать',
     shareConfirmCancel:'Отмена', shareSkipped:'Публикация отключена. Ссылка скопирована.',
     welcomeTitle:'АНТИВИРУС',
     welcomeSubtitle:'Спаси Нику от вирусов!',
@@ -1236,6 +1242,8 @@ async function detectPlatform(){
     ]);
     const client = String(r?.vk_client || '').toLowerCase();
     if(client === 'ok') { window.Platform.mode = 'ok'; return; }
+    const launchClient = String(__vkSearchParams?.get('vk_client') || '').toLowerCase();
+    if(launchClient === 'ok') { window.Platform.mode = 'ok'; return; }
     const p = String(r?.vk_platform || '').toLowerCase();
     if(p){
       window.Platform.mode = p.includes('ok') ? 'ok' : 'vk';
@@ -1367,9 +1375,17 @@ async function vkPurchase(itemId){
     Stats.track('purchase', { item: itemId, currency: 'votes' });
     return true;
   }catch(e){
-    window.__lastShopError = e?.message || String(e);
-    console.error('[Shop] exception:', e, e && e.message, e && e.stack);
-    console.warn('[Shop] order fail:', e?.message||e);
+    const errType = e?.type || e?.data?.error_type || '';
+    const errMsg = String(e?.message || e || '').toLowerCase();
+    const isCancel = (errType === 'VKWebAppShowOrderBoxFailed')
+                  || (e?.data?.error_type === 'client_error')
+                  || errMsg.includes('cancel');
+    window.__lastShopError = isCancel ? 'cancelled' : JSON.stringify(e);
+    if(isCancel){
+      console.warn('[Shop] cancelled by user');
+    } else {
+      console.error('[Shop] exception:', e);
+    }
     return false;
   }
 }
@@ -1388,30 +1404,42 @@ function buyWithCoins(itemId){
 }
 async function vkShare(link){if(!vkReady)return false;try{await vkBridge.send('VKWebAppShare',{link});return true;}catch{return false;}}
 
+async function shareWithFallback(link, successMessage){
+  if(vkReady && window.vkBridge){
+    try {
+      await vkBridge.send('VKWebAppShare', { link });
+      return true;
+    } catch(e){
+      console.warn('[Share] VKWebAppShare failed:', e?.message || e);
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast(successMessage || 'Ссылка скопирована — отправь другу!');
+    return true;
+  } catch(e){
+    console.warn('[Share] clipboard failed:', e);
+    showToast('Не удалось поделиться');
+    return false;
+  }
+}
 async function doShare(){
   if(!canShare()) return;
-  if(!vkReady || !window.vkBridge){
-    showToast(t('shareFail'));
-    return;
-  }
-  const link = 'https://vk.com/app' + VK_APP_ID;
-  try{
-    await vkBridge.send('VKWebAppShare', { link });
-    // ???????
-    save.coins = Math.min(9999999, save.coins + 100);
-    save.bombs = Math.min(99, save.bombs + 1);
-    bombsAvailable = save.bombs;
-    save.dailyShare = true;
-    save.dailyShareDate = todayStr();
-    persist();
-    updateBombButton();
-    Stats.track('share', {});
-    showToast(t('shareThanks'));
-    setTimeout(() => { if(screen === 'menu') menu(); }, 1200);
-  }catch(e){
-    console.warn('[Share] failed:', e);
-    showToast(t('shareCancelled'));
-  }
+  const link = isOK()
+    ? ('https://ok.ru/app/' + OK_APP_ID)
+    : ('https://vk.com/app' + VK_APP_ID);
+  const ok = await shareWithFallback(link, 'Ссылка на игру скопирована! Отправь другу.');
+  if(!ok) return;
+  save.coins = Math.min(9999999, save.coins + 100);
+  save.bombs = Math.min(99, save.bombs + 1);
+  bombsAvailable = save.bombs;
+  save.dailyShare = true;
+  save.dailyShareDate = todayStr();
+  persist();
+  updateBombButton();
+  Stats.track('share', { source: 'menu' });
+  showToast(t('shareThanks'));
+  setTimeout(() => { if(screen === 'menu') menu(); }, 1200);
 }
 
 // [AD-FIX] Блокирует повторные rewarded-запросы с игровой кнопки.
@@ -1567,9 +1595,13 @@ function menu(){
         ${canClaimDaily() ? '<span class="dot"></span>' : ''}
       </button>
       ${SHOP_ENABLED ? `<button data-menu="shop" class="menu-money-btn">🛒 ${t('menuShop')}</button>` : ''}
-      ${isOK() ? '' : (canShare()
-        ? `<button data-menu="share" class="menu-money-btn">📢 ${t('menuShare')}</button>`
-        : `<button disabled class="menu-money-btn">✅ ${t('shareDone')}</button>`)}
+      ${canShare()
+        ? `<button data-menu="share" class="menu-money-btn">` +
+          `<svg class="icon-bullhorn" viewBox="0 0 24 24"><path d="M3 10v4h3l4 4V6L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>` +
+          `${t('menuShare')} +100` +
+          `<svg class="icon-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f59e0b" stroke="#92400e" stroke-width="2"/><circle cx="12" cy="12" r="6" fill="#fbbf24"/></svg>` +
+          `</button>`
+        : `<button disabled class="menu-money-btn">✅ ${t('shareDone')}</button>`}
       ${btn(t('menuRecords'),'records')}
       ${btn(t('settingsTitle'),'settings')}
       ${btn('🆘 ' + t('menuSupport'),'support')}
@@ -1755,17 +1787,18 @@ function shopMenu(){
   }).join('');
   const voteItems = SHOP_ITEMS.map(item => {
     const owned = item.id==='remove_ads' ? save.purchases.remove_ads : false;
+    const priceText = owned ? '✓ Куплено' : (isOK() ? item.price + ' ОКов' : item.price + ' голосов');
     return `<div class="shop-item">
       <div class="icon">${item.icon}</div>
       <div class="info"><b>${item.title}</b><small>${item.desc}</small></div>
-      <button class="price" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? '✓ Куплено' : item.price + (window.Platform.mode === 'ok' ? ' ОКов' : ' голосов')}</button>
+      <button class="price" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${priceText}</button>
     </div>`;
   }).join('');
   show(`<h2>${t('shopTitle')}</h2>
     <p style="font-size:14px;color:#78350f;background:#fef3c7;border-radius:10px;padding:8px 12px;margin:6px 0 12px;font-weight:800"> Монет: ${save.coins}</p>
     <h3 style="font-size:15px;color:#78350f;margin:12px 0 6px;text-align:left"> За монеты</h3>
     ${coinItems}
-    <h3 style="font-size:15px;color:#0f172a;margin:16px 0 6px;text-align:left"> За голоса</h3>
+    <h3 style="font-size:15px;color:#0f172a;margin:16px 0 6px;text-align:left">${isOK() ? ' За ОКи' : ' За голоса'}</h3>
     ${voteItems}
     <div class="stack" style="margin-top:12px">${btn(t('shopBack'),'menu')}</div>`,
     'shop');
@@ -2729,6 +2762,7 @@ function finish(won){
     <p>${coinsEarned>0?(coinMultiplier>1?t('coinsEarnedWithMult',coinsEarned,score,coinMultiplier):t('coinsEarned',coinsEarned)):t('coinsEarned',0)}<br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
       ${coinsEarned > 0 && !duelMode && !save.purchases.remove_ads && __rewardedAdsAvailable && vkReady ? `<button data-menu="double-coins" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent"> Удвоить монеты (+${coinsEarned})</button>` : ''}
+      ${(won && mode==='campaign' && BOSSES[level] && vkReady && window.vkBridge) ? `<button data-menu='boss-share' style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent;display:inline-flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" style="fill:#fff;flex-shrink:0"><path d="M3 10v4h3l4 4V6L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg><span>Похвастать</span></button>` : ''}
       ${showNext?btn(t('endNext'),'next',true):''}
       ${showRescue?`<button data-menu="rescue" class="primary" id="rescueBtn">${t('endRescue')}</button>`:''}
       ${showRescue?`<p class="status" style="margin:0">${t('endRescueHint')}</p>`:''}
@@ -3367,9 +3401,12 @@ $('dialog').addEventListener('click',async e=>{
       shopMenu();
     } else {
       buy.disabled = false;
-      const errText = (window.__lastShopError || '') + '';
+      if(window.__lastShopError === 'cancelled'){
+        // Игрок сам отменил покупку — тихо, без тостов
+        return;
+      }
+      const errText = window.__lastShopError || '';
       console.warn('[Shop] purchase failed:', errText);
-      // [SHOP-FIX] Тост вместо блокирующего alert.
       showToast(t('shopError'));
       setCloudStatus(errText ? (t('shopError') + ' · ' + errText) : t('shopError'));
       setTimeout(()=>{
@@ -3436,6 +3473,31 @@ $('dialog').addEventListener('click',async e=>{
     case 'reset-yes': {
       localStorage.setItem('antivirus-pending-reset','1');
       location.reload();
+      break;
+    }
+    case 'boss-share': {
+      const btn = $('dialog').querySelector('[data-menu=boss-share]');
+      if(!btn || btn.disabled) break;
+      const canGet = canShare();
+      btn.disabled = true;
+      const shareLink = isOK()
+        ? ('https://ok.ru/app/' + OK_APP_ID)
+        : ('https://vk.com/app' + VK_APP_ID);
+      const ok = await shareWithFallback(shareLink, 'Ссылка на игру скопирована! Отправь другу.');
+      if(!ok){
+        btn.disabled = false;
+        break;
+      }
+      if(canGet){
+        save.coins = Math.min(9999999, save.coins + 100);
+        save.dailyShare = true;
+        save.dailyShareDate = todayStr();
+        persist();
+        Stats.track('share', { source: 'boss_win', level });
+        showToast('Спасибо! +100 монет');
+      } else {
+        showToast('Спасибо за поддержку!');
+      }
       break;
     }
     case'double-coins':{
