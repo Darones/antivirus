@@ -1467,7 +1467,15 @@ const pair=()=>[Math.floor(Math.random()*3),Math.floor(Math.random()*3)];
 const count=()=>grid.flat().filter(c=>c?.type==='virus').length;
 const playable=()=>running&&!paused&&!platformPaused&&!document.hidden;
 const timeText=v=>{const n=Math.floor(num(v));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');};
-function difficulty(n){const p=(n-1)/(N-1);return{viruses:Math.round(8+40*p),top:7-Math.floor(4*p),interval:.88-.5*p,target:Math.round(78+252*p)};}
+function difficulty(n){
+  const p = (n-1)/(N-1);
+  return {
+    viruses: Math.round(8 + 20*p),
+    top: Math.max(2, 7 - Math.floor(4*p)),
+    interval: 1.05 - 0.30*p,
+    target: Math.round(90 + 240*p)
+  };
+}
 function clearInput(){pressed.clear();pointer=null;buttonHold=null;clearTimeout(tapTimer);tapTimer=null;lastTap=0;}
 function stopSpeech(){if('speechSynthesis'in window)window.speechSynthesis.cancel();}
 
@@ -2378,7 +2386,8 @@ function start(m,n){
     // [DUEL-FIX] Гарантируем, что верхние 4 строки пусты на старте
     for(let y=0;y<4;y++)for(let x=0;x<W;x++)grid[y][x]=null;
   } else if(m==='campaign'){
-    addViruses(d.viruses, d.top);
+    const initialViruses = BOSSES[n]&&!duelMode ? Math.round(d.viruses * 0.55) : d.viruses;
+    addViruses(initialViruses, d.top);
   } else {
     addViruses(14, 6);
   }
