@@ -751,6 +751,7 @@ const Stats = (() => {
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
   const sessionStart = Math.floor(Date.now() / 1000);
+  let lastSessionEndAt = sessionStart;
   function playerId(){
     try { if(typeof vkUserId !== 'undefined' && vkUserId) return String(vkUserId); } catch {}
     return 'anon_' + sessionId;
@@ -778,7 +779,10 @@ const Stats = (() => {
     } catch {}
   }
   function endSession(){
-    track('session_end', { duration: Math.floor(Date.now()/1000) - sessionStart });
+    const now = Math.floor(Date.now() / 1000);
+    const duration = now - lastSessionEndAt;
+    lastSessionEndAt = now;
+    track('session_end', { duration });
     flush(true);
   }
   setInterval(flush, 20000);
