@@ -791,6 +791,7 @@ const Stats = (() => {
 
 function isOK(){ return window.Platform.mode === 'ok'; }
 function getSaveKey(){ return isOK() ? 'antivirus-ok-1' : 'antivirus-vk-1'; }
+function getCloudKey(){ return isOK() ? 'progress-ok' : 'progress-vk'; }
 function supportURL(){
   return isOK()
     ? 'https://ok.ru/group/70000058576368'
@@ -1280,10 +1281,10 @@ async function vkCloudLoad(){
     // VK bridge can stay pending indefinitely when the app is opened outside VK
     // or when the storage service is temporarily unavailable.
     const r=await Promise.race([
-      vkBridge.send('VKWebAppStorageGet',{keys:['progress']}),
+      vkBridge.send('VKWebAppStorageGet',{keys:[getCloudKey()]}),
       new Promise((_,reject)=>setTimeout(()=>reject(new Error('storage timeout')),1500))
     ]);
-    const it=r.keys.find(k=>k.key==='progress');
+    const it=r.keys.find(k=>k.key===getCloudKey());
     if(it && it.value){
       try {
         const parsed = JSON.parse(it.value);
@@ -1304,7 +1305,7 @@ async function vkCloudSave(){
   let ok = false;
   try{
     const r = await Promise.race([
-      vkBridge.send('VKWebAppStorageSet',{key:'progress',value:JSON.stringify({unlocked:save.unlocked,stars:save.stars,best:save.best,purchases:save.purchases,bombs:save.bombs})}),
+      vkBridge.send('VKWebAppStorageSet',{key:getCloudKey(),value:JSON.stringify({unlocked:save.unlocked,stars:save.stars,best:save.best,purchases:save.purchases,bombs:save.bombs})}),
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('save timeout')), CLOUD_SAVE_TIMEOUT))
     ]);
     if(r && r.result !== false){
@@ -3672,7 +3673,7 @@ async function boot(){
     try {
       localStorage.removeItem(getSaveKey());
       if(vkReady && window.vkBridge){
-        await vkBridge.send('VKWebAppStorageSet',{key:'progress',value:'{}'});
+        await vkBridge.send('VKWebAppStorageSet',{key:getCloudKey(),value:'{}'});
       }
     } catch(e){ console.warn('[Reset] cloud clear failed:', e); }
     localStorage.removeItem('antivirus-pending-reset');
