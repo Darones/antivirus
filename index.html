@@ -3585,7 +3585,14 @@ $('dialog').addEventListener('click',async e=>{
       if(running)pauseMenu();else menu();
       break;
     case'resume':resume();break;
-    case'restart':record();start(mode,level);break;
+    case'restart':
+      record();
+      if(mode==='endless' && !save.purchases.remove_ads && __rewardedAdsAvailable && vkReady){
+        showInterstitial().then(()=>start(mode,level));
+      } else {
+        start(mode,level);
+      }
+      break;
     case'next':{
       const bossKey='boss'+level;
       if(level%5===0&&level<30&&save.story[bossKey]===false){
