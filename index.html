@@ -814,7 +814,40 @@ window.API_callback = function(method, result, data){
   }
 };
 
-const VK_APP_ID = 54764920;   // VK App ID
+const VK_APP_ID = 54764920;
+
+let bannerAdShown = false;
+
+async function showBannerAd(){
+  if(!vkReady || !window.vkBridge) return;
+  if(save.purchases.remove_ads) return;
+  if(bannerAdShown) return;
+  try{
+    const r = await vkBridge.send('VKWebAppShowBannerAd', {
+      banner_location: 'top',
+      height_type: 'small',
+      orientation: 'vertical'
+    });
+    if(r && r.result){
+      bannerAdShown = true;
+      console.log('[Ads] Banner shown');
+    }
+  }catch(e){
+    console.warn('[Ads] Banner show failed:', e?.message || e);
+  }
+}
+
+async function hideBannerAd(){
+  if(!vkReady || !window.vkBridge) return;
+  if(!bannerAdShown) return;
+  try{
+    await vkBridge.send('VKWebAppHideBannerAd');
+    bannerAdShown = false;
+    console.log('[Ads] Banner hidden');
+  }catch(e){
+    console.warn('[Ads] Banner hide failed:', e?.message || e);
+  }
+}   // VK App ID
 const OK_APP_ID = 512004990432; // OK App ID (для справки, в коде пока не используется)
 const W = 8, H = 12, N = 30;
 const COLORS = ['#f43f5e', '#f59e0b', '#3b82f6'];
@@ -3739,6 +3772,9 @@ async function boot(){
     $('boot').hidden=true;
   }
   Stats.track('session_start');
+  if(__rewardedAdsAvailable && vkReady){
+    setTimeout(() => showBannerAd(), 1500);
+  }
   clearTimeout(failsafe);
   setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
   if(!vkReady){ document.body.classList.add('no-rewarded-ads'); }
@@ -3879,6 +3915,7 @@ function showCharactersTest(){
     </svg>`;
   });
 })();
+window.showBanner = () => { bannerAdShown = false; showBannerAd(); };
 </script>
 </body>
 </html>
