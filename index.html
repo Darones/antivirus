@@ -1665,31 +1665,12 @@ function menu(){
     </div>`,'menu');
 }
 function showTip(n){
-  const inner = document.querySelector('.canvas-inner');
-  if(!inner) return;
-  const old = inner.querySelector('.tip-overlay');
-  if(old) old.remove();
-  const el = document.createElement('div');
-  el.className = 'tip-overlay';
-  el.innerHTML = '<div class="tip-text" style="pointer-events:none;">' + t('tip' + n) + '</div>';
-  el.style.pointerEvents = 'none'; // Не блокируем клики по игре
-  el.style.opacity = '0.5'; // Прозрачность 50%
-  inner.appendChild(el);
-  
   speak(t('tip' + n), 'tip' + n);
-  
-  const hideTip = () => {
-    try { if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; } } catch(e){}
-    if(el.parentNode) el.remove();
-    tipsStep = n;
-    if(n === 3){
-      save.trainingDone = true;
-      persist();
-    }
-  };
-  
-  // Исчезает через 5 секунд
-  setTimeout(hideTip, 5000);
+  tipsStep = n;
+  if(n === 3){
+    save.trainingDone = true;
+    persist();
+  }
 }
 function showVirusHint(type){
   const data = {
@@ -2857,46 +2838,19 @@ function finish(won){
   }
 }
 function speak(text, audioFile){
-  // audioFile: 'tip1' | 'tip2' | 'tip3' | 'tip4' или undefined
-  try {
-    if('speechSynthesis' in window) speechSynthesis.cancel();
-  } catch(e){}
-
-  if(audioFile){
-    try {
-      if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; }
-      voiceAudio = new Audio(audioFile + '.mp3');
-      voiceAudio.volume = 1.0;
-      const p = voiceAudio.play();
-      if(p && p.catch){
-        p.catch(e => {
-          console.warn('[Voice] mp3 fail, fallback:', e.message);
-          speakFallback(text);
-        });
-      }
-      return;
-    } catch(e){
-      console.warn('[Voice] mp3 error:', e);
-    }
-  }
-  speakFallback(text);
+  if(isVoicePlaying){ voiceQueue.push({text,audioFile}); return; }
+  playNextVoice(text,audioFile);
 }
-
-function speakFallback(text){
-  if(!('speechSynthesis' in window)) return;
-  try {
-    speechSynthesis.cancel();
-    const voices = speechSynthesis.getVoices();
-    let v = voices.find(vv => vv.lang && vv.lang.startsWith('ru') && /female|жен|alena|alyona|milena|irina/i.test(vv.name));
-    if(!v) v = voices.find(vv => vv.lang && vv.lang.startsWith('ru'));
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ru-RU';
-    u.rate = 0.95;
-    u.pitch = 1.15;
-    u.volume = 1.0;
-    if(v) u.voice = v;
-    speechSynthesis.speak(u);
-  } catch(e){}
+function playNextVoice(text,audioFile){
+  isVoicePlaying=true; let finished=false;
+  const onFinish=()=>{ if(finished)return; finished=true; isVoicePlaying=false; if(voiceQueue.length){const n=voiceQueue.shift(); playNextVoice(n.text,n.audioFile);} };
+  try{if('speechSynthesis' in window) speechSynthesis.cancel();}catch(e){}
+  if(audioFile){ try{ if(voiceAudio){voiceAudio.pause();voiceAudio=null;} voiceAudio=new Audio(audioFile+'.mp3'); voiceAudio.volume=1; voiceAudio.onended=onFinish; voiceAudio.onerror=onFinish; const p=voiceAudio.play(); if(p&&p.catch)p.catch(e=>{console.warn('[Voice] mp3 fail, fallback:',e.message);speakFallback(text,onFinish);}); return; }catch(e){console.warn('[Voice] mp3 error:',e);} }
+  speakFallback(text,onFinish);
+}
+function speakFallback(text,onFinish){
+  if(!('speechSynthesis' in window)){if(onFinish)onFinish();return;}
+  try{ speechSynthesis.cancel(); const voices=speechSynthesis.getVoices(); let v=voices.find(vv=>vv.lang&&vv.lang.startsWith('ru')&&/female|alena|alyona|milena|irina/i.test(vv.name)); if(!v)v=voices.find(vv=>vv.lang&&vv.lang.startsWith('ru')); const u=new SpeechSynthesisUtterance(text); u.lang='ru-RU'; u.rate=.95; u.pitch=1.15; u.volume=1; if(v)u.voice=v; u.onend=onFinish; u.onerror=onFinish; speechSynthesis.speak(u); }catch(e){if(onFinish)onFinish();}
 }
 
 // [AD-FIX] Блокирует повторные rewarded-запросы из диалога проигрыша.
@@ -3242,6 +3196,8 @@ function initAudio(){
 }
 let musicAudio = null;
 let voiceAudio = null;
+let voiceQueue = [];
+let isVoicePlaying = false;
 let musicCurrentIdx = -1;
 let musicFadeTimer = null;
 let musicPreviewing = false;
