@@ -1536,11 +1536,19 @@ const timeText=v=>{const n=Math.floor(num(v));return Math.floor(n/60)+':'+String
 function difficulty(n){
   // ?????? 1-3 ? ??????????? (???? ? ????). ???????? ??????????,
   // ????????? ?????? ?????? ??????????? ???????.
-  if(n <= 3){
+  if(n === 1){
     return {
-      viruses: 3 + n,           // 4, 5, 6
-      top: Math.max(4, 6 - (n - 1)),  // 5, 5, 4
-      interval: 1.5,
+      viruses: 2,
+      top: 5,
+      interval: 2.5,  // Очень медленное падение для новичков
+      target: 40
+    };
+  }
+  if(n === 2 || n === 3){
+    return {
+      viruses: 4,
+      top: 5,
+      interval: 1.8,
       target: 90
     };
   }
@@ -1663,28 +1671,27 @@ function showTip(n){
   if(old) old.remove();
   const el = document.createElement('div');
   el.className = 'tip-overlay';
-  el.innerHTML = '<div class="tip-text">' + t('tip' + n) + '</div>' +
-    '<button class="tip-ok">Понятно</button>';
+  // Убираем кнопку, текст теперь просто висит и исчезает
+  el.innerHTML = '<div class="tip-text" style="pointer-events:none;">' + t('tip' + n) + '</div>';
+  el.style.pointerEvents = 'none'; // Не блокируем клики по игре
+  el.style.opacity = '0.5'; // Прозрачность 50%
   inner.appendChild(el);
-  tipsPausedGame = true;
-  paused = true;
-  sync();
+  
+  // НЕ ставим paused = true. Игра продолжается!
   speak(t('tip' + n), 'tip' + n);
-  el.querySelector('.tip-ok').onclick = () => {
+  
+  const hideTip = () => {
     try { if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; } } catch(e){}
-    el.remove();
+    if(el.parentNode) el.remove();
     tipsStep = n;
-    if(tipsPausedGame){
-      tipsPausedGame = false;
-      paused = false;
-      last = performance.now();
-      sync();
-    }
     if(n === 3){
       save.trainingDone = true;
       persist();
     }
   };
+  
+  // Исчезает через 5 секунд
+  setTimeout(hideTip, 5000);
 }
 function showVirusHint(type){
   const data = {
