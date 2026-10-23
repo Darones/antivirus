@@ -716,7 +716,7 @@ body.duel-mode .bomb-btn{display:none}
   <div class="boot-spinner"></div>
 </div>
 
-<div id="fireworkLayer" aria-hidden="true"></div><div id="visualTutorial" style="display:none;position:absolute;inset:0;pointer-events:none;z-index:200;display:none;justify-content:center;align-items:center;background:rgba(0,0,0,.5)"><div style="background:white;border-radius:20px;padding:20px;text-align:center;pointer-events:auto"><h3>Как играть?</h3><p>Соединяй 4 одинаковых цвета в ряд!</p><div style="font-size:24px">⬇️</div><div style="color:#f43f5e;font-size:32px">● ●<br>● ●</div><div style="color:#ef4444;font-weight:bold">ВЗРЫВ!</div><button id="closeVisualTutorial">Понятно</button></div></div>
+<div id="fireworkLayer" aria-hidden="true"></div>
 
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
  
@@ -2492,8 +2492,7 @@ function start(m,n){
   clearInput();hide();spawn();updateHUD();tell('noticeStart');
   if(m==='campaign' && n===1 && !duelMode && !save.trainingDone){
     tipsStep = 0;
-    const vt=document.getElementById('visualTutorial');
-    if(vt){ vt.style.display='flex'; const closeBtn=document.getElementById('closeVisualTutorial'); if(closeBtn) closeBtn.onclick=()=>{vt.style.display='none'}; setTimeout(()=>{vt.style.display='none'},6000); }
+    setTimeout(()=>showTip(1), 700);
   }
   if(bossState&&bossState.active){
     setTimeout(()=>showBossHint(`⚠ ${bossState.name}! Он атакует 3 раза — готовься!`,5000),1200);
