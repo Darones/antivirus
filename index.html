@@ -1538,10 +1538,10 @@ function difficulty(n){
   // ????????? ?????? ?????? ??????????? ???????.
   if(n === 1){
     return {
-      viruses: 2,
+      viruses: 3,
       top: 5,
-      interval: 2.5,  // Очень медленное падение для новичков
-      target: 40
+      interval: 2.0,
+      target: 60
     };
   }
   if(n === 2 || n === 3){
@@ -1671,13 +1671,11 @@ function showTip(n){
   if(old) old.remove();
   const el = document.createElement('div');
   el.className = 'tip-overlay';
-  // Убираем кнопку, текст теперь просто висит и исчезает
   el.innerHTML = '<div class="tip-text" style="pointer-events:none;">' + t('tip' + n) + '</div>';
   el.style.pointerEvents = 'none'; // Не блокируем клики по игре
   el.style.opacity = '0.5'; // Прозрачность 50%
   inner.appendChild(el);
   
-  // НЕ ставим paused = true. Игра продолжается!
   speak(t('tip' + n), 'tip' + n);
   
   const hideTip = () => {
@@ -2958,7 +2956,11 @@ function addViruses(n,top){
   const firstSeen=[];
   for(const [x,y]of spaces){
     if(added>=n)break;
-    const color=Math.floor(Math.random()*3);
+    let color = Math.floor(Math.random()*3);
+    // Для 1-го уровня кампании первые 3 вируса делаем разными цветами (Красный, Желтый, Синий)
+    if(level === 1 && mode === 'campaign' && !duelMode && added < 3){
+      color = added;
+    }
     let placed = false;
     for(let k=0;k<3;k++){
       grid[y][x]={type:'virus',color:(color+k)%3};
