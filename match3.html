@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Антивирус — Match-3</title>
+<style>
+  :root{
+    --bg-1:#eef2f7; --bg-2:#d9e2ec;
+    --panel:#ffffff; --border:#cbd5e1; --border-2:#e2e8f0;
+    --text:#0f172a; --muted:#64748b; --accent:#6366f1;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    color:var(--text);background:linear-gradient(180deg,var(--bg-1),var(--bg-2));
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;user-select:none;-webkit-user-select:none;
+  }
+  .app{width:100%;max-width:440px;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .top-bar{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:100%;
+    padding:7px 5px;background:var(--panel);border:1px solid var(--border-2);
+    border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.05);
+  }
+  .stat{display:flex;flex-direction:column;align-items:center;line-height:1.15;min-width:0}
+  #pauseBtn{width:34px;height:34px;padding:0;border:1px solid var(--border);border-radius:10px;background:#f1f5f9;color:var(--text);font-size:18px;font-weight:800;cursor:pointer}
+  #pauseBtn:disabled{opacity:.45;cursor:default}
+  .stat strong{font-size:14px;font-weight:800;white-space:nowrap}
+  .stat small{font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .canvas-wrap{
+    position:relative;width:100%;max-width:400px;
+    display:flex;align-items:center;justify-content:center;
+    padding-right:52px;min-width:0;
+  }
+  canvas#board{
+    display:block;width:100%;max-width:340px;height:auto;
+    background:#fff;border:3px solid var(--border);border-radius:20px;
+    box-shadow:0 8px 28px rgba(15,23,42,.12);
+    touch-action:none;
+    transition:box-shadow .15s, border-color .15s;
+  }
+  canvas#board.armed{
+    border-color:#ef4444;
+    box-shadow:0 0 0 3px rgba(239,68,68,.3), 0 8px 28px rgba(15,23,42,.12);
+  }
+  .bomb-panel{
+    display:flex;gap:8px;width:100%;max-width:400px;
+  }
+  .bomb-btn, .ad-bomb-btn{
+    flex:1;padding:12px 8px;border-radius:12px;
+    border:2px solid #cbd5e1;background:#fff;
+    font-size:14px;font-weight:800;color:var(--text);
+    cursor:pointer;font-family:inherit;
+    transition:transform .08s, background .15s, border-color .15s, color .15s;
+  }
+  .bomb-btn:active, .ad-bomb-btn:active{transform:scale(.97)}
+  .bomb-btn:disabled{opacity:.45;cursor:default}
+  .bomb-btn.active{
+    background:linear-gradient(135deg,#f43f5e,#e11d48);
+    border-color:#be123c;color:#fff;
+  }
+  .ad-bomb-btn{
+    background:linear-gradient(135deg,#d1fae5,#a7f3d0);
+    border-color:#34d399;color:#065f46;
+  }
+  #exitBtn{
+    flex:1;padding:12px 8px;border:2px solid #94a3b8;border-radius:12px;
+    font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;
+  }
+  .virus-column{
+    position:absolute;right:0;top:8%;
+    display:flex;flex-direction:column;gap:16px;align-items:center;
+  }
+  .friend{
+    width:48px;height:60px;
+    transform-origin:50% 92%;
+    animation:av-idle 2.6s ease-in-out infinite;
+    filter:drop-shadow(0 4px 3px rgba(15,23,42,.18));
+    will-change:transform,opacity;
+  }
+  .friend:nth-child(2){animation-delay:-.85s}
+  .friend:nth-child(3){animation-delay:-1.7s}
+  .friend svg{display:block;width:100%;height:100%;overflow:visible}
+  .friend .av-happy{opacity:1}
+  .friend .av-shock{opacity:0}
+  .friend.hurt{animation:av-eliminate 1s cubic-bezier(.5,0,.7,1) both}
+  .friend.hurt .av-happy{opacity:0}
+  .friend.hurt .av-shock{opacity:1}
+  @keyframes av-idle{
+    0%,100%{transform:translateY(0) rotate(-3deg)}
+    50%{transform:translateY(-5px) rotate(4deg)}
+  }
+  @keyframes av-eliminate{
+    0%   {transform:translateX(0) scale(1); opacity:1}
+    8%   {transform:translateX(-3px) scale(1.05); opacity:1}
+    12%  {transform:translateX(3px) scale(1.05)}
+    16%  {transform:translateX(-3px) scale(1.05)}
+    20%  {transform:translateX(3px) scale(1.05)}
+    24%  {transform:translateX(-2px) scale(1.04)}
+    28%  {transform:translateX(2px) scale(1.04)}
+    32%  {transform:translateX(-2px) scale(1.03)}
+    36%  {transform:translateX(2px) scale(1.03)}
+    40%  {transform:translateX(0) scale(1.02)}
+    50%  {transform:translateX(0) scale(1.1); opacity:1}
+    62%  {transform:translateX(0) scale(0.85); opacity:1}
+    78%  {transform:translateX(0) scale(0.3) rotate(15deg); opacity:.7}
+    90%  {transform:translateX(0) scale(0.05) rotate(-10deg); opacity:0}
+    91%  {transform:scale(1.1); opacity:0}
+    100% {transform:scale(1); opacity:1}
+  }
+  @media (max-width:380px){
+    .canvas-wrap{padding-right:44px}
+    .friend{width:40px;height:50px}
+    .bomb-panel{gap:4px}
+    .bomb-btn,.ad-bomb-btn,#exitBtn{font-size:12px;padding:10px 3px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .friend{animation:none!important}
+    .friend.hurt{animation:av-flash .6s ease both!important}
+    @keyframes av-flash{0%{opacity:.3}50%{opacity:1}100%{opacity:.3}}
+  }
+  .overlay{
+    position:fixed;inset:0;z-index:10;display:grid;place-items:center;
+    padding:16px;background:rgba(15,23,42,.55);backdrop-filter:blur(8px);
+  }
+  .overlay[hidden]{display:none!important}
+  .dialog{
+    width:min(100%,380px);padding:22px;text-align:center;
+    border-radius:20px;background:var(--panel);
+    box-shadow:0 12px 40px rgba(15,23,42,.15);
+    border:1px solid var(--border-2);
+  }
+  .dialog h2{margin:0 0 8px;font-size:22px}
+  .dialog p{line-height:1.5;color:var(--muted);margin:6px 0 14px;font-size:14px}
+  .dialog .score-big{font-size:34px;font-weight:900;color:var(--accent);margin:6px 0}
+  .overlay-buttons{display:grid;gap:8px;margin-top:10px}
+  .overlay-buttons button{
+    width:100%;padding:13px;border-radius:14px;border:none;
+    background:linear-gradient(135deg,#6366f1,#ec4899);
+    color:#fff;font-size:15px;font-weight:800;cursor:pointer;
+    box-shadow:0 4px 16px rgba(99,102,241,.35);
+    font-family:inherit;
+  }
+  .overlay-buttons button.secondary{
+    background:var(--panel);
+    color:var(--text);
+    border:2px solid var(--border-2);
+    box-shadow:none;
+  }
+  .overlay-buttons button:active{transform:scale(.98)}
+  .tutorial{
+    position:fixed;inset:0;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;background:rgba(15,23,42,.6);
+    backdrop-filter:blur(6px);
+  }
+  .tutorial[hidden]{display:none!important}
+  .tutorial-dialog{
+    width:min(100%,380px);padding:26px;text-align:center;
+    border-radius:20px;background:var(--panel);
+    box-shadow:0 12px 40px rgba(15,23,42,.25);
+    border:1px solid var(--border-2);
+  }
+  .tutorial-dialog h2{margin:0 0 12px;font-size:24px}
+  .tutorial-dialog p{line-height:1.55;color:#334155;margin:6px 0 20px;font-size:15px}
+  .tutorial-dialog button{
+    width:100%;padding:14px;border-radius:14px;border:none;
+    background:linear-gradient(135deg,#6366f1,#ec4899);
+    color:#fff;font-size:16px;font-weight:800;cursor:pointer;
+    box-shadow:0 4px 16px rgba(99,102,241,.35);
+    font-family:inherit;
+  }
+  .tutorial-dialog button:active{transform:scale(.98)}
+  .pause-screen{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(15,23,42,.62);backdrop-filter:blur(8px)}
+  .pause-screen[hidden]{display:none!important}
+  .pause-dialog{width:min(100%,380px);padding:24px;border-radius:20px;background:var(--panel);border:1px solid var(--border-2);box-shadow:0 12px 40px rgba(15,23,42,.25)}
+  .pause-dialog h2{margin:0 0 18px;text-align:center;font-size:24px}
+  .volume-control{display:grid;gap:8px;margin:16px 0;color:var(--text);font-weight:700;font-size:14px}
+  .volume-control input{width:100%;accent-color:var(--accent)}
+  .pause-actions{display:grid;gap:8px;margin-top:20px}
+  .pause-actions button{width:100%;padding:13px;border:0;border-radius:13px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;font:800 15px inherit;font-family:inherit;cursor:pointer}
+  .pause-actions button.secondary{background:#cbd5e1;color:#0f172a}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <div class="stat"><strong id="moves">32</strong><small>Ходы</small></div>
+    <div class="stat"><strong id="score">0</strong><small>Очки</small></div>
+    <div class="stat"><strong id="coins">0</strong><small>Монеты</small></div>
+    <div class="stat"><strong id="viruses">0</strong><small>Вирусов</small></div>
+    <div class="stat"><strong id="level">1</strong><small>Уровень</small></div>
+    <button id="pauseBtn" type="button" aria-label="Пауза" title="Пауза">⏸</button>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="board" width="400" height="600"></canvas>
+    <div class="virus-column" aria-hidden="true">
+      <div class="friend"></div>
+      <div class="friend"></div>
+      <div class="friend"></div>
+    </div>
+  </div>
+  <div class="bomb-panel">
+    <button id="bombBtn" class="bomb-btn">💣 Бомба: <span id="bombCount">0</span></button>
+    <button id="adBombBtn" class="ad-bomb-btn">📺 +1 бомба</button>
+    <button id="exitBtn" style="background:#cbd5e1; color:#0f172a;" onclick="location.href='index.html?menu=1'"> В меню</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog">
+    <h2 id="overlayTitle">Игра окончена</h2>
+    <div class="score-big" id="finalScore">0</div>
+    <p id="overlaySubtitle">Ходов не осталось</p>
+    <div class="overlay-buttons" id="overlayButtons"></div>
+  </div>
+</div>
+
+<div class="tutorial" id="tutorialScreen">
+  <div class="tutorial-dialog">
+    <h2>Как играть</h2>
+    <p>Составьте линию из 3-х ячеек одного цвета, и она исчезнет вместе с вирусом!</p>
+    <button id="startBtn">Начать игру</button>
+  </div>
+</div>
+
+<div class="pause-screen" id="pauseScreen" hidden>
+  <div class="pause-dialog">
+    <h2>Пауза</h2>
+    <label class="volume-control" for="musicSelect">Мелодия:</label>
+    <select id="musicSelect">
+      <option value="random">Рандом по уровням</option>
+      <option value="0">Трек 1</option>
+      <option value="1">Трек 2</option>
+      <option value="2">Трек 3</option>
+      <option value="3">Трек 4</option>
+      <option value="4">Трек 5</option>
+      <option value="5">Трек 6</option>
+    </select>
+    <label class="volume-control" for="musicVol">Громкость музыки <input id="musicVol" type="range" min="0" max="100" value="30"></label>
+    <label class="volume-control" for="sfxVol">Громкость звуков <input id="sfxVol" type="range" min="0" max="100" value="50"></label>
+    <div class="pause-actions">
+      <button id="resumeBtn" type="button">Продолжить</button>
+      <button type="button" class="secondary" onclick="location.href='index.html?menu=1'">В меню</button>
+    </div>
+  </div>
+</div>
+<audio id="bgMusic"></audio>
+
+<script>
+'use strict';
+
+const W = 8, H = 12;
+const CELL = 50;
+const COLORS = ['#f43f5e', '#f59e0b', '#3b82f6'];
+const POINTS_PER_PILL = 10;
+const POINTS_PER_VIRUS = 50;
+const COINS_PER_VIRUS = 10;
+const VIRUS_MIN_ROW = 4;
+const MAX_LEVEL = 10;
+const START_BOMBS = 2;
+
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const bgMusic = document.getElementById('bgMusic');
+const musicTracks = ['music/track1.mp3', 'music/track2.mp3', 'music/track3.mp3', 'music/track4.mp3', 'music/track5.mp3', 'music/track6.mp3'];
+let currentMusicSetting = 'random';
+let globalSfxVol = 0.5;
+let isPaused = false;
+let rafId = 0;
+
+// ==== Состояние ====
+let grid = [];
+let selected = null;
+let score = 0;
+let moves = 0;
+let virusesLeft = 0;
+let currentLevel = 1;
+let bombs = START_BOMBS;
+let bombMode = false;
+let coins = 0;
+let earnedCoins = 0;
+let gameOver = true;
+let busy = true;
+let particles = [];
+let clock = 0;
+let lastTime = performance.now();
+
+// Загрузка монет из localStorage
+try {
+  coins = Number(localStorage.getItem('antivirus-match3-coins') || 0) || 0;
+} catch { coins = 0; }
+
+function saveCoins(){
+  try { localStorage.setItem('antivirus-match3-coins', String(coins)); } catch {}
+}
+
+function randomColor(){ return Math.floor(Math.random() * 3); }
+
+// Боковые персонажи: та же разметка SVG, что и в основной игре.
+(function initViruses(){
+  const palettes=[
+    ['#ffe4e6','#f43f5e','#881337'],
+    ['#fef3c7','#f59e0b','#78350f'],
+    ['#dbeafe','#3b82f6','#1e3a8a']
+  ];
+  document.querySelectorAll('.virus-column .friend').forEach((node,i)=>{
+    const [light,color,dark]=palettes[i];
+    const id=`rv-${i}`;
+    node.innerHTML=`<svg viewBox="0 0 100 112" aria-hidden="true">
+      <defs><radialGradient id="${id}" cx="30%" cy="25%" r="80%">
+        <stop offset="0" stop-color="${light}"/><stop offset=".5" stop-color="${color}"/><stop offset="1" stop-color="${dark}"/>
+      </radialGradient></defs>
+      <g fill="${dark}"><ellipse cx="33" cy="99" rx="13" ry="7"/><ellipse cx="68" cy="99" rx="13" ry="7"/></g>
+      <g stroke="${color}" stroke-width="8" stroke-linecap="round" fill="${color}">
+        <path d="M27 31L17 20 M49 25L49 11 M72 32L83 21 M21 53L9 48 M79 53L92 47 M25 77L14 84 M76 77L88 84"/>
+        <circle cx="17" cy="20" r="3"/><circle cx="49" cy="11" r="3"/><circle cx="83" cy="21" r="3"/>
+      </g>
+      <ellipse cx="50" cy="60" rx="36" ry="38" fill="url(#${id})" stroke="${dark}" stroke-width="1.5"/>
+      <ellipse cx="35" cy="34" rx="15" ry="6" fill="#fff" opacity=".3" transform="rotate(-25 35 34)"/>
+      <g class="av-happy">
+        <ellipse cx="36" cy="54" rx="12" ry="15" fill="#fffefa"/>
+        <ellipse cx="64" cy="54" rx="12" ry="15" fill="#fffefa"/>
+        <ellipse cx="39" cy="57" rx="6" ry="9" fill="#0f172a"/>
+        <ellipse cx="61" cy="57" rx="6" ry="9" fill="#0f172a"/>
+        <circle cx="41" cy="53" r="2.6" fill="white"/>
+        <circle cx="63" cy="53" r="2.6" fill="white"/>
+        <ellipse cx="24" cy="72" rx="6" ry="3" fill="#ffb7ca" opacity=".55"/>
+        <ellipse cx="77" cy="72" rx="6" ry="3" fill="#ffb7ca" opacity=".55"/>
+        <path d="M38 77Q51 94 64 77" fill="#44213e"/>
+        <path d="M43 79H59" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M27 37Q35 32 43 37 M57 37Q65 32 73 37" fill="none" stroke="${dark}" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <g class="av-shock">
+        <ellipse cx="36" cy="54" rx="13" ry="16" fill="#fffefa"/>
+        <ellipse cx="64" cy="54" rx="13" ry="16" fill="#fffefa"/>
+        <g stroke="#0f172a" stroke-width="4" stroke-linecap="round" fill="none">
+          <path d="M32 50L40 58 M40 50L32 58"/>
+          <path d="M60 50L68 58 M68 50L60 58"/>
+        </g>
+        <ellipse cx="50" cy="80" rx="8" ry="10" fill="#44213e"/>
+        <ellipse cx="50" cy="82" rx="5" ry="6" fill="#fb7185"/>
+      </g>
+    </svg>`;
+  });
+})();
+
+document.querySelector('.virus-column').addEventListener('animationend', e => {
+  if((e.animationName === 'av-eliminate' || e.animationName === 'av-flash') && e.target.classList.contains('friend')){
+    e.target.classList.remove('hurt');
+  }
+});
+
+function animateAffectedViruses(affectedColors){
+  const virusEls = document.querySelectorAll('.virus-column .friend');
+  affectedColors.forEach(colorIdx => {
+    const node = virusEls[colorIdx];
+    if(!node) return;
+    node.classList.remove('hurt');
+    void node.offsetWidth;
+    node.classList.add('hurt');
+  });
+}
+
+// ============================================================
+// ЗВУК — Web Audio API
+// ============================================================
+let audio = null;
+
+function initAudio(){
+  if(!audio){
+    const C = window.AudioContext || window.webkitAudioContext;
+    if(!C) return;
+    try { audio = new C(); } catch { return; }
+  }
+  if(audio.state === 'suspended') audio.resume().catch(()=>{});
+}
+
+function tone(freq, dur, type, vol, delay){
+  if(!audio) return;
+  type = type || 'sine';
+  vol = (vol == null ? 0.12 : vol) * globalSfxVol;
+  delay = delay || 0;
+  try {
+    const t0 = audio.currentTime + delay;
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(audio.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch {}
+}
+
+function sfxSwap(){ tone(400, 0.1, 'sine', 0.12); }
+function sfxMatch(){
+  tone(523, 0.10, 'sine', 0.12, 0.00);
+  tone(659, 0.10, 'sine', 0.12, 0.05);
+  tone(784, 0.12, 'sine', 0.12, 0.10);
+}
+function sfxVirus(){ tone(150, 0.30, 'sawtooth', 0.15); }
+
+document.addEventListener('pointerdown', initAudio, {passive:true});
+document.addEventListener('keydown', initAudio);
+
+try {
+  const savedMusicSetting = localStorage.getItem('antivirus-match3-music');
+  if(savedMusicSetting === 'random' || (savedMusicSetting !== null && /^[0-5]$/.test(savedMusicSetting))) {
+    currentMusicSetting = savedMusicSetting;
+  }
+} catch {}
+document.getElementById('musicSelect').value = currentMusicSetting;
+
+function playMusic(){
+  if(!bgMusic || !musicTracks.length) return;
+  if(currentMusicSetting === 'random') {
+    const randomIndex = Math.floor(Math.random() * musicTracks.length);
+    bgMusic.src = musicTracks[randomIndex];
+  } else {
+    const trackIndex = Number(currentMusicSetting);
+    if(!Number.isInteger(trackIndex) || trackIndex < 0 || trackIndex >= musicTracks.length) return;
+    bgMusic.src = musicTracks[trackIndex];
+  }
+  bgMusic.load();
+  bgMusic.volume = Number(document.getElementById('musicVol').value) / 100;
+  bgMusic.play().catch(error => console.log('Ожидание клика', error));
+}
+bgMusic.addEventListener('ended', () => {
+  if(currentMusicSetting === 'random') {
+    playMusic();
+  } else {
+    bgMusic.currentTime = 0;
+    bgMusic.play().catch(()=>{});
+  }
+});
+document.getElementById('musicSelect').addEventListener('change', event => {
+  currentMusicSetting = event.target.value;
+  try { localStorage.setItem('antivirus-match3-music', currentMusicSetting); } catch {}
+  playMusic();
+});
+
+function pauseGame(){
+  if(gameOver || busy || isPaused) return;
+  isPaused = true;
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId = 0;
+  document.getElementById('pauseScreen').hidden = false;
+  updateHUD();
+}
+function resumeGame(){
+  if(!isPaused) return;
+  isPaused = false;
+  document.getElementById('pauseScreen').hidden = true;
+  lastTime = performance.now();
+  updateHUD();
+  if(!gameOver && !rafId) rafId = requestAnimationFrame(frame);
+}
+document.getElementById('pauseBtn').addEventListener('click', pauseGame);
+document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+document.getElementById('musicVol').addEventListener('input', event => {
+  bgMusic.volume = Number(event.target.value) / 100;
+});
+document.getElementById('sfxVol').addEventListener('input', event => {
+  globalSfxVol = Number(event.target.value) / 100;
+});
+
+// ============================================================
+// СОЗДАНИЕ ДОСКИ
+// ============================================================
+function createGrid(){
+  grid = Array.from({length:H}, () => Array(W).fill(null));
+
+  // 1) Заполняем пилюлями
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      grid[y][x] = { type: 'pill', color: randomColor() };
+    }
+  }
+
+  // 2) Чистим стартовые совпадения (до вирусов)
+  cleanInitialMatches();
+
+  // 3) Расставляем вирусы
+  const virusCount = 10 + currentLevel * 3;
+  const candidates = [];
+  for(let y=VIRUS_MIN_ROW;y<H;y++)
+    for(let x=0;x<W;x++) candidates.push([x,y]);
+  for(let i=candidates.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  const n = Math.min(virusCount, candidates.length);
+  for(let i=0;i<n;i++){
+    const [x,y] = candidates[i];
+    grid[y][x] = { type: 'virus', color: randomColor() };
+  }
+
+  // 4) Чистим совпадения после вирусов (перекрашиваем только пилюли)
+  cleanInitialMatches();
+
+  virusesLeft = countViruses();
+}
+
+function cleanInitialMatches(){
+  let guard = 1000;
+  while(guard-- > 0){
+    const m = findMatches();
+    if(!m.length) break;
+    for(const i of m){
+      const x = i % W, y = Math.floor(i / W);
+      const c = grid[y][x];
+      if(!c || c.type === 'virus') continue;
+      const colors = [0,1,2].filter(cc => cc !== c.color);
+      c.color = colors[Math.floor(Math.random() * colors.length)];
+    }
+  }
+}
+
+function countViruses(){
+  let n = 0;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++)
+    if(grid[y][x] && grid[y][x].type === 'virus') n++;
+  return n;
+}
+
+// ============================================================
+// ПОИСК СОВПАДЕНИЙ: 3+ одного цвета, хотя бы одна пилюля в линии
+// ============================================================
+function findMatches(){
+  const found = new Set();
+
+  for(let y=0;y<H;y++){
+    let runStart = 0;
+    for(let x=1;x<=W;x++){
+      const a = x < W ? grid[y][x] : null;
+      const b = grid[y][runStart];
+      const sameColor = !!(a && b && a.color === b.color);
+      if(!sameColor){
+        if(x - runStart >= 3){
+          let hasPill = false;
+          for(let k=runStart;k<x;k++){
+            const c = grid[y][k];
+            if(c && c.type === 'pill'){ hasPill = true; break; }
+          }
+          if(hasPill){
+            for(let k=runStart;k<x;k++) found.add(y*W + k);
+          }
+        }
+        runStart = x;
+      }
+    }
+  }
+
+  for(let x=0;x<W;x++){
+    let runStart = 0;
+    for(let y=1;y<=H;y++){
+      const a = y < H ? grid[y][x] : null;
+      const b = grid[runStart][x];
+      const sameColor = !!(a && b && a.color === b.color);
+      if(!sameColor){
+        if(y - runStart >= 3){
+          let hasPill = false;
+          for(let k=runStart;k<y;k++){
+            const c = grid[k][x];
+            if(c && c.type === 'pill'){ hasPill = true; break; }
+          }
+          if(hasPill){
+            for(let k=runStart;k<y;k++) found.add(k*W + x);
+          }
+        }
+        runStart = y;
+      }
+    }
+  }
+
+  return [...found];
+}
+
+// ============================================================
+// СВАП
+// ============================================================
+function swapCells(x1, y1, x2, y2){
+  const tmp = grid[y1][x1];
+  grid[y1][x1] = grid[y2][x2];
+  grid[y2][x2] = tmp;
+}
+
+function handleSwap(x1, y1, x2, y2){
+  const a = grid[y1][x1];
+  const b = grid[y2][x2];
+  if(!a || !b || a.type === 'virus' || b.type === 'virus') return false;
+
+  swapCells(x1, y1, x2, y2);
+  if(findMatches().length){
+    sfxSwap();
+    moves--;
+    updateHUD();
+    busy = true;
+    resolveCascades(0);
+    return true;
+  }
+  swapCells(x1, y1, x2, y2);
+  return false;
+}
+
+// ============================================================
+// КАСКАД
+// ============================================================
+function resolveCascades(depth){
+  if(depth > 30){ busy = false; checkWinOrLose(); return; }
+
+  const matches = findMatches();
+  if(matches.length === 0){
+    busy = false;
+    checkWinOrLose();
+    return;
+  }
+
+  let virusCount = 0;
+  const affectedColors = new Set();
+
+  for(const i of matches){
+    const x = i % W, y = Math.floor(i / W);
+    const c = grid[y][x];
+    if(!c) continue;
+
+    if(c.type === 'virus'){
+      score += POINTS_PER_VIRUS;
+      virusesLeft--;
+      earnedCoins += COINS_PER_VIRUS;
+      virusCount++;
+      spawnParticles(x, y, COLORS[c.color], 16);
+    } else {
+      score += POINTS_PER_PILL;
+      spawnParticles(x, y, COLORS[c.color], 8);
+    }
+    affectedColors.add(c.color);
+    grid[y][x] = null;
+  }
+
+  if(virusCount > 0) sfxVirus();
+  sfxMatch();
+
+  if(virusesLeft < 0) virusesLeft = 0;
+  animateAffectedViruses(affectedColors);
+  updateHUD();
+
+  setTimeout(() => {
+    applyGravity();
+    fillEmpty();
+    setTimeout(() => resolveCascades(depth + 1), 120);
+  }, 160);
+}
+
+// ============================================================
+// ГРАВИТАЦИЯ И ЗАЛИВКА
+// ============================================================
+function applyGravity(){
+  for(let x=0;x<W;x++){
+    let writeY = H - 1;
+    for(let y=H-1;y>=0;y--){
+      const c = grid[y][x];
+      if(!c) continue;
+      if(c.type === 'virus'){
+        writeY = y - 1;
+        continue;
+      }
+      if(y !== writeY){
+        grid[writeY][x] = c;
+        grid[y][x] = null;
+      }
+      writeY--;
+    }
+  }
+}
+
+function fillEmpty(){
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      if(!grid[y][x]){
+        grid[y][x] = { type: 'pill', color: randomColor() };
+      }
+    }
+  }
+}
+
+// ============================================================
+// БОМБА (3×3)
+// ============================================================
+function triggerBomb(cx, cy){
+  if(bombs <= 0) return;
+  bombs--;
+  bombMode = false;
+
+  const minX = Math.max(0, cx - 1), maxX = Math.min(W - 1, cx + 1);
+  const minY = Math.max(0, cy - 1), maxY = Math.min(H - 1, cy + 1);
+
+  let virusCount = 0;
+  const affectedColors = new Set();
+
+  for(let y=minY; y<=maxY; y++){
+    for(let x=minX; x<=maxX; x++){
+      const c = grid[y][x];
+      if(!c) continue;
+      if(c.type === 'virus'){
+        score += POINTS_PER_VIRUS;
+        virusesLeft--;
+        earnedCoins += COINS_PER_VIRUS;
+        virusCount++;
+        spawnParticles(x, y, COLORS[c.color], 16);
+      } else {
+        score += POINTS_PER_PILL;
+        spawnParticles(x, y, COLORS[c.color], 8);
+      }
+      affectedColors.add(c.color);
+      grid[y][x] = null;
+    }
+  }
+
+  if(virusCount > 0) sfxVirus();
+  sfxMatch();
+
+  if(virusesLeft < 0) virusesLeft = 0;
+  animateAffectedViruses(affectedColors);
+  busy = true;
+  updateHUD();
+
+  setTimeout(() => {
+    applyGravity();
+    fillEmpty();
+    setTimeout(() => resolveCascades(0), 120);
+  }, 160);
+}
+
+// ============================================================
+// КОНЕЦ ИГРЫ / УРОВНИ
+// ============================================================
+function checkWinOrLose(){
+  if(virusesLeft <= 0){ win(); return; }
+  if(moves <= 0){ lose(); return; }
+}
+
+function flushCoins(){
+  const reward = earnedCoins;
+  coins += reward;
+  earnedCoins = 0;
+  saveCoins();
+  return reward;
+}
+
+function win(){
+  gameOver = true;
+  const reward = flushCoins();
+  updateHUD();
+
+  const isFinal = currentLevel >= MAX_LEVEL;
+  document.getElementById('overlayTitle').textContent =
+    isFinal ? 'Игра пройдена!' : ('Уровень ' + currentLevel + ' пройден!');
+  document.getElementById('overlaySubtitle').textContent =
+    reward > 0 ? ('+' + reward + ' монет заработано') : 'Все вирусы уничтожены!';
+  document.getElementById('finalScore').textContent = score;
+
+  const btns = document.getElementById('overlayButtons');
+  btns.innerHTML = '';
+
+  if(!isFinal){
+    const next = document.createElement('button');
+    next.textContent = 'Следующий уровень';
+    next.onclick = () => {
+      currentLevel++;
+      beginRound();
+    };
+    btns.appendChild(next);
+  }
+
+  const menu = document.createElement('button');
+  menu.textContent = 'В меню';
+  if(isFinal) menu.className = 'secondary';
+  menu.onclick = () => {
+    currentLevel = 1;
+    beginRound();
+  };
+  btns.appendChild(menu);
+
+  document.getElementById('overlay').hidden = false;
+}
+
+function lose(){
+  gameOver = true;
+  const reward = flushCoins();
+  updateHUD();
+
+  document.getElementById('overlayTitle').textContent = 'Игра окончена';
+  document.getElementById('overlaySubtitle').textContent =
+    reward > 0 ? ('+' + reward + ' монет заработано') : 'Ходов не осталось';
+  document.getElementById('finalScore').textContent = score;
+
+  const btns = document.getElementById('overlayButtons');
+  btns.innerHTML = '';
+
+  const restart = document.createElement('button');
+  restart.textContent = 'Заново';
+  restart.onclick = () => {
+    beginRound();
+  };
+  btns.appendChild(restart);
+
+  const adCont = document.createElement('button');
+  adCont.className = 'secondary';
+  adCont.textContent = '📺 Смотреть рекламу (+5 ходов)';
+  adCont.onclick = () => {
+    moves += 5;
+    gameOver = false;
+    document.getElementById('overlay').hidden = true;
+    updateHUD();
+  };
+  btns.appendChild(adCont);
+
+  document.getElementById('overlay').hidden = false;
+}
+
+// ============================================================
+// ЧАСТИЦЫ
+// ============================================================
+function spawnParticles(x, y, color, count){
+  count = count || 8;
+  const cx = x*CELL + CELL/2, cy = y*CELL + CELL/2;
+  for(let i=0;i<count;i++){
+    const a = Math.random()*Math.PI*2;
+    const s = 60 + Math.random()*120;
+    particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(a)*s,
+      vy: Math.sin(a)*s,
+      life: 0.5 + Math.random()*0.3,
+      maxLife: 0.8,
+      color,
+      size: 2 + Math.random()*3
+    });
+  }
+}
+
+function updateParticles(dt){
+  for(const p of particles){
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 300 * dt;
+  }
+  particles = particles.filter(p => p.life > 0);
+}
+
+// ============================================================
+// ОТРИСОВКА
+// ============================================================
+function shade(hex, amt){
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  const f = v => Math.max(0, Math.min(255, Math.round(v + v*amt)));
+  return '#' + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+function drawGem(x, y, color){
+  const px = x*CELL + CELL/2, py = y*CELL + CELL/2;
+  const r = 19;
+  ctx.save();
+  const grad = ctx.createRadialGradient(px - r*0.35, py - r*0.35, r*0.15, px, py, r);
+  grad.addColorStop(0, '#ffffff');
+  grad.addColorStop(0.25, color);
+  grad.addColorStop(1, shade(color, -0.25));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(px, py, r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.7)';
+  ctx.beginPath();
+  ctx.ellipse(px - r*0.35, py - r*0.4, r*0.25, r*0.15, -Math.PI/4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawVirus(x, y, color, time){
+  const px = x*CELL + CELL/2, py = y*CELL + CELL/2;
+  const r = 14;
+  const wobble = Math.sin(time*2 + x*0.7 + y*0.5) * 0.08;
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(wobble);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.fillStyle = color;
+  for(let i=0;i<8;i++){
+    const a = i * Math.PI/4;
+    const x1 = Math.cos(a)*r*0.9, y1 = Math.sin(a)*r*0.9;
+    const x2 = Math.cos(a)*r*1.4, y2 = Math.sin(a)*r*1.4;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x2, y2, 2, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.arc(-5, -3, 4.5, 0, Math.PI*2);
+  ctx.arc(5, -3, 4.5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(-4, -2, 2, 0, Math.PI*2);
+  ctx.arc(6, -2, 2, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(0, 4, 5, 0, Math.PI, false); ctx.stroke();
+  ctx.restore();
+}
+
+function draw(){
+  const g = ctx.createLinearGradient(0, 0, 0, 600);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(1, '#f1f5f9');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 400, 600);
+
+  ctx.strokeStyle = 'rgba(100,116,139,.15)';
+  ctx.lineWidth = 1;
+  for(let x=1;x<W;x++){ ctx.beginPath(); ctx.moveTo(x*CELL, 0); ctx.lineTo(x*CELL, 600); ctx.stroke(); }
+  for(let y=1;y<H;y++){ ctx.beginPath(); ctx.moveTo(0, y*CELL); ctx.lineTo(400, y*CELL); ctx.stroke(); }
+
+  if(grid && grid.length){
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        const c = grid[y][x];
+        if(!c) continue;
+        if(c.type === 'virus') drawVirus(x, y, COLORS[c.color], clock);
+        else drawGem(x, y, COLORS[c.color]);
+      }
+    }
+  }
+
+  if(selected){
+    ctx.save();
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 4]);
+    ctx.strokeRect(selected.x*CELL + 3, selected.y*CELL + 3, CELL - 6, CELL - 6);
+    ctx.restore();
+  }
+
+  for(const p of particles){
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ============================================================
+// ВВОД
+// ============================================================
+function cellFromEvent(e){
+  const r = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - r.left) / r.width * W);
+  const y = Math.floor((e.clientY - r.top) / r.height * H);
+  if(x < 0 || x >= W || y < 0 || y >= H) return null;
+  return { x, y };
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if(gameOver || busy || isPaused) return;
+  const cell = cellFromEvent(e);
+  if(!cell) return;
+
+  if(bombMode){
+    triggerBomb(cell.x, cell.y);
+    updateHUD();
+    return;
+  }
+
+  const gem = grid[cell.y][cell.x];
+  if(!gem) return;
+
+  if(gem.type === 'virus'){
+    selected = null;
+    return;
+  }
+
+  if(!selected){ selected = cell; return; }
+  if(selected.x === cell.x && selected.y === cell.y){ selected = null; return; }
+
+  const adjacent = Math.abs(selected.x - cell.x) + Math.abs(selected.y - cell.y) === 1;
+  if(adjacent){
+    handleSwap(selected.x, selected.y, cell.x, cell.y);
+    selected = null;
+  } else {
+    selected = cell;
+  }
+});
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// Кнопки бомб
+document.getElementById('bombBtn').addEventListener('click', () => {
+  if(gameOver || busy) return;
+  if(bombs <= 0) return;
+  bombMode = !bombMode;
+  updateHUD();
+});
+
+document.getElementById('adBombBtn').addEventListener('click', () => {
+  if(gameOver) return;
+  bombs++;
+  updateHUD();
+});
+
+// ============================================================
+// HUD
+// ============================================================
+function updateHUD(){
+  document.getElementById('score').textContent = score;
+  document.getElementById('moves').textContent = Math.max(0, moves);
+  document.getElementById('viruses').textContent = Math.max(0, virusesLeft);
+  document.getElementById('coins').textContent = coins + earnedCoins;
+  document.getElementById('level').textContent = currentLevel;
+  document.getElementById('bombCount').textContent = bombs;
+
+  const bombBtn = document.getElementById('bombBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  if(pauseBtn) pauseBtn.disabled = gameOver || busy || isPaused;
+  if(bombBtn){
+    bombBtn.disabled = bombs <= 0 || isPaused;
+    bombBtn.classList.toggle('active', bombMode && bombs > 0);
+  }
+  canvas.classList.toggle('armed', bombMode && bombs > 0);
+}
+
+// ============================================================
+// УПРАВЛЕНИЕ РАУНДОМ
+// ============================================================
+function beginRound(){
+  document.getElementById('tutorialScreen').hidden = true;
+  document.getElementById('overlay').hidden = true;
+  isPaused = false;
+  document.getElementById('pauseScreen').hidden = true;
+  playMusic();
+
+  score = 0;
+  moves = 30 + currentLevel * 2;
+  virusesLeft = 0;
+  earnedCoins = 0;
+  bombs = START_BOMBS;
+  bombMode = false;
+  gameOver = false;
+  busy = false;
+  selected = null;
+  particles = [];
+
+  createGrid();
+  updateHUD();
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(frame);
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  initAudio();
+  beginRound();
+});
+
+// ============================================================
+// ЦИКЛ
+// ============================================================
+function frame(now){
+  rafId = 0;
+  if(isPaused || gameOver) return;
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+  clock += dt;
+  updateParticles(dt);
+  draw();
+  if(!isPaused && !gameOver) rafId = requestAnimationFrame(frame);
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+createGrid();
+updateHUD();
+</script>
+
+</body>
+</html>
