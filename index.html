@@ -3606,6 +3606,13 @@ function leaveDuelByDisconnect(){
 }
 
 document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState === 'visible'){
+    try {
+      const latest = JSON.parse(localStorage.getItem(getSaveKey()) || 'null');
+      if(latest && typeof latest === 'object') save.coins = normalize(latest).coins;
+    } catch {}
+    if(screen === 'menu') menu();
+  }
   if(duelMode) return;
   if(document.hidden){
     pause();record();
@@ -3705,6 +3712,7 @@ async function boot(){
     if (urlParams.get('menu') === '1') {
       save.welcomeShown = true;
       persist();
+      window._openMenuAfterBoot = urlParams.get('openShop') === '1' ? 'shop' : (urlParams.get('openDaily') === '1' ? 'daily' : null);
     }
   } catch(e){}
   if(!save.welcomeShown){
@@ -3760,6 +3768,10 @@ async function boot(){
   if('speechSynthesis' in window){
     speechSynthesis.getVoices();
     speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+  }
+  if(window._openMenuAfterBoot){
+    const target=window._openMenuAfterBoot; window._openMenuAfterBoot=null;
+    setTimeout(()=>{ if(target==='shop') shopMenu(); else if(target==='daily') dailyMenu(); },0);
   }
   console.warn('[Boot] Antivirus v2 loaded. Backups: stage7. Features: ad manager, cooldowns, timers.');
 }
