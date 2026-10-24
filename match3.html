@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 <title>Антивирус — Match-3</title>
 <style>
   :root{
@@ -204,7 +205,7 @@
   </div>
   <div class="bomb-panel">
     <button id="bombBtn" class="bomb-btn">💣 Бомба: <span id="bombCount">0</span></button>
-    <button id="adBombBtn" class="ad-bomb-btn">📺 +1 бомба</button>
+    <button id="adBombBtn" class="ad-bomb-btn">📺 +3 бомбы за рекламу</button>
     <button id="exitBtn" style="background:#cbd5e1; color:#0f172a;" onclick="location.href='index.html?menu=1'"> В меню</button>
   </div>
 </div>
@@ -252,6 +253,20 @@
 <script>
 'use strict';
 
+try {
+  if (window.vkBridge) {
+    vkBridge.send('VKWebAppInit').catch(console.warn);
+  }
+} catch(e) { console.warn(e); }
+
+async function showBanner() {
+  if (!window.vkBridge) return;
+  try {
+    await vkBridge.send('VKWebAppShowBannerAd', { banner_location: 'top', height_type: 'small', orientation: 'vertical' });
+  } catch(e) { console.warn('Banner error:', e); }
+}
+setTimeout(showBanner, 1000);
+
 const W = 8, H = 12;
 const CELL = 50;
 const COLORS = ['#f43f5e', '#f59e0b', '#3b82f6'];
@@ -259,11 +274,44 @@ const POINTS_PER_PILL = 10;
 const POINTS_PER_VIRUS = 50;
 const COINS_PER_VIRUS = 10;
 const VIRUS_MIN_ROW = 4;
-const MAX_LEVEL = 10;
+const MAX_LEVEL = 99;
 const START_BOMBS = 2;
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
+const STATS_URL = 'https://antivirus-duel-server.relaxdev.ru/stats/event';
+const Stats = (() => {
+  const queue = [];
+  const sessionId = Math.random().toString(36).slice(2, 10);
+  const sessionStart = Math.floor(Date.now() / 1000);
+  function track(ev, props) {
+    queue.push(Object.assign({
+      t: Math.floor(Date.now() / 1000),
+      sessionId,
+      playerId: 'match3_' + sessionId,
+      platform: 'web',
+      app: 'match3',
+      ev
+    }, props || {}));
+    if(queue.length >= 20) flush();
+  }
+  function flush(beacon) {
+    if(!queue.length) return;
+    const body = JSON.stringify({events: queue.slice()});
+    queue.length = 0;
+    if(beacon && navigator.sendBeacon) {
+      try { if(navigator.sendBeacon(STATS_URL, new Blob([body], {type:'text/plain'}))) return; } catch {}
+    }
+    try {
+      fetch(STATS_URL, {method:'POST', headers:{'Content-Type':'text/plain'}, body, keepalive:true}).catch(()=>{});
+    } catch {}
+  }
+  setInterval(flush, 20000);
+  window.addEventListener('pagehide', () => flush(true));
+  return {track, flush, sessionStart};
+})();
+Stats.track('session_start', {app:'match3'});
+
 const bgMusic = document.getElementById('bgMusic');
 const musicTracks = ['music/track1.mp3', 'music/track2.mp3', 'music/track3.mp3', 'music/track4.mp3', 'music/track5.mp3', 'music/track6.mp3'];
 let currentMusicSetting = 'random';
@@ -278,6 +326,7 @@ let score = 0;
 let moves = 0;
 let virusesLeft = 0;
 let currentLevel = 1;
+let levelsCompleted = 0;
 let bombs = START_BOMBS;
 let bombMode = false;
 let coins = 0;
@@ -287,6 +336,7 @@ let busy = true;
 let particles = [];
 let clock = 0;
 let lastTime = performance.now();
+const isWeb = /(^|_)web($|_)/.test(new URLSearchParams(location.search).get('vk_platform') || '') || location.protocol === 'file:' || !window.vkBridge;
 
 // Загрузка монет из localStorage
 try {
@@ -755,6 +805,8 @@ function flushCoins(){
 
 function win(){
   gameOver = true;
+  Stats.track('level_end', { level: currentLevel, won: true, app: 'match3' });
+  levelsCompleted++;
   const reward = flushCoins();
   updateHUD();
 
@@ -771,27 +823,35 @@ function win(){
   if(!isFinal){
     const next = document.createElement('button');
     next.textContent = 'Следующий уровень';
-    next.onclick = () => {
-      currentLevel++;
+    next.id = 'nextLevelBtn';
+    next.onclick = async () => {
+      if (levelsCompleted > 0 && levelsCompleted % 2 === 0 && window.vkBridge) {
+        try {
+          const result = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
+          Stats.track('ad_watch', { kind: 'interstitial', ok: !!(result && (result.result || result.success)), app: 'match3' });
+        } catch(e) {
+          console.warn('Interstitial error:', e);
+          Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' });
+        }
+      }
+      currentLevel = Math.min(99, currentLevel + 1);
       beginRound();
     };
     btns.appendChild(next);
   }
 
-  const menu = document.createElement('button');
-  menu.textContent = 'В меню';
-  if(isFinal) menu.className = 'secondary';
-  menu.onclick = () => {
-    currentLevel = 1;
-    beginRound();
-  };
-  btns.appendChild(menu);
+  const menuBtn = document.createElement('button');
+  menuBtn.textContent = 'В меню';
+  if(isFinal) menuBtn.className = 'secondary';
+  menuBtn.onclick = () => { location.href = 'index.html?menu=1'; };
+  btns.appendChild(menuBtn);
 
   document.getElementById('overlay').hidden = false;
 }
 
 function lose(){
   gameOver = true;
+  Stats.track('level_end', { level: currentLevel, won: false, app: 'match3' });
   const reward = flushCoins();
   updateHUD();
 
@@ -1017,10 +1077,33 @@ document.getElementById('bombBtn').addEventListener('click', () => {
   updateHUD();
 });
 
-document.getElementById('adBombBtn').addEventListener('click', () => {
-  if(gameOver) return;
-  bombs++;
-  updateHUD();
+document.getElementById('adBombBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('adBombBtn');
+  btn.disabled = true;
+  if (window.vkBridge) {
+    try {
+      const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
+      if (r && (r.result || r.success)) {
+        bombs += 3;
+        updateHUD();
+        Stats.track('ad_watch', { kind: 'rewarded', ok: true, app: 'match3' });
+      } else {
+        Stats.track('ad_watch', { kind: 'rewarded', ok: false, app: 'match3' });
+        alert('Реклама не была просмотрена до конца.');
+      }
+    } catch(e) {
+      console.warn(e);
+      Stats.track('ad_watch', { kind: 'rewarded', ok: false, app: 'match3' });
+      alert('Ошибка показа рекламы');
+    } finally {
+      btn.disabled = false;
+    }
+  } else {
+    // Локальная заглушка для тестов без ВК.
+    bombs += 3;
+    updateHUD();
+    btn.disabled = false;
+  }
 });
 
 // ============================================================
@@ -1048,6 +1131,7 @@ function updateHUD(){
 // УПРАВЛЕНИЕ РАУНДОМ
 // ============================================================
 function beginRound(){
+  Stats.track('level_start', { level: currentLevel, app: 'match3' });
   document.getElementById('tutorialScreen').hidden = true;
   document.getElementById('overlay').hidden = true;
   isPaused = false;
@@ -1093,6 +1177,7 @@ function frame(now){
 // ============================================================
 // BOOT
 // ============================================================
+if(isWeb) document.getElementById('adBombBtn').style.display = 'none';
 createGrid();
 updateHUD();
 </script>
