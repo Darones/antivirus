@@ -990,7 +990,7 @@ const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.
 const SHOP_ITEMS = [
   { id:'bombs_pack', icon:'💣', title:'5 бомб', desc:'Мгновенно +5 бомб', price:5 },
   { id:'bombs_pack_big', icon:'💣', title:'20 бомб', desc:'Мгновенно +20 бомб', price:15 },
-  { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:10, enabled:false }
+  { id:'remove_ads', icon:'🚫', title:'Убрать рекламу', desc:'Отключает рекламу навсегда', price:10 }
 ];
 const SHOP_ITEMS_COIN = [
   { id:'coin_bombs_5', icon:'💣', title:'5 бомб', desc:'Мгновенно +5 бомб', price:150, bombs:5 },
@@ -1799,7 +1799,6 @@ function shopMenu(){
     </div>`;
   }).join('');
   const voteItems = SHOP_ITEMS.map(item => {
-    if(item.enabled === false) return '';
     const owned = item.id==='remove_ads' ? save.purchases.remove_ads : false;
     const priceText = owned ? '✓ Куплено' : (isOK() ? item.price + ' ОКов' : item.price + ' голосов');
     return `<div class="shop-item">
