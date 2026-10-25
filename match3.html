@@ -287,6 +287,7 @@
 
 <script>
 'use strict';
+console.log('=== MATCH3 V2.0 ===');
 
 try {
   if (window.vkBridge) {
@@ -420,7 +421,10 @@ function saveSharedCoins(newCoinsValue){
   } catch {}
 }
 function saveCoins(){ saveSharedCoins(coins); }
-function saveBombs(){ localStorage.setItem('antivirus-match3-bombs', String(bombs)); }
+function saveBombs(){
+  localStorage.setItem('antivirus-match3-bombs', String(bombs));
+  console.log('Saved bombs:', bombs);
+}
 
 function randomColor(){ return Math.floor(Math.random() * 3); }
 
@@ -541,6 +545,15 @@ try {
 } catch {}
 document.getElementById('musicSelect').value = currentMusicSetting;
 
+function musicIsEnabled(){
+  const volume = document.getElementById('musicVol');
+  return !!volume && Number(volume.value) > 0;
+}
+function resumeBgMusicIfAllowed(){
+  if(!bgMusic || document.hidden || !musicIsEnabled() || !bgMusic.src) return;
+  const promise = bgMusic.play();
+  if(promise && promise.catch) promise.catch(()=>{});
+}
 function playMusic(){
   if(!bgMusic || !musicTracks.length) return;
   if(currentMusicSetting === 'random') {
@@ -553,16 +566,36 @@ function playMusic(){
   }
   bgMusic.load();
   bgMusic.volume = Number(document.getElementById('musicVol').value) / 100;
-  bgMusic.play().catch(error => console.log('Ожидание клика', error));
+  resumeBgMusicIfAllowed();
 }
 bgMusic.addEventListener('ended', () => {
   if(currentMusicSetting === 'random') {
     playMusic();
   } else {
     bgMusic.currentTime = 0;
-    bgMusic.play().catch(()=>{});
+    resumeBgMusicIfAllowed();
   }
 });
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden) {
+    bgMusic.pause();
+  } else if(musicIsEnabled()) {
+    resumeBgMusicIfAllowed();
+  }
+});
+if(window.vkBridge && typeof vkBridge.subscribe === 'function') {
+  try {
+    vkBridge.subscribe(event => {
+      const type = event?.detail?.type;
+      if(type === 'VKWebAppAudioPaused' || type === 'VKWebAppViewHide') {
+        bgMusic.pause();
+      } else if(type === 'VKWebAppAudioResumed' || type === 'VKWebAppViewRestore') {
+        if(musicIsEnabled()) resumeBgMusicIfAllowed();
+      }
+    });
+  } catch(e) { console.warn('VK Bridge subscribe error:', e); }
+}
+
 document.getElementById('musicSelect').addEventListener('change', event => {
   currentMusicSetting = event.target.value;
   try { localStorage.setItem('antivirus-match3-music', currentMusicSetting); } catch {}
@@ -1006,12 +1039,16 @@ function win(){
     next.id = 'nextLevelBtn';
     next.onclick = async () => {
       if (levelsCompleted > 0 && levelsCompleted % 2 === 0 && window.vkBridge) {
+        const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
+        if(bgMusic) bgMusic.pause();
         try {
           const result = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
           Stats.track('ad_watch', { kind: 'interstitial', ok: !!(result && (result.result || result.success)), app: 'match3' });
         } catch(e) {
           console.warn('Interstitial error:', e);
           Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' });
+        } finally {
+          if(musicWasPlaying) resumeBgMusicIfAllowed();
         }
       }
       currentLevel = Math.min(MAX_LEVEL, currentLevel + 1);
@@ -1289,6 +1326,8 @@ function showToast(message){
 document.getElementById('adBombBtn').addEventListener('click', async () => {
   const btn = document.getElementById('adBombBtn');
   btn.disabled = true;
+  const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
+  if(bgMusic) bgMusic.pause();
   try {
     if (!window.vkBridge) throw new Error('VK Bridge недоступен');
     const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
@@ -1309,6 +1348,7 @@ document.getElementById('adBombBtn').addEventListener('click', async () => {
     showToast('Ошибка показа рекламы');
   } finally {
     btn.disabled = false;
+    if(musicWasPlaying) resumeBgMusicIfAllowed();
   }
 });
 
@@ -1337,6 +1377,7 @@ function updateHUD(){
 // УПРАВЛЕНИЕ РАУНДОМ
 // ============================================================
 function beginRound(){
+  console.log('Bombs at start:', bombs, 'Raw localStorage:', localStorage.getItem('antivirus-match3-bombs'));
   Stats.track('level_start', { level: currentLevel, app: 'match3' });
   document.getElementById('tutorialScreen').hidden = true;
   document.getElementById('levelMapScreen').hidden = true;

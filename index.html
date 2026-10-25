@@ -941,6 +941,8 @@ async function adShow(kind){
     return false;
   }
   adRequestPending = true;
+  const musicWasPlaying = !!(musicAudio && !musicAudio.paused);
+  if(musicAudio) musicAudio.pause();
   try{
     const fmt = kind === 'rewarded' ? 'reward' : 'interstitial';
     const r = await Promise.race([
@@ -976,6 +978,7 @@ async function adShow(kind){
     return false;
   }finally{
     adRequestPending = false;
+    if(musicWasPlaying && !document.hidden && save.settings.music) musicResumeIfAllowed();
   }
 }
 const WS_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
@@ -3185,6 +3188,11 @@ function musicStart(idx){
   if(p&&p.catch)p.catch(e=>console.warn('[Music] play failed:',e.message));
   musicFadeTo(targetMusicVolume(),600);
 }
+function musicResumeIfAllowed(){
+  if(!musicAudio || !save.settings.music || document.hidden || platformPaused) return;
+  const promise = musicAudio.play();
+  if(promise && promise.catch) promise.catch(()=>{});
+}
 function musicStop(){
   if(musicAudio){musicAudio.pause();musicAudio.currentTime=0;}
   musicCurrentIdx=-1;
@@ -3606,6 +3614,11 @@ function leaveDuelByDisconnect(){
 }
 
 document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    if(musicAudio) musicAudio.pause();
+  } else if(save.settings.music) {
+    musicResumeIfAllowed();
+  }
   if(document.visibilityState === 'visible'){
     try {
       const latest = JSON.parse(localStorage.getItem(getSaveKey()) || 'null');
@@ -3674,6 +3687,11 @@ async function boot(){
   if(localStorage.getItem('antivirus-pending-reset') === '1'){
     try {
       localStorage.removeItem(getSaveKey());
+      localStorage.removeItem('antivirus-vk-1');
+      localStorage.removeItem('antivirus-ok-1');
+      localStorage.removeItem('antivirus-match3-level');
+      localStorage.removeItem('antivirus-match3-bombs');
+      localStorage.removeItem('antivirus-match3-coins');
       if(vkReady && window.vkBridge){
         await vkBridge.send('VKWebAppStorageSet',{key:getCloudKey(),value:'{}'});
       }
@@ -3748,10 +3766,22 @@ async function boot(){
     try{
       vkBridge.subscribe(e=>{
         const type=e?.detail?.type;
-        if(type==='VKWebAppViewHide')platformPause();
-        if(type==='VKWebAppViewRestore')platformResume();
-        if(type==='VKWebAppAudioPaused'){save.settings.sound=false;save.settings.music=false;syncAudio();}
-        if(type==='VKWebAppAudioResumed'){save.settings.sound=true;save.settings.music=true;syncAudio();}
+        if(type==='VKWebAppViewHide'){
+          if(musicAudio) musicAudio.pause();
+          platformPause();
+        }
+        if(type==='VKWebAppViewRestore'){
+          platformResume();
+          if(save.settings.music) musicResumeIfAllowed();
+        }
+        if(type==='VKWebAppAudioPaused'){
+          if(musicAudio) musicAudio.pause();
+          save.settings.sound=false;syncAudio();
+        }
+        if(type==='VKWebAppAudioResumed'){
+          save.settings.sound=true;syncAudio();
+          if(save.settings.music) musicResumeIfAllowed();
+        }
       });
     }catch{}
   }
@@ -3780,7 +3810,15 @@ boot();
 window.addBombs = (n=10) => { bombsAvailable += n; save.bombs = bombsAvailable; persist(); updateBombButton(); return bombsAvailable; };
 window.addCoins = (n=100) => { save.coins = Math.min(9999999, save.coins + n); persist(); return save.coins; };
 window.unlockAll = () => { save.unlocked = 30; persist(); return 'unlocked 30'; };
-window.resetSave = () => { localStorage.removeItem(getSaveKey()); location.reload(); };
+window.resetSave = () => {
+  localStorage.removeItem(getSaveKey());
+  localStorage.removeItem('antivirus-vk-1');
+  localStorage.removeItem('antivirus-ok-1');
+  localStorage.removeItem('antivirus-match3-level');
+  localStorage.removeItem('antivirus-match3-bombs');
+  localStorage.removeItem('antivirus-match3-coins');
+  location.reload();
+};
 window.giveStars = (n=3) => { for(let i=0;i<30;i++)save.stars[i]=Math.max(save.stars[i]||0, n); save.unlocked=30; persist(); return 'stars set'; };
 window.showMe = () => ({ coins: save.coins, bombs: save.bombs, unlocked: save.unlocked, stars: save.stars.slice() });
 
