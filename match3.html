@@ -278,6 +278,9 @@
     </select>
     <label class="volume-control" for="musicVol">Громкость музыки <input id="musicVol" type="range" min="0" max="100" value="30"></label>
     <label class="volume-control" for="sfxVol">Громкость звуков <input id="sfxVol" type="range" min="0" max="100" value="50"></label>
+    <label class="volume-control" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+      Вибрация <input id="vibeToggle" type="checkbox" style="width:20px; height:20px; accent-color:var(--accent);">
+    </label>
     <div class="pause-actions">
       <button id="resumeBtn" type="button">Продолжить</button>
       <button type="button" class="secondary" onclick="location.href='index.html?menu=1'">В меню</button>
@@ -381,6 +384,7 @@ let currentLevel = 1;
 let maxLevel = 1;
 let levelsCompleted = 0;
 let bombs = Number(localStorage.getItem('antivirus-match3-bombs')) || START_BOMBS;
+let vibeEnabled = localStorage.getItem('antivirus-match3-vibe') !== 'false';
 let bombMode = false;
 let coins = loadSharedCoins();
 let earnedCoins = 0;
@@ -534,6 +538,9 @@ function sfxMatch(){
   tone(784, 0.12, 'sine', 0.12, 0.10);
 }
 function sfxVirus(){ tone(150, 0.30, 'sawtooth', 0.15); }
+function sfxWin(){ tone(523,0.15,'sine',0.15,0); tone(659,0.15,'sine',0.15,0.1); tone(784,0.2,'sine',0.15,0.2); tone(1047,0.3,'sine',0.15,0.3); }
+function sfxLose(){ tone(330,0.2,'sawtooth',0.15,0); tone(277,0.2,'sawtooth',0.15,0.15); tone(220,0.4,'sawtooth',0.15,0.3); }
+function vibrate(pattern){ if (vibeEnabled && navigator.vibrate) { navigator.vibrate(pattern); } }
 
 document.addEventListener('pointerdown', initAudio, {passive:true});
 document.addEventListener('keydown', initAudio);
@@ -627,6 +634,15 @@ document.getElementById('musicVol').addEventListener('input', event => {
 document.getElementById('sfxVol').addEventListener('input', event => {
   globalSfxVol = Number(event.target.value) / 100;
 });
+const vibeToggle = document.getElementById('vibeToggle');
+if (vibeToggle) {
+  vibeToggle.checked = vibeEnabled;
+  vibeToggle.addEventListener('change', (e) => {
+    vibeEnabled = e.target.checked;
+    localStorage.setItem('antivirus-match3-vibe', String(vibeEnabled));
+    if(vibeEnabled) vibrate(20);
+  });
+}
 
 // ============================================================
 // СОЗДАНИЕ ДОСКИ
@@ -851,6 +867,7 @@ function handleSwap(x1, y1, x2, y2){
   swapCells(x1, y1, x2, y2);
   if(findMatches().length){
     sfxSwap();
+    vibrate(15);
     moves--;
     updateHUD();
     busy = true;
@@ -901,7 +918,7 @@ function resolveCascades(depth){
     grid[y][x] = null;
   }
 
-  if(virusCount > 0) sfxVirus();
+  if(virusCount > 0) { sfxVirus(); vibrate([20, 30, 20]); }
   sfxMatch();
 
   if(virusesLeft < 0) virusesLeft = 0;
@@ -953,6 +970,7 @@ function fillEmpty(){
 // БОМБА (3×3)
 // ============================================================
 function triggerBomb(cx, cy){
+  vibrate([50, 30, 50]);
   if(bombs <= 0) return;
   bombs--;
   saveBombs();
@@ -1016,6 +1034,7 @@ function flushCoins(){
 }
 
 function win(){
+  sfxWin();
   gameOver = true;
   Stats.track('level_end', { level: currentLevel, won: true, app: 'match3' });
   levelsCompleted++;
@@ -1055,6 +1074,7 @@ function win(){
 }
 
 function lose(){
+  sfxLose();
   gameOver = true;
   Stats.track('level_end', { level: currentLevel, won: false, app: 'match3' });
   const reward = flushCoins();
