@@ -6,12 +6,13 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const STATS_FILE = path.join(__dirname, 'events.jsonl');
-// ID, ??????? ??????? ?? ???????? ? ?????????? (???????? ????????)
+
+// ID, которые скрыты из статистики
 const IGNORED_PLAYER_IDS = new Set([
-  '29506969',           // ?????? VK
-  '560206319344',       // ?????? OK
-  'ok_560206319344',    // ?????? OK (? ?????????)
-  'ok_29506969',        // ?????? VK ? OK-???????
+  '29506969',           // тестовый VK
+  '560206319344',       // тестовый OK
+  'ok_560206319344',    // тестовый OK (с префиксом)
+  'ok_29506969',        // тестовый VK в OK-режиме
 ]);
 function isIgnoredPlayer(playerId){
   if(!playerId) return false;
@@ -30,7 +31,7 @@ const pgPool = DATABASE_URL
   : null;
 
 async function initStatsTable() {
-  if (!pgPool) { console.warn('[STATS] DATABASE_URL \u043d\u0435 \u0437\u0430\u0434\u0430\u043d\u043e, \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u043c \u0447\u0435\u0440\u0435\u0437 \u0444\u0430\u0439\u043b'); return; }
+  if (!pgPool) { console.warn('[STATS] DATABASE_URL не задано, работаем через файл'); return; }
   try {
     await pgPool.query([
       'CREATE TABLE IF NOT EXISTS events (',
@@ -218,7 +219,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // GET /stats/reset?token=XXX ? ???????? events.jsonl
+  // GET /stats/reset?token=XXX — очистить events.jsonl
   if (req.url.startsWith('/stats/reset')) {
     (async () => {
       const urlObj = new URL(req.url, 'http://x');
@@ -233,7 +234,7 @@ const server = http.createServer((req, res) => {
           console.log('[STATS] file cleared by token');
         }
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<meta charset="utf-8"><h2>?????????? ???????</h2><p><a href="/stats/dashboard?token=' + encodeURIComponent(token) + '">? ????????</a></p>');
+        res.end('<meta charset="utf-8"><h2>Статистика очищена</h2><p><a href="/stats/dashboard?token=' + encodeURIComponent(token) + '">К дашборду</a></p>');
       } catch (e) {
         console.warn('[STATS] reset failed:', e.message);
         res.writeHead(500); res.end('reset failed');
@@ -252,7 +253,7 @@ const server = http.createServer((req, res) => {
       if (!playerId) { res.writeHead(400); res.end('player id required'); return; }
       let events;
       if (pgPool) {
-        const result = await pgPool.query('SELECT payload FROM events WHERE player_id = ' + String.fromCharCode(36) + '1 ORDER BY t DESC LIMIT 100', [playerId]);
+        const result = await pgPool.query('SELECT payload FROM events WHERE player_id = $1 ORDER BY t DESC LIMIT 100', [playerId]);
         events = result.rows.map(row => row.payload);
       } else {
         let lines = [];
@@ -1113,7 +1114,7 @@ function renderLog(d){
     '</div>'
   ).join('');
 }
-load();
+refresh();
 </script>
 </body></html>`;
 }
@@ -1126,6 +1127,6 @@ initStatsTable().then(() => {
 }).catch(e => {
   console.error('[BOOT] init failed:', e);
   server.listen(PORT, '0.0.0.0', () => {
-    console.log('\u2694 Duel server on port ' + PORT + ' (\u0431\u0435\u0437 \u0411\u0414)');
+    console.log('\u2694 Duel server on port ' + PORT + ' (без БД)');
   });
 });
