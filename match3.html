@@ -378,7 +378,7 @@ let virusesLeft = 0;
 let currentLevel = 1;
 let maxLevel = 1;
 let levelsCompleted = 0;
-let bombs = START_BOMBS;
+let bombs = Number(localStorage.getItem('antivirus-match3-bombs')) || START_BOMBS;
 let bombMode = false;
 let coins = loadSharedCoins();
 let earnedCoins = 0;
@@ -420,6 +420,7 @@ function saveSharedCoins(newCoinsValue){
   } catch {}
 }
 function saveCoins(){ saveSharedCoins(coins); }
+function saveBombs(){ localStorage.setItem('antivirus-match3-bombs', String(bombs)); }
 
 function randomColor(){ return Math.floor(Math.random() * 3); }
 
@@ -795,6 +796,7 @@ function checkDeadlock(){
   if((typeof duelMode !== 'undefined' && duelMode) || gameOver || deadlockOpen) return;
   if(hasAvailableMoves()) return;
   bombs += 1;
+  saveBombs();
   deadlockOpen = true;
   gameOver = true;
   busy = false;
@@ -919,6 +921,7 @@ function fillEmpty(){
 function triggerBomb(cx, cy){
   if(bombs <= 0) return;
   bombs--;
+  saveBombs();
   bombMode = false;
 
   const minX = Math.max(0, cx - 1), maxX = Math.min(W - 1, cx + 1);
@@ -1269,31 +1272,42 @@ document.getElementById('bombBtn').addEventListener('click', () => {
   updateHUD();
 });
 
+function showToast(message){
+  let toast = document.getElementById('match3Toast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'match3Toast';
+    toast.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;padding:12px 18px;border-radius:12px;background:#0f172a;color:#fff;font:700 14px system-ui,sans-serif;box-shadow:0 4px 16px #0f172a55;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toast.hideTimer);
+  toast.hideTimer = setTimeout(() => { toast.hidden = true; }, 2400);
+}
+
 document.getElementById('adBombBtn').addEventListener('click', async () => {
   const btn = document.getElementById('adBombBtn');
   btn.disabled = true;
-  if (window.vkBridge) {
-    try {
-      const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
-      if (r && (r.result || r.success)) {
-        bombs += 3;
-        updateHUD();
-        Stats.track('ad_watch', { kind: 'rewarded', ok: true, app: 'match3' });
-      } else {
-        Stats.track('ad_watch', { kind: 'rewarded', ok: false, app: 'match3' });
-        alert('Реклама не была просмотрена до конца.');
-      }
-    } catch(e) {
-      console.warn(e);
+  try {
+    if (!window.vkBridge) throw new Error('VK Bridge недоступен');
+    const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
+    const ok = r && (r.result === true || r.success === true || r === true);
+    if (ok === true) {
+      bombs += 3;
+      saveBombs();
+      updateHUD();
+      showToast(typeof t === 'function' ? t('adBombEarned') : '+3 💣 за рекламу!');
+      Stats.track('ad_watch', { kind: 'rewarded', ok: true, app: 'match3' });
+    } else {
       Stats.track('ad_watch', { kind: 'rewarded', ok: false, app: 'match3' });
-      alert('Ошибка показа рекламы');
-    } finally {
-      btn.disabled = false;
+      showToast('Реклама не была просмотрена до конца.');
     }
-  } else {
-    // Локальная заглушка для тестов без ВК.
-    bombs += 3;
-    updateHUD();
+  } catch(e) {
+    console.warn(e);
+    Stats.track('ad_watch', { kind: 'rewarded', ok: false, app: 'match3' });
+    showToast('Ошибка показа рекламы');
+  } finally {
     btn.disabled = false;
   }
 });
@@ -1345,7 +1359,6 @@ function beginRound(){
   moves = 30 + currentLevel * 2;
   virusesLeft = 0;
   earnedCoins = 0;
-  bombs = START_BOMBS;
   bombMode = false;
   gameOver = false;
   busy = false;
