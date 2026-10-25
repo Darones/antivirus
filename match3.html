@@ -1039,7 +1039,7 @@ function win(){
     next.textContent = 'Следующий уровень';
     next.id = 'nextLevelBtn';
     next.onclick = async () => {
-      if (levelsCompleted > 0 && levelsCompleted % 2 === 0 && window.vkBridge) {
+      if (levelsCompleted > 0 && levelsCompleted % 10 === 0 && window.vkBridge) {
         const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
         if(bgMusic) bgMusic.pause();
         try {
