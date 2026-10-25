@@ -1401,6 +1401,7 @@ function setCloudStatus(text){const el=$('cloudStatus');if(el)el.textContent=tex
 
 // [AD-FIX] Все interstitial проходят через единый менеджер рекламы.
 async function showInterstitial(){
+  return false;
   if(save.purchases.remove_ads) return false;
   return await adShow('interstitial');
 }

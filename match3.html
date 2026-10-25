@@ -1039,19 +1039,6 @@ function win(){
     next.textContent = 'Следующий уровень';
     next.id = 'nextLevelBtn';
     next.onclick = async () => {
-      if (levelsCompleted > 0 && levelsCompleted % 10 === 0 && window.vkBridge) {
-        const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
-        if(bgMusic) bgMusic.pause();
-        try {
-          const result = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
-          Stats.track('ad_watch', { kind: 'interstitial', ok: !!(result && (result.result || result.success)), app: 'match3' });
-        } catch(e) {
-          console.warn('Interstitial error:', e);
-          Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' });
-        } finally {
-          if(musicWasPlaying) resumeBgMusicIfAllowed();
-        }
-      }
       currentLevel = Math.min(MAX_LEVEL, currentLevel + 1);
       beginRound();
     };
