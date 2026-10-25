@@ -36,7 +36,7 @@
     padding-right:52px;min-width:0;
   }
   canvas#board{
-  display:block; width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain;
+  display:block; width:100%; height:100%; max-width:100%; max-height:100%;
     background:#fff;border:3px solid var(--border);border-radius:20px;
     box-shadow:0 8px 28px rgba(15,23,42,.12);
     touch-action:none;
@@ -1254,9 +1254,19 @@ function draw(){
 // ВВОД
 // ============================================================
 function cellFromEvent(e){
-  const r = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - r.left) / r.width * W);
-  const y = Math.floor((e.clientY - r.top) / r.height * H);
+  const rect = canvas.getBoundingClientRect();
+  const style = getComputedStyle(canvas);
+  const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+  const borderRight = parseFloat(style.borderRightWidth) || 0;
+  const borderTop = parseFloat(style.borderTopWidth) || 0;
+  const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+  const contentWidth = rect.width - borderLeft - borderRight;
+  const contentHeight = rect.height - borderTop - borderBottom;
+  if(contentWidth <= 0 || contentHeight <= 0) return null;
+  const canvasX = (e.clientX - rect.left - borderLeft) * canvas.width / contentWidth;
+  const canvasY = (e.clientY - rect.top - borderTop) * canvas.height / contentHeight;
+  const x = Math.floor(canvasX / (canvas.width / W));
+  const y = Math.floor(canvasY / (canvas.height / H));
   if(x < 0 || x >= W || y < 0 || y >= H) return null;
   return { x, y };
 }
