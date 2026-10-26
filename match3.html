@@ -341,6 +341,9 @@ const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const STATS_URL = 'https://antivirus-duel-server.relaxdev.ru/stats/event';
 const Stats = (() => {
+  let _sessionStartAt = Date.now();
+  let _ended = false;
+  function _sendEnd(beacon){ if(_ended) return; _ended = true; track('session_end', {app:'match3', duration: Math.max(0, Math.floor((Date.now() - _sessionStartAt)/1000))}); if(beacon) flush(true); }
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
   const playerId = (() => {
@@ -374,7 +377,8 @@ const Stats = (() => {
     } catch {}
   }
   setInterval(flush, 20000);
-  window.addEventListener('pagehide', () => flush(true));
+  window.addEventListener('pagehide', () => { _sendEnd(true); flush(true); });
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') _sendEnd(true); });
   return {track, flush, sessionStart};
 })();
 Stats.track('session_start', {app:'match3'});
