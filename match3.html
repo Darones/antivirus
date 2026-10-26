@@ -220,6 +220,12 @@
 </style>
 </head>
 <body>
+<!-- VK Banner 320x50 -->
+<div id="vk-ad-banner" style="position:fixed;top:0;left:0;width:100%;height:50px;background:#f0f0f0;border-bottom:1px solid #ccc;z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="width:320px;height:50px;background:#fff;border:1px dashed #999;display:flex;align-items:center;justify-content:center;color:#666;font-size:12px;">?????? 320?50</div>
+</div>
+<div style="height:50px;"></div>
+
 <div class="level-map-screen" id="levelMapScreen" hidden>
   <div class="level-map-header"><h1>Карта уровней</h1><div class="level-map-actions"><button id="shopLink" type="button">Магазин</button><button id="dailyLink" type="button">Бонус</button></div></div>
   <div class="levels" id="levelGrid"></div>
@@ -296,6 +302,20 @@
 <audio id="bgMusic"></audio>
 
 <script>
+// === OK PLATFORM DETECTION & VKBRIDGE STUB (sync, before any VK calls) ===
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var ok = p.get('vk_client') === 'ok' || /ok.ru/i.test(p.get('vk_referrer') || '');
+  window.Platform = { mode: ok ? 'ok' : 'vk', isOK: function(){ return this.mode === 'ok'; } };
+  if (ok && !window.vkBridge) {
+    window.vkBridge = {
+      send: function(method, params){ console.log('[VK-OK stub]', method); return Promise.resolve({}); },
+      subscribe: function(){},
+      unsubscribe: function(){}
+    };
+  }
+})();
+
 'use strict';
 console.log('=== MATCH3 V2.0 ===');
 
@@ -346,19 +366,12 @@ const Stats = (() => {
   function _sendEnd(beacon){ if(_ended) return; _ended = true; track('session_end', {app:'match3', duration: Math.max(0, Math.floor((Date.now() - _sessionStartAt)/1000))}); if(beacon) flush(true); }
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
-  const playerId = (() => {
-    try {
-      let id = localStorage.getItem('antivirus-match3-playerid');
-      if (!id) { id = 'match3_' + Math.random().toString(36).substring(2, 10); localStorage.setItem('antivirus-match3-playerid', id); }
-      return id;
-    } catch { return 'match3_guest'; }
-  })();
   const sessionStart = Math.floor(Date.now() / 1000);
   function track(ev, props) {
     queue.push(Object.assign({
       t: Math.floor(Date.now() / 1000),
       sessionId,
-      playerId,
+      playerId: 'match3_' + sessionId,
       platform: 'web',
       app: 'match3',
       ev
