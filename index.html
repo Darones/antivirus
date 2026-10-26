@@ -724,6 +724,21 @@ body.duel-mode .bomb-btn{display:none}
  
 
 <script>
+// === PLATFORM DETECTION (sync, before any VK calls) ===
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var ok = p.get('vk_client') === 'ok' || /ok.ru/i.test(p.get('vk_referrer') || '');
+  window.Platform = { mode: ok ? 'ok' : 'vk', isOK: function(){ return this.mode === 'ok'; } };
+  if (ok && !window.vkBridge) {
+    // ? ?? vkBridge ?? ??????????, ??????? ?????????? ????????
+    window.vkBridge = {
+      send: function(method, params){ console.log('[VK-OK stub]', method); return Promise.resolve({}); },
+      subscribe: function(){},
+      unsubscribe: function(){}
+    };
+  }
+})();
+
 'use strict';
 
 // [PLATFORM-FIX] Платформа: 'vk' или 'ok'.
