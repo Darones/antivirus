@@ -212,6 +212,11 @@
   .levels button:disabled{opacity:.4;cursor:not-allowed}
   .levels small{display:block;font-size:10px;color:var(--yellow);margin-top:3px;font-weight:700}
   .level-map-back{display:block;width:100%;max-width:400px;margin:0 auto;padding:12px;border:1px solid var(--border-2);border-radius:12px;background:var(--panel);color:var(--text);font:800 15px inherit;font-family:inherit;cursor:pointer}
+  .admin-message{position:relative;margin:14px 0 16px;padding:16px;background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;border:1px solid #6366f1;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.3);text-align:left}
+  .admin-message::before{content:'👋';position:absolute;top:-16px;left:16px;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#6366f1;color:#fff}
+  .admin-name{margin:0 0 8px 28px;color:#a5b4fc;font-size:12px;font-weight:700}
+  .admin-text{margin:0;color:#fff;font-size:14px;line-height:1.5}
+  .admin-text b{color:#fbbf24}
 </style>
 </head>
 <body>
@@ -251,6 +256,7 @@
     <h2 id="overlayTitle">Игра окончена</h2>
     <div class="score-big" id="finalScore">0</div>
     <p id="overlaySubtitle">Ходов не осталось</p>
+    <div id="adminMessage"></div>
     <div class="overlay-buttons" id="overlayButtons"></div>
   </div>
 </div>
@@ -1044,8 +1050,15 @@ function win(){
   updateHUD();
 
   const isFinal = currentLevel >= MAX_LEVEL;
+  const adminHtml = isFinal ? `
+    <div class="admin-message">
+      <div class="admin-name">Админ</div>
+      <p class="admin-text">Здравствуйте, вы очень упорный игрок! Честно, я не думал, что кто-то дойдёт до этого уровня :) Выражаю вам <b>огромный респект!</b> Скоро в игре появится <b>новый режим Три в ряд с новыми вирусами и боссами.</b> Посмотрим, сможете ли вы и его пройти полностью ;) Спасибо, что играете! — <b>Админ</b></p>
+    </div>
+  ` : '';
   document.getElementById('overlayTitle').textContent =
     isFinal ? ' Игра пройдена!' : (isBossLevel(currentLevel) ? (BOSS_LEVELS[currentLevel].name + ' побеждён!') : ('Уровень ' + currentLevel + ' пройден!'));
+  document.getElementById('adminMessage').innerHTML = adminHtml;
   document.getElementById('overlaySubtitle').textContent = isFinal
     ? ('Ты спас Нику от всех вирусов! +' + reward + ' монет')
     : (reward > 0 ? ('+' + reward + ' монет заработано') : 'Все вирусы уничтожены!');
@@ -1099,6 +1112,7 @@ async function shareMatch3Win(){
 }
 
 function lose(){
+  document.getElementById('adminMessage').innerHTML = '';
   sfxLose();
   gameOver = true;
   Stats.track('level_end', { level: currentLevel, won: false, app: 'match3' });
