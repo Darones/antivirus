@@ -343,12 +343,19 @@ const STATS_URL = 'https://antivirus-duel-server.relaxdev.ru/stats/event';
 const Stats = (() => {
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
+  const playerId = (() => {
+    try {
+      let id = localStorage.getItem('antivirus-match3-playerid');
+      if (!id) { id = 'match3_' + Math.random().toString(36).substring(2, 10); localStorage.setItem('antivirus-match3-playerid', id); }
+      return id;
+    } catch { return 'match3_guest'; }
+  })();
   const sessionStart = Math.floor(Date.now() / 1000);
   function track(ev, props) {
     queue.push(Object.assign({
       t: Math.floor(Date.now() / 1000),
       sessionId,
-      playerId: 'match3_' + sessionId,
+      playerId,
       platform: 'web',
       app: 'match3',
       ev

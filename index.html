@@ -752,11 +752,18 @@ const STATS_URL = (location.hostname === 'localhost' || location.hostname === '1
 const Stats = (() => {
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
+  const anonymousPlayerId = (() => {
+    try {
+      let id = localStorage.getItem('antivirus-playerid');
+      if (!id) { id = 'anon_' + Math.random().toString(36).substring(2, 10); localStorage.setItem('antivirus-playerid', id); }
+      return id;
+    } catch { return 'anon_guest'; }
+  })();
   const sessionStart = Math.floor(Date.now() / 1000);
   let lastSessionEndAt = sessionStart;
   function playerId(){
     try { if(typeof vkUserId !== 'undefined' && vkUserId) return String(vkUserId); } catch {}
-    return 'anon_' + sessionId;
+    return anonymousPlayerId;
   }
   function track(ev, props){
     queue.push(Object.assign({
