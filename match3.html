@@ -300,7 +300,7 @@
 // === OK PLATFORM DETECTION & VKBRIDGE STUB (sync, before any VK calls) ===
 (function(){
   var p = new URLSearchParams(window.location.search);
-  var ok = p.get('vk_client') === 'ok' || /ok.ru/i.test(p.get('vk_referrer') || '');
+  var ok = p.get('vk_client') === 'ok' || /ok\.ru/i.test(p.get('vk_referrer') || '') || /ok\.ru/i.test(document.referrer || '');
   window.Platform = { mode: ok ? 'ok' : 'vk', isOK: function(){ return this.mode === 'ok'; } };
   if (ok && !window.vkBridge) {
     window.vkBridge = {
