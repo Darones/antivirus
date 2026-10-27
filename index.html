@@ -1649,6 +1649,9 @@ function goToMatch3(){
   if(isOK && isMobile){ openMatch3Iframe(); } else { location.href = 'match3.html'; }
 }
 function openMatch3Iframe(){
+  try {
+    if(musicAudio && !musicAudio.paused) musicAudio.pause();
+  } catch(e){ console.warn('[openMatch3Iframe] music pause failed:', e); }
   const overlay=document.getElementById('match3Overlay');
   const frame=document.getElementById('match3Frame');
   if(!overlay || !frame) return;
@@ -1670,6 +1673,12 @@ function closeMatch3Iframe(){
   const frame=document.getElementById('match3Frame');
   if(frame) frame.src='about:blank';
   if(overlay) overlay.hidden=true;
+  try {
+    if(musicAudio && save && save.settings && save.settings.music && !document.hidden && !platformPaused){
+      const p = musicAudio.play();
+      if(p && p.catch) p.catch(()=>{});
+    }
+  } catch(e){ console.warn('[closeMatch3Iframe] music resume failed:', e); }
 }
 window.goToMatch3=goToMatch3;
 window.closeMatch3Iframe=closeMatch3Iframe;
