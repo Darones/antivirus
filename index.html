@@ -1793,6 +1793,7 @@ function welcomeScreen(){
       '<div class="welcome-bottom" style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:260px;">' +
         '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; border-width:2px;" onclick="goToMatch3()"> Три в ряд</button>' +
         '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; opacity:0.85; border-width:2px;" data-menu="welcome-play"> Испытание Иммунитета</button>' +
+        '<button class="welcome-play-btn" style="width:100%; padding:8px 16px; font-size:14px; white-space:nowrap; opacity:0.7; border-width:1px; background:rgba(0,0,0,0.3); color:#fff;" data-menu="open-menu"> В меню (Магазин, Бонусы)</button>' +
       '</div>' +
     '</div>';
   el.hidden = false;
@@ -1822,7 +1823,7 @@ function menu(){
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
   <button class="menu-coins-btn" data-menu="shop"> <span>${save.coins}</span> монет →</button>
     <div class="stack">
-      <button class="menu-money-btn" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6); color:#fff; border-color:#c4b5fd; font-size:16px;" onclick="goToMatch3()"> Три в ряд</button>
+
       ${btn(t('menuCampaign'),'levels',true)}
       ${btn('⚔️ ' + t('menuMultiplayer'),'multiplayer',true)}
       ${btn(t('menuEndless'),'endless',true)}
@@ -3753,13 +3754,23 @@ $('dialog').addEventListener('click',async e=>{
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-menu="welcome-play"]');
-  if(!b) return;
-  save.welcomeShown = true;
-  persist();
-  const el = document.getElementById('welcomeFull');
-  if(el) el.hidden = true;
-  $('app').hidden = false;
-  start('campaign', 1);
+  if(b){
+    save.welcomeShown = true;
+    persist();
+    const el = document.getElementById('welcomeFull');
+    if(el) el.hidden = true;
+    $('app').hidden = false;
+    start('campaign', 1);
+    return;
+  }
+  const m = e.target.closest('[data-menu="open-menu"]');
+  if(m){
+    const el = document.getElementById('welcomeFull');
+    if(el) el.hidden = true;
+    $('app').hidden = false;
+    menu();
+    return;
+  }
 });
 
 function pause(){clearInput();if(running&&!paused)pauseMenu();sync();}
@@ -3892,15 +3903,15 @@ async function boot(){
       window._openMenuAfterBoot = urlParams.get('openShop') === '1' ? 'shop' : (urlParams.get('openDaily') === '1' ? 'daily' : null);
     }
   } catch(e){}
-  if(!save.welcomeShown){
-    welcomeScreen();
-    $('app').hidden=true;
-    $('boot').hidden=true;
-  } else {
+  const urlParams = new URLSearchParams(location.search);
+  if(urlParams.get('menu') === '1'){
     menu();
     $('app').hidden=false;
-    $('boot').hidden=true;
+  } else {
+    welcomeScreen();
+    $('app').hidden=true;
   }
+  $('boot').hidden=true;
   Stats.track('session_start');
   if(__rewardedAdsAvailable && vkReady){
     setTimeout(() => showBannerAd(), 1500);
