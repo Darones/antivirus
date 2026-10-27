@@ -355,6 +355,7 @@ console.log('=== MATCH3 V2.0 ===');
   }
 })();
 function closeToParent(extra){
+  if(typeof earnedCoins !== 'undefined' && earnedCoins > 0 && typeof flushCoins === 'function') flushCoins();
   try {
     if(window.OK_CONTEXT && window.parent!==window && window.parent.document.getElementById('match3Frame')?.contentWindow===window){
       window.parent.postMessage({type:'match3-close', extra: extra || ''},location.origin); return;
@@ -481,7 +482,7 @@ function getSharedCoinsKey(){
   const ctx = window.OK_CONTEXT || {};
   const client = (params.get('vk_client') || ctx.vk_client || '').toLowerCase();
   const platform = (params.get('vk_platform') || ctx.vk_platform || '').toLowerCase();
-  return client === 'ok' || platform.includes('ok') ? 'antivirus-ok-1' : 'antivirus-vk-1';
+  return client === 'ok' || platform.includes('ok') || (window.Platform && window.Platform.mode === 'ok') ? 'antivirus-ok-1' : 'antivirus-vk-1';
 }
 function loadSharedCoins(){
   try {
