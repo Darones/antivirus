@@ -247,7 +247,7 @@
   <div class="bomb-panel">
     <button id="bombBtn" class="bomb-btn">💣 Бомба: <span id="bombCount">0</span></button>
     <button id="adBombBtn" class="ad-bomb-btn">📺 +3 бомбы за рекламу</button>
-    <button id="exitBtn" style="background:#cbd5e1; color:#0f172a;" data-nav="index.html" data-nav-menu="1"> В меню</button>
+    <button id="exitBtn" style="background:#cbd5e1; color:#0f172a;" onclick="location.href='index.html?menu=1'"> В меню</button>
   </div>
 </div>
 
@@ -290,7 +290,7 @@
     </label>
     <div class="pause-actions">
       <button id="resumeBtn" type="button">Продолжить</button>
-      <button type="button" class="secondary" data-nav="index.html" data-nav-menu="1">В меню</button>
+      <button type="button" class="secondary" onclick="location.href='index.html?menu=1'">В меню</button>
     </div>
   </div>
 </div>
@@ -300,7 +300,7 @@
 // === OK PLATFORM DETECTION & VKBRIDGE STUB (sync, before any VK calls) ===
 (function(){
   var p = new URLSearchParams(window.location.search);
-  var ok = p.get('vk_client') === 'ok' || /ok.ru/i.test(p.get('vk_referrer') || '') || /ok.ru/i.test(p.get('vk_ref') || '');
+  var ok = p.get('vk_client') === 'ok' || /ok.ru/i.test(p.get('vk_referrer') || '');
   window.Platform = { mode: ok ? 'ok' : 'vk', isOK: function(){ return this.mode === 'ok'; } };
   if (ok && !window.vkBridge) {
     window.vkBridge = {
@@ -313,27 +313,6 @@
 
 'use strict';
 console.log('=== MATCH3 V2.0 ===');
-
-function navTo(page, extra){
-  const params = new URLSearchParams(location.search);
-  if(extra) Object.entries(extra).forEach(([k,v]) => params.set(k, v));
-  const target = new URL(page, location.href);
-  params.forEach((v, k) => target.searchParams.set(k, v));
-  console.log('[navTo]', location.pathname, '->', target.pathname, 'params:', [...params.keys()].join(','));
-  location.href = target.toString();
-}
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-nav]');
-  if(!b) return;
-  e.preventDefault();
-  const extra = {};
-  for(const k of ['menu','openShop','openDaily']){
-    const dsKey = 'nav' + k.charAt(0).toUpperCase() + k.slice(1);
-    if(b.dataset[dsKey]) extra[k] = b.dataset[dsKey];
-  }
-  navTo(b.dataset.nav, Object.keys(extra).length ? extra : null);
-});
-
 
 try {
   if (window.vkBridge) {
@@ -450,7 +429,7 @@ function getSharedCoinsKey(){
   const params = new URLSearchParams(location.search);
   const client = (params.get('vk_client') || '').toLowerCase();
   const platform = (params.get('vk_platform') || '').toLowerCase();
-  return client === 'ok' || platform.includes('ok') || (params.get('vk_ref') || '').toLowerCase().includes('ok') ? 'antivirus-ok-1' : 'antivirus-vk-1';
+  return client === 'ok' || platform.includes('ok') ? 'antivirus-ok-1' : 'antivirus-vk-1';
 }
 function loadSharedCoins(){
   try {
@@ -1129,7 +1108,7 @@ function win(){
   const menuBtn = document.createElement('button');
   menuBtn.textContent = 'В меню';
   if(isFinal) menuBtn.className = 'secondary';
-  menuBtn.onclick = () => { navTo('index.html', { menu: '1' }); };
+  menuBtn.onclick = () => { location.href = 'index.html?menu=1'; };
   btns.appendChild(menuBtn);
 
   document.getElementById('overlay').hidden = false;
@@ -1514,9 +1493,9 @@ document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('levelMapScreen').hidden = false;
   initAudio();renderLevelMap();
 });
-document.getElementById('levelMapBack').addEventListener('click',()=>{navTo('index.html', { menu: '1' });});
-document.getElementById('shopLink').addEventListener('click',()=>{navTo('index.html', { menu: '1', openShop: '1' });});
-document.getElementById('dailyLink').addEventListener('click',()=>{navTo('index.html', { menu: '1', openDaily: '1' });});
+document.getElementById('levelMapBack').addEventListener('click',()=>{location.href='index.html?menu=1';});
+document.getElementById('shopLink').addEventListener('click',()=>{location.href='index.html?menu=1&openShop=1';});
+document.getElementById('dailyLink').addEventListener('click',()=>{location.href='index.html?menu=1&openDaily=1';});
 
 // ============================================================
 // ЦИКЛ

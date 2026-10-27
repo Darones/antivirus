@@ -727,7 +727,7 @@ body.duel-mode .bomb-btn{display:none}
 // === PLATFORM DETECTION (sync, before any VK calls) ===
 (function(){
   var p = new URLSearchParams(window.location.search);
-  var ok = p.get('vk_client') === 'ok' || /ok.ru/i.test(p.get('vk_referrer') || '') || /ok.ru/i.test(p.get('vk_ref') || '');
+  var ok = p.get('vk_client') === 'ok' || /ok.ru/i.test(p.get('vk_referrer') || '');
   window.Platform = { mode: ok ? 'ok' : 'vk', isOK: function(){ return this.mode === 'ok'; } };
   if (ok && !window.vkBridge) {
     // ? ?? vkBridge ?? ??????????, ??????? ?????????? ????????
@@ -767,11 +767,18 @@ const STATS_URL = (location.hostname === 'localhost' || location.hostname === '1
 const Stats = (() => {
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
+  const anonymousPlayerId = (() => {
+    try {
+      let id = localStorage.getItem('antivirus-playerid');
+      if (!id) { id = 'anon_' + Math.random().toString(36).substring(2, 10); localStorage.setItem('antivirus-playerid', id); }
+      return id;
+    } catch { return 'anon_guest'; }
+  })();
   const sessionStart = Math.floor(Date.now() / 1000);
   let lastSessionEndAt = sessionStart;
   function playerId(){
     try { if(typeof vkUserId !== 'undefined' && vkUserId) return String(vkUserId); } catch {}
-    return 'anon_' + sessionId;
+    return anonymousPlayerId;
   }
   function track(ev, props){
     queue.push(Object.assign({
@@ -1317,8 +1324,7 @@ async function detectPlatform(){
       new Promise((_,rj)=>setTimeout(()=>rj(new Error('launch params timeout')),1500))
     ]);
     const client = String(r?.vk_client || '').toLowerCase();
-    const ref = String(r?.vk_ref || r?.vk_referrer || '').toLowerCase();
-    if(client === 'ok' || ref.includes('ok')) { window.Platform.mode = 'ok'; return; }
+    if(client === 'ok') { window.Platform.mode = 'ok'; return; }
     const launchClient = String(__vkSearchParams?.get('vk_client') || '').toLowerCase();
     if(launchClient === 'ok') { window.Platform.mode = 'ok'; return; }
     const p = String(r?.vk_platform || '').toLowerCase();
@@ -1631,22 +1637,6 @@ function show(html,name){
   sync();
 }
 function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPaused;sync();}
-
-function navTo(page, extra){
-  const params = new URLSearchParams(location.search);
-  if(extra) Object.entries(extra).forEach(([k,v]) => params.set(k, v));
-  const target = new URL(page, location.href);
-  params.forEach((v, k) => target.searchParams.set(k, v));
-  console.log('[navTo]', location.pathname, '->', target.pathname, 'params:', [...params.keys()].join(','));
-  location.href = target.toString();
-}
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-nav]');
-  if(!b) return;
-  e.preventDefault();
-  navTo(b.dataset.nav);
-});
-
 function btn(text,act,primary=false){return `<button data-menu="${act}"${primary?' class="primary"':''}>${text}</button>`;}
 
 function welcomeScreen(){
@@ -1670,7 +1660,7 @@ function welcomeScreen(){
         '<p class="welcome-sub">' + t('welcomeSubtitle') + '</p>' +
       '</div>' +
       '<div class="welcome-bottom" style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:260px;">' +
-        '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; border-width:2px;" data-nav="match3.html"> Три в ряд</button>' +
+        '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; border-width:2px;" onclick="location.href=\'match3.html\'"> Три в ряд</button>' +
         '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; opacity:0.85; border-width:2px;" data-menu="welcome-play"> Испытание Иммунитета</button>' +
       '</div>' +
     '</div>';
@@ -1701,7 +1691,7 @@ function menu(){
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
   <button class="menu-coins-btn" data-menu="shop"> <span>${save.coins}</span> монет →</button>
     <div class="stack">
-      <button class="menu-money-btn" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6); color:#fff; border-color:#c4b5fd; font-size:16px;" data-nav="match3.html"> Три в ряд</button>
+      <button class="menu-money-btn" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6); color:#fff; border-color:#c4b5fd; font-size:16px;" onclick="location.href='match3.html'"> Три в ряд</button>
       ${btn(t('menuCampaign'),'levels',true)}
       ${btn('⚔️ ' + t('menuMultiplayer'),'multiplayer',true)}
       ${btn(t('menuEndless'),'endless',true)}
