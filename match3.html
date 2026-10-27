@@ -300,7 +300,7 @@
 // === OK PLATFORM DETECTION & VKBRIDGE STUB (sync, before any VK calls) ===
 (function(){
   var p = new URLSearchParams(window.location.search);
-  var ok = p.get('vk_client') === 'ok' || /ok\.ru/i.test(p.get('vk_referrer') || '') || /vk_client=ok/i.test(document.referrer || '') || /ok\.ru/i.test(document.referrer || '');
+  var ok = p.get('vk_client') === 'ok' || /ok\.ru/i.test(p.get('vk_referrer') || '') || /ok\.ru/i.test(document.referrer || '');
   window.Platform = { mode: ok ? 'ok' : 'vk', isOK: function(){ return this.mode === 'ok'; } };
   if (ok && !window.vkBridge) {
     window.vkBridge = {
@@ -355,7 +355,6 @@ console.log('=== MATCH3 V2.0 ===');
   }
 })();
 function closeToParent(extra){
-  if(typeof flushCoins === 'function') flushCoins();
   try {
     if(window.OK_CONTEXT && window.parent!==window && window.parent.document.getElementById('match3Frame')?.contentWindow===window){
       window.parent.postMessage({type:'match3-close', extra: extra || ''},location.origin); return;
@@ -460,14 +459,7 @@ let virusesLeft = 0;
 let currentLevel = 1;
 let maxLevel = 1;
 let levelsCompleted = 0;
-function loadSharedBombs(){
-  try {
-    const data = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || 'null');
-    if (data && typeof data.bombs === 'number') return data.bombs;
-  } catch {}
-  return START_BOMBS;
-}
-let bombs = loadSharedBombs();
+let bombs = Number(localStorage.getItem('antivirus-match3-bombs')) || START_BOMBS;
 let vibeEnabled = localStorage.getItem('antivirus-match3-vibe') !== 'false';
 let bombMode = false;
 let coins = loadSharedCoins();
@@ -512,12 +504,7 @@ function saveSharedCoins(newCoinsValue){
 }
 function saveCoins(){ saveSharedCoins(coins); }
 function saveBombs(){
-  try {
-    const key = getSharedCoinsKey();
-    let data = JSON.parse(localStorage.getItem(key) || '{}');
-    data.bombs = bombs;
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch {}
+  localStorage.setItem('antivirus-match3-bombs', String(bombs));
   console.log('Saved bombs:', bombs);
 }
 
