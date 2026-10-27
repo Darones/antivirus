@@ -1800,10 +1800,21 @@ function welcomeScreen(){
   Stats.track('screen', { screen: 'welcome' });
   sync();
 }
+function menuAntivirus(){
+  show(`
+    <h2 style="margin-bottom:16px;"> Антивирус (пилюли)</h2>
+    <div class="stack">
+      ${btn(t('menuCampaign'),'levels',true)}
+      ${btn(t('menuEndless'),'endless',true)}
+      ${btn('⚔️ ' + t('menuMultiplayer'),'multiplayer',true)}
+      ${btn('⬅️ Назад','menu')}
+    </div>
+  `, 'menu-antivirus');
+}
+
 function menu(){
   tipsStep = 0;
   try { if(voiceAudio){ voiceAudio.pause(); voiceAudio = null; } } catch(e){}
-  // [TIMER-FIX] Очищает отложенные игровые, дуэльные и рекламные операции.
   clearTimeout(cloudTimer);
   clearTimeout(duelState.botInterval);
   clearTimeout(duelState.botTimeout);
@@ -1821,17 +1832,18 @@ function menu(){
   show(`
     <img class="menu-logo" src="logo.png" alt="Antivirus" onerror="this.style.display='none'">
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
-  <button class="menu-coins-btn" data-menu="shop"> <span>${save.coins}</span> монет →</button>
+    <button class="menu-coins-btn" data-menu="shop"> <span>${save.coins}</span> монет →</button>
+    <div class="stack" style="margin-top:10px;">
+      <button class="menu-money-btn" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6); color:#fff; border-color:#c4b5fd; font-size:18px; padding:16px;" onclick="goToMatch3()"> Три в ряд</button>
+      <button class="menu-money-btn" style="background:linear-gradient(135deg,#6366f1,#ec4899); color:#fff; border-color:transparent; font-size:18px; padding:16px;" data-menu="antivirus-menu"> Антивирус (пилюли)</button>
+    </div>
+    <h3 style="margin:12px 0 4px; font-size:14px; color:#64748b; text-align:left;">Дополнительно</h3>
     <div class="stack">
-
-      ${btn(t('menuCampaign'),'levels',true)}
-      ${btn('⚔️ ' + t('menuMultiplayer'),'multiplayer',true)}
-      ${btn(t('menuEndless'),'endless',true)}
       <button data-menu="daily" class="menu-money-btn">
-        ${canClaimDaily() ? '🎁 Ежедневный бонус' : '🎁 Бонус получен'}
+        ${canClaimDaily() ? ' Ежедневный бонус' : ' Бонус получен'}
         ${canClaimDaily() ? '<span class="dot"></span>' : ''}
       </button>
-      ${SHOP_ENABLED ? `<button data-menu="shop" class="menu-money-btn">🛒 ${t('menuShop')}</button>` : ''}
+      ${SHOP_ENABLED ? `<button data-menu="shop" class="menu-money-btn"> ${t('menuShop')}</button>` : ''}
       ${false ? '' : (canShare()
         ? `<button data-menu="share" class="menu-money-btn">` +
           `<svg class="icon-bullhorn" viewBox="0 0 24 24"><path d="M3 10v4h3l4 4V6L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>` +
@@ -1841,7 +1853,7 @@ function menu(){
         : `<button disabled class="menu-money-btn">✅ ${t('shareDone')}</button>`) }
       ${btn(t('menuRecords'),'records')}
       ${btn(t('settingsTitle'),'settings')}
-      ${btn('🆘 ' + t('menuSupport'),'support')}
+      ${btn(' ' + t('menuSupport'),'support')}
     </div>`,'menu');
 }
 function showTip(n){
@@ -3688,6 +3700,7 @@ $('dialog').addEventListener('click',async e=>{
       }
       record();menu();break;
     case'levels':levelsMenu();break;
+    case 'antivirus-menu':menuAntivirus();break;
     case 'welcome-play':
       save.welcomeShown = true;
       persist();
