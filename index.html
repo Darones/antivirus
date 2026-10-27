@@ -4051,6 +4051,7 @@ if(typeof ResizeObserver === 'function'){
     if(wrap) new ResizeObserver(function(){ resizeBoardCanvas(); }).observe(wrap);
   } catch(e){}
 }
+setInterval(resizeBoardCanvas, 1000);
 window.showBanner = () => { bannerAdShown = false; showBannerAd(); };
 </script>
 </body>
