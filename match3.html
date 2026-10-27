@@ -247,7 +247,7 @@
   <div class="bomb-panel">
     <button id="bombBtn" class="bomb-btn">💣 Бомба: <span id="bombCount">0</span></button>
     <button id="adBombBtn" class="ad-bomb-btn">📺 +3 бомбы за рекламу</button>
-    <button id="exitBtn" style="background:#cbd5e1; color:#0f172a;" onclick="location.href='index.html?menu=1'"> В меню</button>
+    <button id="exitBtn" style="background:#cbd5e1; color:#0f172a;" onclick="closeToParent()"> В меню</button>
   </div>
 </div>
 
@@ -290,7 +290,7 @@
     </label>
     <div class="pause-actions">
       <button id="resumeBtn" type="button">Продолжить</button>
-      <button type="button" class="secondary" onclick="location.href='index.html?menu=1'">В меню</button>
+      <button type="button" class="secondary" onclick="closeToParent()">В меню</button>
     </div>
   </div>
 </div>
@@ -313,6 +313,57 @@
 
 'use strict';
 console.log('=== MATCH3 V2.0 ===');
+// Mobile OK child frame context and vkBridge forwarding.
+(function(){
+  let ownedFrame=false;
+  try {
+    ownedFrame=window.parent!==window && window.parent.document.getElementById('match3Frame')?.contentWindow===window;
+    if(ownedFrame && window.parent.Platform?.mode==='ok'){
+      const p=new URLSearchParams(window.parent.location.search);
+      window.OK_CONTEXT={
+        vk_client:p.get('vk_client')||'ok', vk_user_id:p.get('vk_user_id')||'',
+        vk_platform:p.get('vk_platform')||'', vk_language:p.get('vk_language')||'', vk_ref:p.get('vk_ref')||''
+      };
+      if(window.Platform) window.Platform.mode='ok';
+    }
+  } catch(e){}
+  if(!ownedFrame || !window.OK_CONTEXT) return;
+  window.addEventListener('message',e=>{
+    if(e.source!==window.parent || e.origin!==location.origin || !e.data || e.data.type!=='ok-context') return;
+    window.OK_CONTEXT=e.data;
+    if(e.data.vk_client==='ok' || /_ok$/i.test(e.data.vk_platform||'')){ if(window.Platform) window.Platform.mode='ok'; }
+    console.log('[MOB-OK] ok-context',JSON.stringify({mode:window.Platform&&window.Platform.mode,hasUserId:!!e.data.vk_user_id,vk_platform:e.data.vk_platform}));
+  });
+  if(window.vkBridge && typeof window.vkBridge.send==='function'){
+    const pending=new Map(); let nextId=1;
+    window.addEventListener('message',e=>{
+      if(e.source!==window.parent || e.origin!==location.origin || !e.data || e.data.type!=='vkbridge-result') return;
+      const p=pending.get(e.data.id); if(!p) return;
+      pending.delete(e.data.id); clearTimeout(p.timer);
+      if(e.data.error) p.reject(e.data.error); else p.resolve(e.data.result);
+    });
+    window.vkBridge.send=function(method,params){
+      const id=nextId++;
+      return new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>{ if(pending.has(id)){ pending.delete(id); reject({message:'vkbridge proxy timeout'}); } },15000);
+        pending.set(id,{resolve,reject,timer});
+        try { window.parent.postMessage({type:'vkbridge-call',id,method,params:params||{}},location.origin); }
+        catch(err){ clearTimeout(timer); pending.delete(id); reject(err); }
+      });
+    };
+    console.log('[MOB-OK] vkBridge.send proxied to parent');
+  }
+})();
+function closeToParent(extra){
+  try {
+    if(window.OK_CONTEXT && window.parent!==window && window.parent.document.getElementById('match3Frame')?.contentWindow===window){
+      window.parent.postMessage({type:'match3-close'},location.origin); return;
+    }
+  } catch(e){}
+  location.href='index.html?menu=1'+(extra?'&'+extra:'');
+}
+window.closeToParent=closeToParent;
+
 
 try {
   if (window.vkBridge) {
@@ -427,8 +478,9 @@ const isWeb = /(^|_)web($|_)/.test(new URLSearchParams(location.search).get('vk_
 
 function getSharedCoinsKey(){
   const params = new URLSearchParams(location.search);
-  const client = (params.get('vk_client') || '').toLowerCase();
-  const platform = (params.get('vk_platform') || '').toLowerCase();
+  const ctx = window.OK_CONTEXT || {};
+  const client = (params.get('vk_client') || ctx.vk_client || '').toLowerCase();
+  const platform = (params.get('vk_platform') || ctx.vk_platform || '').toLowerCase();
   return client === 'ok' || platform.includes('ok') ? 'antivirus-ok-1' : 'antivirus-vk-1';
 }
 function loadSharedCoins(){
@@ -1108,7 +1160,7 @@ function win(){
   const menuBtn = document.createElement('button');
   menuBtn.textContent = 'В меню';
   if(isFinal) menuBtn.className = 'secondary';
-  menuBtn.onclick = () => { location.href = 'index.html?menu=1'; };
+  menuBtn.onclick = () => { closeToParent(); };
   btns.appendChild(menuBtn);
 
   document.getElementById('overlay').hidden = false;
@@ -1493,9 +1545,9 @@ document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('levelMapScreen').hidden = false;
   initAudio();renderLevelMap();
 });
-document.getElementById('levelMapBack').addEventListener('click',()=>{location.href='index.html?menu=1';});
-document.getElementById('shopLink').addEventListener('click',()=>{location.href='index.html?menu=1&openShop=1';});
-document.getElementById('dailyLink').addEventListener('click',()=>{location.href='index.html?menu=1&openDaily=1';});
+document.getElementById('levelMapBack').addEventListener('click',()=>{closeToParent();});
+document.getElementById('shopLink').addEventListener('click',()=>{closeToParent('openShop=1');});
+document.getElementById('dailyLink').addEventListener('click',()=>{closeToParent('openDaily=1');});
 
 // ============================================================
 // ЦИКЛ

@@ -719,6 +719,9 @@ body.duel-mode .bomb-btn{display:none}
 </div>
 
 <div id="fireworkLayer" aria-hidden="true"></div>
+<div id="match3Overlay" hidden style="position:fixed;inset:0;z-index:9999;background:#000;">
+  <iframe id="match3Frame" src="about:blank" style="width:100%;height:100%;border:0;display:block;background:#fff;" allow="autoplay"></iframe>
+</div>
 
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
  
@@ -1639,6 +1642,49 @@ function show(html,name){
 function hide(){screen='game';$('overlay').hidden=true;$('app').inert=platformPaused;sync();}
 function btn(text,act,primary=false){return `<button data-menu="${act}"${primary?' class="primary"':''}>${text}</button>`;}
 
+function goToMatch3(){
+  const isOK = window.Platform && window.Platform.mode === 'ok';
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  console.log('[goToMatch3]', JSON.stringify({isOK,isMobile,branch:isOK&&isMobile?'iframe':'href'}));
+  if(isOK && isMobile){ openMatch3Iframe(); } else { location.href = 'match3.html'; }
+}
+function openMatch3Iframe(){
+  const overlay=document.getElementById('match3Overlay');
+  const frame=document.getElementById('match3Frame');
+  if(!overlay || !frame) return;
+  frame.onload=()=>{
+    if(frame.getAttribute('src') === 'about:blank') return;
+    try {
+      const p=new URLSearchParams(location.search);
+      frame.contentWindow.postMessage({
+        type:'ok-context', vk_client:p.get('vk_client')||'', vk_user_id:p.get('vk_user_id')||'',
+        vk_platform:p.get('vk_platform')||'', vk_language:p.get('vk_language')||'', vk_ref:p.get('vk_ref')||''
+      }, location.origin);
+    } catch(e){ console.warn('[openMatch3Iframe] postMessage failed:',e); }
+  };
+  overlay.hidden=false;
+  frame.src='match3.html';
+}
+function closeMatch3Iframe(){
+  const overlay=document.getElementById('match3Overlay');
+  const frame=document.getElementById('match3Frame');
+  if(frame) frame.src='about:blank';
+  if(overlay) overlay.hidden=true;
+}
+window.goToMatch3=goToMatch3;
+window.closeMatch3Iframe=closeMatch3Iframe;
+window.addEventListener('message',e=>{
+  const frame=document.getElementById('match3Frame');
+  if(!frame || e.source!==frame.contentWindow || e.origin!==location.origin || !e.data) return;
+  if(e.data.type==='match3-close'){ closeMatch3Iframe(); return; }
+  if(e.data.type!=='vkbridge-call') return;
+  const {id,method,params}=e.data;
+  const reply=payload=>{ try { e.source.postMessage({type:'vkbridge-result',id,...payload},e.origin); } catch(err){} };
+  if(!vkReady || !window.vkBridge){ reply({error:{message:'vkBridge not ready'}}); return; }
+  try { Promise.resolve(vkBridge.send(method,params||{})).then(
+    result=>reply({result}), err=>reply({error:{message:String(err&&err.message||err)}})
+  ); } catch(err){ reply({error:{message:String(err&&err.message||err)}}); }
+});
 function welcomeScreen(){
   running=false;paused=false;active=null;state='idle';
   clearInput();
@@ -1660,7 +1706,7 @@ function welcomeScreen(){
         '<p class="welcome-sub">' + t('welcomeSubtitle') + '</p>' +
       '</div>' +
       '<div class="welcome-bottom" style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:260px;">' +
-        '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; border-width:2px;" onclick="location.href=\'match3.html\'"> Три в ряд</button>' +
+        '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; border-width:2px;" onclick="goToMatch3()"> Три в ряд</button>' +
         '<button class="welcome-play-btn" style="width:100%; padding:10px 16px; font-size:16px; white-space:nowrap; opacity:0.85; border-width:2px;" data-menu="welcome-play"> Испытание Иммунитета</button>' +
       '</div>' +
     '</div>';
@@ -1691,7 +1737,7 @@ function menu(){
     <p>Собрано звёзд: <b>${stars}</b> / ${N*3}</p>
   <button class="menu-coins-btn" data-menu="shop"> <span>${save.coins}</span> монет →</button>
     <div class="stack">
-      <button class="menu-money-btn" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6); color:#fff; border-color:#c4b5fd; font-size:16px;" onclick="location.href='match3.html'"> Три в ряд</button>
+      <button class="menu-money-btn" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6); color:#fff; border-color:#c4b5fd; font-size:16px;" onclick="goToMatch3()"> Три в ряд</button>
       ${btn(t('menuCampaign'),'levels',true)}
       ${btn('⚔️ ' + t('menuMultiplayer'),'multiplayer',true)}
       ${btn(t('menuEndless'),'endless',true)}
