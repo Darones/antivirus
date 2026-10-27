@@ -724,6 +724,7 @@ body.duel-mode .bomb-btn{display:none}
 </div>
 
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script src="https://api.ok.ru/js/fapi.js"></script>
  
 
 <script>
@@ -828,7 +829,20 @@ function supportURL(){
 // [OK-PAY] Обработчик результата оплаты от ОК.
 window.API_callback = function(method, result, data){
   console.log('[OK-PAY] callback:', method, result, JSON.stringify(data));
-  if(method !== 'showPayment') return;
+  if(method === 'loadAd') {
+  if(result === 'ok' && (data === 'ready' || data === 'ad_prepared')) {
+    try { FAPI.UI.showLoadedAd(); } catch(e){}
+  } else {
+    if(window.__okAdResolve){ window.__okAdResolve(false); window.__okAdResolve = null; }
+  }
+  return;
+}
+if(method === 'showLoadedAd') {
+  const isOk = (result === 'ok' && (data === 'complete' || data === 'ad_shown'));
+  if(window.__okAdResolve){ window.__okAdResolve(isOk); window.__okAdResolve = null; }
+  return;
+}
+if(method !== 'showPayment') return;
   if(result === 'ok' || result === 'success'){
     const code = (data && (data.product_code || data.code)) || '';
     if(code === 'bombs_pack'){     bombsAvailable += 5;  save.bombs = bombsAvailable; persist(); updateBombButton(); }
@@ -1352,6 +1366,7 @@ async function vkInit(){
     vkUserId=p.get('vk_user_id');
     const vkLang=p.get('vk_language');
     if(vkLang&&save.settings.lang==='auto')applyLanguage(vkLang);
+    if (window.FAPI) { try { FAPI.init(); } catch(e) { console.warn('[OK] FAPI.init failed:', e); } }
     vkReady=true;
     return true;
   }catch(e){console.warn('[VK] init fail:',e.message||e);return false;}
@@ -1432,7 +1447,35 @@ async function showInterstitial(){
 }
 // [AD-FIX] Все rewarded проходят через единый менеджер рекламы.
 async function showRewarded(){
+  if (window.Platform.mode === 'ok') {
+    const gate = adCanShow('rewarded');
+    if(!gate.ok){ console.warn('[Ads] OK blocked:', gate.reason); return false; }
+    adRequestPending = true;
+    try {
+      const res = await showRewardedOK();
+      if(res){ lastRewardedAt = Date.now(); adDailyCount++; Stats.track('ad_watch', { kind: 'rewarded', ok: true }); }
+      else { Stats.track('ad_watch', { kind: 'rewarded', ok: false }); }
+      return res;
+    } finally {
+      adRequestPending = false;
+    }
+  }
   return await adShow('rewarded');
+}
+
+async function showRewardedOK(){
+  return new Promise((resolve) => {
+    if (!window.FAPI) { console.warn('[OK] FAPI not loaded'); return resolve(false); }
+    window.__okAdResolve = (val) => {
+      clearTimeout(window.__okAdTimeout);
+      window.__okAdResolve = null;
+      resolve(val);
+    };
+    window.__okAdTimeout = setTimeout(() => {
+      if(window.__okAdResolve){ console.warn('[OK] Ad timeout'); window.__okAdResolve(false); }
+    }, 15000);
+    try { FAPI.UI.loadAd(); } catch(e) { console.warn('[OK] loadAd failed:', e); window.__okAdResolve(false); }
+  });
 }
 async function vkPurchase(itemId){
   window.__lastShopError = '';
