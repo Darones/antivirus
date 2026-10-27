@@ -1683,6 +1683,13 @@ function closeMatch3Iframe(){
   }
   if(overlay) overlay.hidden=true;
   try {
+    const latestData = JSON.parse(localStorage.getItem(getSaveKey()) || 'null');
+    if (latestData && typeof latestData === 'object') {
+      if (typeof latestData.coins === 'number') save.coins = latestData.coins;
+      if (typeof latestData.bombs === 'number') save.bombs = latestData.bombs;
+    }
+  } catch(e){ console.warn('[closeMatch3Iframe] sync failed:', e); }
+  try {
     const welcomeEl = document.getElementById('welcomeFull');
     if(welcomeEl && !welcomeEl.hidden){
       welcomeEl.hidden = true;

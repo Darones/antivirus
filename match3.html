@@ -459,7 +459,7 @@ let virusesLeft = 0;
 let currentLevel = 1;
 let maxLevel = 1;
 let levelsCompleted = 0;
-let bombs = Number(localStorage.getItem('antivirus-match3-bombs')) || START_BOMBS;
+let bombs = (function(){ try { const d = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}'); return typeof d.bombs === 'number' ? d.bombs : START_BOMBS; } catch(e){ return START_BOMBS; } })();
 let vibeEnabled = localStorage.getItem('antivirus-match3-vibe') !== 'false';
 let bombMode = false;
 let coins = loadSharedCoins();
@@ -504,7 +504,13 @@ function saveSharedCoins(newCoinsValue){
 }
 function saveCoins(){ saveSharedCoins(coins); }
 function saveBombs(){
-  localStorage.setItem('antivirus-match3-bombs', String(bombs));
+  try {
+    const key = getSharedCoinsKey();
+    let data = JSON.parse(localStorage.getItem(key) || '{}');
+    if(!data || typeof data !== 'object') data = {};
+    data.bombs = bombs;
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch(e){}
   console.log('Saved bombs:', bombs);
 }
 
