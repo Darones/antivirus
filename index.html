@@ -1704,7 +1704,12 @@ window.closeMatch3Iframe=closeMatch3Iframe;
 window.addEventListener('message',e=>{
   const frame=document.getElementById('match3Frame');
   if(!frame || e.source!==frame.contentWindow || e.origin!==location.origin || !e.data) return;
-  if(e.data.type==='match3-close'){ closeMatch3Iframe(); return; }
+  if(e.data.type==='match3-close'){
+    closeMatch3Iframe();
+    if(e.data.extra === 'openShop=1') setTimeout(()=>shopMenu(), 100);
+    else if(e.data.extra === 'openDaily=1') setTimeout(()=>dailyMenu(), 100);
+    return;
+  }
   if(e.data.type!=='vkbridge-call') return;
   const {id,method,params}=e.data;
   const reply=payload=>{ try { e.source.postMessage({type:'vkbridge-result',id,...payload},e.origin); } catch(err){} };

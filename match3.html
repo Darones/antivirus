@@ -36,7 +36,7 @@
     padding-right:52px;min-width:0;
   }
   canvas#board{
-  display:block; width:100%; height:100%; max-width:100%; max-height:100%;
+  display:block;
     background:#fff;border:3px solid var(--border);border-radius:20px;
     box-shadow:0 8px 28px rgba(15,23,42,.12);
     touch-action:none;
@@ -357,7 +357,7 @@ console.log('=== MATCH3 V2.0 ===');
 function closeToParent(extra){
   try {
     if(window.OK_CONTEXT && window.parent!==window && window.parent.document.getElementById('match3Frame')?.contentWindow===window){
-      window.parent.postMessage({type:'match3-close'},location.origin); return;
+      window.parent.postMessage({type:'match3-close', extra: extra || ''},location.origin); return;
     }
   } catch(e){}
   location.href='index.html?menu=1'+(extra?'&'+extra:'');
@@ -1536,6 +1536,7 @@ function beginRound(){
 
   createGrid();
   updateHUD();
+  if(typeof resizeBoardCanvas === 'function') resizeBoardCanvas();
   if(rafId) cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(frame);
 }
@@ -1626,6 +1627,23 @@ function loadLevelProgress(){try{const n=Number(localStorage.getItem('antivirus-
 if(isWeb) document.getElementById('adBombBtn').style.display = 'none';
 loadLevelProgress();
 updateHUD();
+
+function resizeBoardCanvas(){
+  const wrap = document.querySelector('.canvas-wrap');
+  const cv = document.getElementById('board');
+  if(!wrap || !cv) return;
+  const padRight = 52;
+  const availW = wrap.clientWidth - padRight;
+  const availH = wrap.clientHeight;
+  if(availW <= 0 || availH <= 0) return;
+  const scale = Math.min(availW / 400, availH / 600);
+  cv.style.width = Math.floor(400 * scale) + 'px';
+  cv.style.height = Math.floor(600 * scale) + 'px';
+}
+window.addEventListener('resize', resizeBoardCanvas);
+window.addEventListener('load', resizeBoardCanvas);
+setTimeout(resizeBoardCanvas, 100);
+
 </script>
 
 </body>
