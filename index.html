@@ -3824,7 +3824,8 @@ async function boot(){
   requestAnimationFrame(frame);
 
   // Загружаем облако до показа меню, с таймаутом, чтобы не залипнуть.
-  if(vkReady && !localStorage.getItem('antivirus-pending-reset')){
+  const _urlP = new URLSearchParams(location.search);
+  if(vkReady && !localStorage.getItem('antivirus-pending-reset') && !_urlP.get('from_match3')){
     try{
       const cloud = await Promise.race([
         vkCloudLoad(),

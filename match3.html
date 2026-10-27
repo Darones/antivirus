@@ -362,7 +362,7 @@ function closeToParent(extra){
     }
   } catch(e){}
   const isOk = (typeof getSharedCoinsKey === 'function' && getSharedCoinsKey() === 'antivirus-ok-1');
-  location.href='index.html?menu=1' + (isOk ? '&vk_client=ok' : '') + (extra?'&'+extra:'');
+  location.href='index.html?menu=1' + (isOk ? '&vk_client=ok' : '') + '&from_match3=1' + (extra?'&'+extra:'');
 }
 window.closeToParent=closeToParent;
 
