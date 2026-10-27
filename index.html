@@ -1658,21 +1658,39 @@ function openMatch3Iframe(){
   frame.onload=()=>{
     if(frame.getAttribute('src') === 'about:blank') return;
     try {
+      const adBtn = frame.contentWindow.document.getElementById('adBombBtn');
+      if(adBtn) adBtn.style.display = 'none';
       const p=new URLSearchParams(location.search);
       frame.contentWindow.postMessage({
         type:'ok-context', vk_client:p.get('vk_client')||'', vk_user_id:p.get('vk_user_id')||'',
         vk_platform:p.get('vk_platform')||'', vk_language:p.get('vk_language')||'', vk_ref:p.get('vk_ref')||''
       }, location.origin);
-    } catch(e){ console.warn('[openMatch3Iframe] postMessage failed:',e); }
+    } catch(e){ console.warn('[openMatch3Iframe] onload failed:',e); }
   };
   overlay.hidden=false;
   frame.src='match3.html';
 }
+
 function closeMatch3Iframe(){
   const overlay=document.getElementById('match3Overlay');
   const frame=document.getElementById('match3Frame');
-  if(frame) frame.src='about:blank';
+  if(frame) {
+    try {
+      const bgMusic = frame.contentWindow.document.getElementById('bgMusic');
+      if(bgMusic) bgMusic.pause();
+    } catch(e){}
+    frame.src='about:blank';
+  }
   if(overlay) overlay.hidden=true;
+  try {
+    const welcomeEl = document.getElementById('welcomeFull');
+    if(welcomeEl && !welcomeEl.hidden){
+      welcomeEl.hidden = true;
+      const appEl = document.getElementById('app');
+      if(appEl) appEl.hidden = false;
+      if(typeof menu === 'function') menu();
+    }
+  } catch(e){ console.warn('[closeMatch3Iframe] welcome->menu failed:', e); }
   try {
     if(musicAudio && save && save.settings && save.settings.music && !document.hidden && !platformPaused){
       const p = musicAudio.play();
@@ -1680,6 +1698,7 @@ function closeMatch3Iframe(){
     }
   } catch(e){ console.warn('[closeMatch3Iframe] music resume failed:', e); }
 }
+
 window.goToMatch3=goToMatch3;
 window.closeMatch3Iframe=closeMatch3Iframe;
 window.addEventListener('message',e=>{
