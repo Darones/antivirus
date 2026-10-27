@@ -653,16 +653,32 @@ body.duel-mode .bomb-btn{display:none}
 .welcome-play-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:16px 52px;border-radius:14px;border:3px solid #f59e0b;background:linear-gradient(180deg,#fbbf24,#f59e0b);color:#fff;font-size:22px;font-weight:900;letter-spacing:1px;box-shadow:0 10px 28px rgba(245,158,11,.55),inset 0 -3px 0 rgba(120,53,15,.3);cursor:pointer;transition:transform .1s;text-shadow:0 2px 4px rgba(120,53,15,.45);font-family:inherit}
 .welcome-play-btn:active{transform:scale(.96)}
 .dialog.menu-dialog {
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
   background: url('menu-bg.png') center/cover no-repeat;
   color: #fff;
-  border: 2px solid rgba(255,255,255,0.2);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-  padding: 16px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 .dialog.menu-dialog h2, .dialog.menu-dialog p { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+.dialog.menu-dialog > div {
+  max-width: 420px;
+  margin: 0 auto;
+  width: 100%;
+}
+.dialog.menu-dialog > div {
+  max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+}
 .game-cards {
   display: flex;
   gap: 12px;
@@ -692,11 +708,11 @@ body.duel-mode .bomb-btn{display:none}
 .card-title {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0));
+  background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 50%, transparent 100%);
   color: #fff;
-  padding: 20px 4px 8px;
+  padding: 30px 4px 10px;
   font-weight: 900;
-  font-size: 14px;
+  font-size: 16px;
   text-align: center;
   text-shadow: 0 2px 4px #000;
 }
@@ -707,19 +723,20 @@ body.duel-mode .bomb-btn{display:none}
   width: 100%;
 }
 .glass-btn {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   color: white;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   border-radius: 12px;
   padding: 12px 5px;
   min-height: 48px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
   transition: transform 0.08s, background 0.2s;
   cursor: pointer;
+  text-shadow: 0 2px 4px #000;
 }
 .glass-btn:active {
   transform: scale(0.95);
@@ -1922,7 +1939,9 @@ function menu(){
   const stars=save.stars.reduce((a,b)=>a+b,0);
   show(
     '<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; width:100%;">' +
-    '<h2 style="color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.8); margin:0 0 4px; font-size:18px;">Собрано звёзд: <b>' + stars + '</b> / ' + (N*3) + '</h2>' +
+    '<h1 class="welcome-title" style="margin:0 0 4px; font-size:28px;">АНТИВИРУС</h1>' +
+    '<p class="welcome-sub" style="margin:0 0 12px; font-size:16px;">Спаси Нику от вирусов!</p>' +
+    '<h2 style="color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.8); margin:0 0 8px; font-size:16px;">Собрано звёзд: <b>' + stars + '</b> / ' + (N*3) + '</h2>' +
     '<button class="menu-coins-btn" data-menu="shop"> <span>' + save.coins + '</span> монет →</button>' +
     '<div class="game-cards">' +
     '  <div class="game-card" onclick="goToMatch3()">' +
@@ -1944,7 +1963,7 @@ function menu(){
     '  <button class="glass-btn" data-menu="settings">⚙️ Настройки</button>' +
     '</div>' +
     '<div style="margin-top:12px; display:flex; justify-content:center; gap:15px; font-size:12px;">' +
-    '  <a href="#" onclick="window.open(supportURL(),\'_blank\'); return false;" style="color:rgba(255,255,255,0.7); text-decoration:none;"> Поддержка</a>' +
+    '  <a href="#" onclick="window.open(supportURL(),\'_blank\'); return false;" style="color:#fff; text-shadow:0 2px 4px #000; text-decoration:none; background:rgba(0,0,0,0.6); padding:6px 12px; border-radius:20px; font-weight:bold;">  Поддержка</a>' +
     '</div>' +
     '</div>'
   , 'menu');
