@@ -1624,7 +1624,7 @@ function renderLevelMap(){
 function saveLevelProgress(){try{localStorage.setItem('antivirus-match3-level',String(maxLevel));}catch{}}
 function loadLevelProgress(){try{const n=Number(localStorage.getItem('antivirus-match3-level'));if(Number.isFinite(n))maxLevel=Math.max(1,Math.min(MAX_LEVEL,Math.floor(n)));}catch{}}
 
-if(isWeb) document.getElementById('adBombBtn').style.display = 'none';
+if(isWeb || (window.Platform && window.Platform.mode === 'ok')) document.getElementById('adBombBtn').style.display = 'none';
 loadLevelProgress();
 updateHUD();
 
