@@ -723,17 +723,17 @@ body.duel-mode .bomb-btn{display:none}
   width: 100%;
 }
 .glass-btn {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  color: white;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 12px;
-  padding: 12px 5px;
-  min-height: 48px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  color: white !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  border-radius: 12px !important;
+  padding: 14px 5px !important;
+  min-height: 48px !important;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
   transition: transform 0.08s, background 0.2s;
   cursor: pointer;
   text-shadow: 0 2px 4px #000;
@@ -1910,7 +1910,7 @@ function menuAntivirus(){
   show(
     '<div style="display:flex; flex-direction:column; justify-content:center; height:100%; width:100%;">' +
     '<h2 style="color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.8); margin-bottom:20px; font-size:24px;"> Антивирус</h2>' +
-    '<div class="stack" style="gap:12px; width:100%;">' +
+    '<div style="display:flex; flex-direction:column; gap:12px; width:100%;">' +
     '<button class="glass-btn" style="font-size:16px; padding:16px;" data-menu="levels">Кампания (30 уровней)</button>' +
     '<button class="glass-btn" style="font-size:16px; padding:16px;" data-menu="endless">Бесконечная игра</button>' +
     '<button class="glass-btn" style="font-size:16px; padding:16px;" data-menu="multiplayer">⚔️ Дуэль 1×1</button>' +
