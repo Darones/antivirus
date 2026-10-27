@@ -3483,12 +3483,11 @@ function musicStop(){
 function targetMusicVolume(){
   if(!save.settings.music) return 0;
   if(platformPaused || document.hidden) return 0;
+  if(paused) return 0;
   const userVol = Number(save.settings.musicVolume ?? 0.7);
   const norm = userVol / 0.7;
-  if(inSettings) return 0.15 * norm;
-  if(paused) return 0;
-  if(running && screen === 'game') return 0.35 * norm;
-  return 0.15 * norm;
+  // Единая громкость везде (на уровне, который был в игре)
+  return 0.35 * norm;
 }
 function musicFadeTo(target,ms){
   if(!musicAudio)return;
