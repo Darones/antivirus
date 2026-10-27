@@ -403,8 +403,8 @@ body:not(.duel-mode) .mini-opp{display:none}
   100%{ opacity:0; transform:translateX(-50%) scale(1.0) translateY(-40px); }
 }
 .canvas-inner{
-  position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
-  height:auto;max-height:100%;aspect-ratio:2/3;max-width:100%;
+  position:relative;display:flex;align-items:center;justify-content:center;
+  max-height:100%;max-width:100%;
 }
 .duel-countdown{
   position:absolute;inset:0;
@@ -4043,7 +4043,14 @@ function resizeBoardCanvas(){
 }
 window.addEventListener('resize', resizeBoardCanvas);
 setTimeout(resizeBoardCanvas, 100);
+setTimeout(resizeBoardCanvas, 500);
 window.addEventListener('load', resizeBoardCanvas);
+if(typeof ResizeObserver === 'function'){
+  try {
+    const wrap = document.querySelector('.canvas-wrap');
+    if(wrap) new ResizeObserver(function(){ resizeBoardCanvas(); }).observe(wrap);
+  } catch(e){}
+}
 window.showBanner = () => { bannerAdShown = false; showBannerAd(); };
 </script>
 </body>
