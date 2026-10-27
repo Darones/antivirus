@@ -1646,7 +1646,7 @@ function goToMatch3(){
   const isOK = window.Platform && window.Platform.mode === 'ok';
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
   console.log('[goToMatch3]', JSON.stringify({isOK,isMobile,branch:isOK&&isMobile?'iframe':'href'}));
-  if(isOK && isMobile){ openMatch3Iframe(); } else { location.href = 'match3.html'; }
+  if(isOK && isMobile){ openMatch3Iframe(); } else { location.href = isOK ? 'match3.html?vk_client=ok' : 'match3.html'; }
 }
 function openMatch3Iframe(){
   try {
