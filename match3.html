@@ -361,7 +361,8 @@ function closeToParent(extra){
       window.parent.postMessage({type:'match3-close', extra: extra || ''},location.origin); return;
     }
   } catch(e){}
-  location.href='index.html?menu=1'+(extra?'&'+extra:'');
+  const isOk = (typeof getSharedCoinsKey === 'function' && getSharedCoinsKey() === 'antivirus-ok-1');
+  location.href='index.html?menu=1' + (isOk ? '&vk_client=ok' : '') + (extra?'&'+extra:'');
 }
 window.closeToParent=closeToParent;
 
