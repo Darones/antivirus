@@ -3896,6 +3896,13 @@ async function boot(){
           save.settings.sound=true;syncAudio();
           if(save.settings.music) musicResumeIfAllowed();
         }
+      
+        if(type==='VKWebAppViewRestore' || type==='VKWebAppUpdateConfig' || type==='VKWebAppResizeWindow'){
+          if(typeof resizeBoardCanvas === 'function'){
+            setTimeout(resizeBoardCanvas, 100);
+            setTimeout(resizeBoardCanvas, 500);
+          }
+        }
       });
     }catch{}
   }
