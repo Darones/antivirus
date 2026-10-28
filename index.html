@@ -1033,6 +1033,29 @@ if(!__rewardedAdsAvailable){
   document.body.classList.add('no-rewarded-ads');
 }
 
+// [iOS-FIX] Safe localStorage wrapper
+const safeStorage = {
+  get(k) { try { return localStorage.getItem(k); } catch(e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch(e) {} },
+  remove(k) { try { localStorage.removeItem(k); } catch(e) {} }
+};
+
+// [iOS-FIX] Unlock audio on first interaction
+let _audioUnlocked = false;
+function unlockAudio() {
+  if (_audioUnlocked) return;
+  _audioUnlocked = true;
+  initAudio();
+  if (save.settings.music && musicCurrentIdx < 0) {
+    const pref = save.settings.musicTrack;
+    const regularIdxs = MUSIC_TRACKS.map((t,i)=>i).filter(i=>!MUSIC_TRACKS[i].boss);
+    if(pref === 'random' || pref == null){ musicStart(pickNextTrack()); }
+    else { const p = Number(pref); if(Number.isFinite(p) && regularIdxs.includes(p)) musicStart(p); else musicStart(pickNextTrack()); }
+  }
+}
+document.addEventListener('pointerdown', unlockAudio, { once: true });
+document.addEventListener('keydown', unlockAudio, { once: true });
+
 const STATS_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://localhost:3000/stats/event'
   : 'https://antivirus-duel-server.relaxdev.ru/stats/event';
@@ -4140,7 +4163,7 @@ async function boot(){
       (location.hash || '').replace(/^#/,'')
     );
     if(rp.get('reset') === '1'){
-      localStorage.setItem('antivirus-pending-reset','1');
+      safeStorage.set('antivirus-pending-reset','1');
       const clean = location.href.replace(/[?&]reset=1/,'').replace(/#reset=1/,'');
       location.replace(clean);
       return;
@@ -4149,73 +4172,14 @@ async function boot(){
   if(_bootRan) return;
   _bootRan = true;
   checkStreak();
-  const failsafe=setTimeout(()=>{
-    if($('app').hidden){
-      try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{}
-      updateHUD();updateBombButton();
-      $('app').hidden=false;$('boot').hidden=true;
-      if(screen==='boot')menu();
-    }
-  },3000);
 
-  let ok=false;
-  try{ok=await vkInit();}catch(e){console.warn('[Boot]',e);}
-
-  // Обработка отложенного сброса после vkInit
-  if(localStorage.getItem('antivirus-pending-reset') === '1'){
-    try {
-      localStorage.removeItem(getSaveKey());
-      localStorage.removeItem('antivirus-vk-1');
-      localStorage.removeItem('antivirus-ok-1');
-      localStorage.removeItem('antivirus-match3-level');
-      localStorage.removeItem('antivirus-match3-bombs');
-      localStorage.removeItem('antivirus-match3-coins');
-      if(vkReady && window.vkBridge){
-        await vkBridge.send('VKWebAppStorageSet',{key:getCloudKey(),value:'{}'});
-      }
-    } catch(e){ console.warn('[Reset] cloud clear failed:', e); }
-    localStorage.removeItem('antivirus-pending-reset');
-    save = fresh();
-    writeLocal();
-  }
-
-  if(save.settings.lang==='auto'){
-    try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{applyLanguage('ru');}
-  }else{
-    applyLanguage(save.settings.lang);
-  }
-
+  // [iOS-FIX] Show Welcome/UI instantly before waiting for VK
   updateHUD();updateBombButton();
   requestAnimationFrame(frame);
-
-  // Загружаем облако до показа меню, с таймаутом, чтобы не залипнуть.
   const _urlP = new URLSearchParams(location.search);
-  if(vkReady && !localStorage.getItem('antivirus-pending-reset') && !_urlP.get('from_match3')){
-    try{
-      const cloud = await Promise.race([
-        vkCloudLoad(),
-        new Promise(r=>setTimeout(()=>r(null), 1500))
-      ]);
-      if(cloud){
-        save = normalize({...save, ...cloud, settings: save.settings});
-        writeLocal();
-      }
-    }catch(e){ console.warn('[Boot] cloud load failed', e); }
-  }
-
-  // Теперь показываем UI уже с актуальным прогрессом.
-  try {
-    const urlParams = new URLSearchParams(location.search);
-    if (urlParams.get('menu') === '1') {
-      save.welcomeShown = true;
-      persist();
-      /* Stage3: shop/daily opened directly below */
-    }
-  } catch(e){}
-  const urlParams = new URLSearchParams(location.search);
-  if(urlParams.get('menu') === '1'){
-    const _wantShop  = urlParams.get('openShop')  === '1';
-    const _wantDaily = urlParams.get('openDaily') === '1';
+  if(_urlP.get('menu') === '1'){
+    const _wantShop  = _urlP.get('openShop')  === '1';
+    const _wantDaily = _urlP.get('openDaily') === '1';
     if(_wantShop)       { shopMenu(); }
     else if(_wantDaily) { dailyMenu(); }
     else                { menu(); }
@@ -4225,75 +4189,81 @@ async function boot(){
     $('app').hidden=true;
   }
   $('boot').hidden=true;
-  Stats.track('session_start');
-  if(__rewardedAdsAvailable && vkReady){
-    setTimeout(() => showBannerAd(), 1500);
-  }
-  clearTimeout(failsafe);
-  setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
-  if(!vkReady){ document.body.classList.add('no-rewarded-ads'); }
-  preloadRewarded();
-  if(save.settings.music && musicCurrentIdx < 0){
-    const pref = save.settings.musicTrack;
-    const regularIdxs = MUSIC_TRACKS.map((t,i)=>i).filter(i=>!MUSIC_TRACKS[i].boss);
-    if(pref === 'random' || pref == null){
-      musicStart(pickNextTrack());
-    } else {
-      const p = Number(pref);
-      if(Number.isFinite(p) && regularIdxs.includes(p)) musicStart(p);
-      else musicStart(pickNextTrack());
+
+  // [iOS-FIX] Background init VK and Cloud (non-blocking)
+  (async function backgroundInit(){
+    let ok=false;
+    try{ok=await vkInit();}catch(e){console.warn('[Boot]',e);}
+
+    if(safeStorage.get('antivirus-pending-reset') === '1'){
+      try {
+        safeStorage.remove(getSaveKey());
+        safeStorage.remove('antivirus-vk-1');
+        safeStorage.remove('antivirus-ok-1');
+        safeStorage.remove('antivirus-match3-level');
+        safeStorage.remove('antivirus-match3-bombs');
+        safeStorage.remove('antivirus-match3-coins');
+        if(vkReady && window.vkBridge){
+          await vkBridge.send('VKWebAppStorageSet',{key:getCloudKey(),value:'{}'});
+        }
+      } catch(e){ console.warn('[Reset] cloud clear failed:', e); }
+      safeStorage.remove('antivirus-pending-reset');
+      save = fresh();
+      writeLocal();
     }
-  }
 
-  if(vkReady&&window.vkBridge){
-    try{
-      vkBridge.subscribe(e=>{
-        const type=e?.detail?.type;
-        if(type==='VKWebAppViewHide'){
-          if(musicAudio) musicAudio.pause();
-          platformPause();
-        }
-        if(type==='VKWebAppViewRestore'){
-          platformResume();
-          if(save.settings.music) musicResumeIfAllowed();
-        }
-        if(type==='VKWebAppAudioPaused'){
-          if(musicAudio) musicAudio.pause();
-          save.settings.sound=false;syncAudio();
-        }
-        if(type==='VKWebAppAudioResumed'){
-          save.settings.sound=true;syncAudio();
-          if(save.settings.music) musicResumeIfAllowed();
-        }
-      
-        if(type==='VKWebAppViewRestore' || type==='VKWebAppUpdateConfig' || type==='VKWebAppResizeWindow'){
-          if(typeof resizeBoardCanvas === 'function'){
-            setTimeout(resizeBoardCanvas, 100);
-            setTimeout(resizeBoardCanvas, 500);
+    if(save.settings.lang==='auto'){
+      try{applyLanguage(vkLaunchParams.vk_language||navigator.language);}catch{applyLanguage('ru');}
+    }else{
+      applyLanguage(save.settings.lang);
+    }
+
+    if(vkReady && safeStorage.get('antivirus-pending-reset') !== '1' && !_urlP.get('from_match3')){
+      try{
+        const cloud = await Promise.race([vkCloudLoad(), new Promise(r=>setTimeout(()=>r(null), 1500))]);
+        if(cloud){ save = normalize({...save, ...cloud, settings: save.settings}); writeLocal(); }
+      }catch(e){ console.warn('[Boot] cloud load failed', e); }
+    }
+
+    setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
+    if(!vkReady){ document.body.classList.add('no-rewarded-ads'); }
+    preloadRewarded();
+    if(__rewardedAdsAvailable && vkReady){ setTimeout(() => showBannerAd(), 1500); }
+
+    if(vkReady&&window.vkBridge){
+      try{
+        vkBridge.subscribe(e=>{
+          const type=e?.detail?.type;
+          if(type==='VKWebAppViewHide'){ if(musicAudio) musicAudio.pause(); platformPause(); }
+          if(type==='VKWebAppViewRestore'){ platformResume(); if(save.settings.music) musicResumeIfAllowed(); }
+          if(type==='VKWebAppAudioPaused'){ if(musicAudio) musicAudio.pause(); save.settings.sound=false; syncAudio(); }
+          if(type==='VKWebAppAudioResumed'){ save.settings.sound=true; syncAudio(); if(save.settings.music) musicResumeIfAllowed(); }
+          if(type==='VKWebAppViewRestore' || type==='VKWebAppUpdateConfig' || type==='VKWebAppResizeWindow'){
+            if(typeof resizeBoardCanvas === 'function'){ setTimeout(resizeBoardCanvas, 100); setTimeout(resizeBoardCanvas, 500); }
           }
-        }
-      });
-    }catch{}
-  }
+        });
+      }catch{}
+    }
 
-  const hash=new URLSearchParams(location.hash.replace('#','?'));
-  const inviteRoom=hash.get('duel');
-  if(inviteRoom){
-    duelConnect().then(()=>duelSend({type:'join_room',roomId:inviteRoom}));
-  }
+    const hash=new URLSearchParams(location.hash.replace('#','?'));
+    const inviteRoom=hash.get('duel');
+    if(inviteRoom){ duelConnect().then(()=>duelSend({type:'join_room',roomId:inviteRoom})); }
 
-  if(vkReady&&window.vkBridge){
-    try{await vkBridge.send('VKWebAppSetViewSettings',{status_bar_style:'dark',action_bar_color:'#ffffff'});}catch{}
-  }
-  if('speechSynthesis' in window){
-    speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
-  }
-  if(window._openMenuAfterBoot){
-    const target=window._openMenuAfterBoot; window._openMenuAfterBoot=null;
-    setTimeout(()=>{ if(target==='shop') shopMenu(); else if(target==='daily') dailyMenu(); },0);
-  }
-  console.warn('[Boot] Antivirus v2 loaded. Backups: stage7. Features: ad manager, cooldowns, timers.');
+    if(vkReady&&window.vkBridge){
+      try{await vkBridge.send('VKWebAppSetViewSettings',{status_bar_style:'dark',action_bar_color:'#ffffff'});}catch{}
+    }
+    if('speechSynthesis' in window){
+      speechSynthesis.getVoices();
+      speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    }
+    if(window._openMenuAfterBoot){
+      const target=window._openMenuAfterBoot; window._openMenuAfterBoot=null;
+      setTimeout(()=>{ if(target==='shop') shopMenu(); else if(target==='daily') dailyMenu(); },0);
+    }
+    console.warn('[Boot] Antivirus v2 loaded (Fast-iOS mode).');
+  })();
+
+  Stats.track('session_start');
 }
 boot();
 // [DEBUG] ??????? ??? ?????? ?? ??????? ????????
