@@ -75,7 +75,7 @@
   .virus-column{
     position:static;
     display:flex;flex-direction:column;gap:16px;align-items:center;
-    flex-shrink:0;width:88px;
+    flex-shrink:0;width:48px;
   }
   .friend{
     width:48px;height:60px;
@@ -195,7 +195,7 @@
   .pause-actions{display:grid;gap:8px;margin-top:20px}
   .pause-actions button{width:100%;padding:13px;border:0;border-radius:13px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;font:800 15px inherit;font-family:inherit;cursor:pointer}
   .pause-actions button.secondary{background:#cbd5e1;color:#0f172a}
-  .boss-avatar{position:relative;width:88px;height:88px;flex-shrink:0;pointer-events:none;opacity:1;transition:transform .2s;display:flex;align-items:center;justify-content:center;margin:0 auto;animation:av-idle 2.6s ease-in-out infinite;filter:drop-shadow(0 6px 8px rgba(0,0,0,0.6))}
+  .boss-avatar{position:relative;width:48px;height:48px;flex-shrink:0;pointer-events:none;opacity:1;transition:transform .2s;display:flex;align-items:center;justify-content:center;margin:0 auto;animation:av-idle 2.6s ease-in-out infinite;filter:drop-shadow(0 3px 5px rgba(0,0,0,0.6))}
   .boss-avatar[hidden]{display:none!important}
   .boss-avatar.attacking{animation:boss-attack-anim .6s ease-out}
   @keyframes boss-attack-anim{0%{transform:scale(1) rotate(0)}25%{transform:scale(1.3) rotate(-8deg)}50%{transform:scale(1.3) rotate(8deg)}75%{transform:scale(1.1) rotate(-4deg)}100%{transform:scale(1) rotate(0)}}
@@ -284,7 +284,9 @@
   }
 
 
-  .boss-label{color:#ef4444; font-weight:900; font-size:16px; text-shadow:0 2px 4px #000; letter-spacing:1px; animation:boss-pulse 1.5s infinite}
+  .boss-wrap{display:flex; flex-direction:column; align-items:center; gap:4px; margin-top:10px}
+  .boss-wrap[hidden]{display:none!important}
+  .boss-label{color:#ef4444; font-weight:900; font-size:12px; text-shadow:0 2px 4px #000; letter-spacing:0px; animation:boss-pulse 1.5s infinite}
   @keyframes boss-pulse{0%,100%{transform:scale(1);opacity:0.8}50%{transform:scale(1.1);opacity:1}}
 </style>
 </head>
@@ -310,7 +312,7 @@
       <div class="friend"></div>
       <div class="friend"></div>
       <div class="friend"></div>
-      <div id="bossWrap" hidden style="display:flex; flex-direction:column; align-items:center; gap:4px; margin-top:10px;">
+      <div id="bossWrap" class="boss-wrap" hidden>
         <div id="bossAvatar" class="boss-avatar"></div>
         <div class="boss-label">БОСС!</div>
       </div>
@@ -1808,8 +1810,9 @@ updateHUD();
 function resizeBoardCanvas(){
   const wrap = document.querySelector('.canvas-wrap');
   const cv = document.getElementById('board');
+  const col = document.querySelector('.virus-column');
   if(!wrap || !cv) return;
-  const padRight = 96;
+  const padRight = col ? col.offsetWidth + 8 : 56;
   const availW = wrap.clientWidth - padRight;
   const availH = wrap.clientHeight;
   if(availW <= 0 || availH <= 0) return;
