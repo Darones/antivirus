@@ -32,8 +32,8 @@
   .stat small{font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .canvas-wrap{
     position:relative;width:100%;max-width:400px;
-    flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
-    padding-right:52px;min-width:0;
+    flex:1;min-height:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;
+    padding:0;min-width:0;
   }
   canvas#board{
   display:block;
@@ -41,6 +41,7 @@
     box-shadow:0 8px 28px rgba(15,23,42,.12);
     touch-action:none;
     transition:box-shadow .15s, border-color .15s;
+    flex-shrink:0;
   }
   canvas#board.armed{
     border-color:#ef4444;
@@ -72,8 +73,9 @@
     font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;
   }
   .virus-column{
-    position:absolute;right:0;top:8%;
+    position:static;
     display:flex;flex-direction:column;gap:16px;align-items:center;
+    flex-shrink:0;width:88px;
   }
   .friend{
     width:48px;height:60px;
@@ -113,7 +115,7 @@
     100% {transform:scale(1); opacity:1}
   }
   @media (max-width:380px){
-    .canvas-wrap{padding-right:44px}
+    .canvas-wrap{padding-right:0}
     .friend{width:40px;height:50px}
     .bomb-panel{gap:4px}
     .bomb-btn,.ad-bomb-btn,#exitBtn{font-size:12px;padding:10px 3px}
@@ -193,7 +195,7 @@
   .pause-actions{display:grid;gap:8px;margin-top:20px}
   .pause-actions button{width:100%;padding:13px;border:0;border-radius:13px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;font:800 15px inherit;font-family:inherit;cursor:pointer}
   .pause-actions button.secondary{background:#cbd5e1;color:#0f172a}
-  .boss-avatar{position:absolute;top:8px;right:8px;width:72px;height:72px;pointer-events:none;z-index:5;opacity:.9;transition:transform .2s}
+  .boss-avatar{position:relative;width:88px;height:88px;flex-shrink:0;pointer-events:none;opacity:1;transition:transform .2s;display:flex;align-items:center;justify-content:center;margin:0 auto;animation:av-idle 2.6s ease-in-out infinite;filter:drop-shadow(0 6px 8px rgba(0,0,0,0.6))}
   .boss-avatar[hidden]{display:none!important}
   .boss-avatar.attacking{animation:boss-attack-anim .6s ease-out}
   @keyframes boss-attack-anim{0%{transform:scale(1) rotate(0)}25%{transform:scale(1.3) rotate(-8deg)}50%{transform:scale(1.3) rotate(8deg)}75%{transform:scale(1.1) rotate(-4deg)}100%{transform:scale(1) rotate(0)}}
@@ -217,6 +219,73 @@
   .admin-name{margin:0 0 8px 28px;color:#a5b4fc;font-size:12px;font-weight:700}
   .admin-text{margin:0;color:#fff;font-size:14px;line-height:1.5}
   .admin-text b{color:#fbbf24}
+
+/* === STAGE 6a: Glassmorphism === */
+.pause-dialog, .overlay .dialog {
+  background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(15,23,42,0.7)) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  backdrop-filter: blur(16px);
+  color: #fff !important;
+  border-radius: 20px !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6) !important;
+}
+.pause-dialog h2, .overlay .dialog h2,
+.pause-dialog p, .overlay .dialog p,
+.pause-dialog .volume-control {
+  color: #fff !important;
+}
+.overlay .dialog .score-big {
+  color: #fbbf24 !important;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8) !important;
+}
+.pause-actions button.secondary, .overlay-buttons button.secondary {
+  background: rgba(0,0,0,0.6) !important;
+  color: #fff !important;
+  border: 2px solid rgba(255,255,255,0.4) !important;
+}
+
+
+/* === STAGE 6b: Tutorial dark === */
+.tutorial-dialog {
+  background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(15,23,42,0.85)) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  color: #fff !important;
+}
+.tutorial-dialog p {
+  color: #cbd5e1 !important;
+}
+
+
+  /* === BOSS INTRO BANNER === */
+  .boss-intro-banner {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    background: linear-gradient(135deg, #ef4444, #7f1d1d);
+    color: #fff;
+    padding: 16px 32px;
+    border-radius: 20px;
+    border: 3px solid #fbbf24;
+    font-size: 28px;
+    font-weight: 900;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.8);
+    z-index: 100;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  }
+  .boss-intro-banner.show {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+
+  .boss-label{color:#ef4444; font-weight:900; font-size:16px; text-shadow:0 2px 4px #000; letter-spacing:1px; animation:boss-pulse 1.5s infinite}
+  @keyframes boss-pulse{0%,100%{transform:scale(1);opacity:0.8}50%{transform:scale(1.1);opacity:1}}
 </style>
 </head>
 <body>
@@ -237,11 +306,14 @@
   </div>
   <div class="canvas-wrap">
     <canvas id="board" width="400" height="600"></canvas>
-    <div id="bossAvatar" class="boss-avatar" hidden></div>
     <div class="virus-column" aria-hidden="true">
       <div class="friend"></div>
       <div class="friend"></div>
       <div class="friend"></div>
+      <div id="bossWrap" hidden style="display:flex; flex-direction:column; align-items:center; gap:4px; margin-top:10px;">
+        <div id="bossAvatar" class="boss-avatar"></div>
+        <div class="boss-label">БОСС!</div>
+      </div>
     </div>
   </div>
   <div class="bomb-panel">
@@ -357,8 +429,11 @@ console.log('=== MATCH3 V2.0 ===');
 function closeToParent(extra){
   if(typeof earnedCoins !== 'undefined' && earnedCoins > 0 && typeof flushCoins === 'function') flushCoins();
   try {
-    if(window.OK_CONTEXT && window.parent!==window && window.parent.document.getElementById('match3Frame')?.contentWindow===window){
-      window.parent.postMessage({type:'match3-close', extra: extra || ''},location.origin); return;
+    if(window.parent!==window){
+      const _pframe = window.parent.document.getElementById('match3Frame');
+      if(_pframe && _pframe.contentWindow===window){
+        window.parent.postMessage({type:'match3-close', extra: extra || ''},location.origin); return;
+      }
     }
   } catch(e){}
   const isOk = (typeof getSharedCoinsKey === 'function' && getSharedCoinsKey() === 'antivirus-ok-1');
@@ -390,6 +465,7 @@ const COINS_PER_VIRUS = 1;
 const VIRUS_MIN_ROW = 4;
 const MAX_LEVEL = 100;
 const START_BOMBS = 2;
+const STARS_KEY = 'antivirus-match3-stars';
 const BOSS_LEVELS = {
   10:  { name: 'Ангинозус', color: '#ef4444' },
   20:  { name: 'Риновирус', color: '#94a3b8' },
@@ -401,6 +477,11 @@ const BOSS_LEVELS = {
   80:  { name: 'Кардиовирус', color: '#e11d48' },
   90:  { name: 'Гепатит', color: '#65a30d' },
   100: { name: 'Коронавирус', color: '#dc2626' }
+};
+const BOSS_TUNING = {
+  startMultiplier: 1.0,
+  waveSizes: [8, 7, 6],
+  maxVirusesCap: 30
 };
 function isBossLevel(level){return !!BOSS_LEVELS[level];}
 
@@ -466,6 +547,7 @@ let vibeEnabled = localStorage.getItem('antivirus-match3-vibe') !== 'false';
 let bombMode = false;
 let coins = loadSharedCoins();
 let earnedCoins = 0;
+let elapsed = 0;
 let gameOver = true;
 let busy = true;
 let deadlockOpen = false;
@@ -735,15 +817,30 @@ if (vibeToggle) {
 function renderBossAvatar(bossInfo){
   const avatar=document.getElementById('bossAvatar');
   const color=bossInfo.color;
-  let spikes="";
+  let spikes='';
   for(let i=0;i<8;i++){
     const a=(i*Math.PI/4)-Math.PI/2;
     const x1=50+Math.cos(a)*31,y1=50+Math.sin(a)*31;
-    const x2=50+Math.cos(a)*42,y2=50+Math.sin(a)*42;
-    spikes += "<line x1=\""+x1+"\" y1=\""+y1+"\" x2=\""+x2+"\" y2=\""+y2+"\"/><circle cx=\""+x2+"\" cy=\""+y2+"\" r=\"2.5\"/>";
+    const x2=50+Math.cos(a)*44,y2=50+Math.sin(a)*44;
+    spikes += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'"/><circle cx="'+x2+'" cy="'+y2+'" r="3"/>';
   }
-  avatar.innerHTML="<svg viewBox=\"0 0 100 100\" width=\"100%\" height=\"100%\" aria-label=\""+bossInfo.name+"\"><g stroke=\""+color+"\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\""+color+"\">"+spikes+"</g><circle cx=\"50\" cy=\"50\" r=\"31\" fill=\""+color+"\" stroke=\"#7f1d1d\" stroke-width=\"2\"/><ellipse cx=\"40\" cy=\"46\" rx=\"8\" ry=\"10\" fill=\"white\"/><ellipse cx=\"60\" cy=\"46\" rx=\"8\" ry=\"10\" fill=\"white\"/><circle cx=\"42\" cy=\"48\" r=\"3\" fill=\"#0f172a\"/><circle cx=\"58\" cy=\"48\" r=\"3\" fill=\"#0f172a\"/><path d=\"M37 65 Q50 56 63 65\" fill=\"none\" stroke=\"#0f172a\" stroke-width=\"4\" stroke-linecap=\"round\"/></svg>";
+  let svg = '<svg viewBox="0 0 100 100" width="100%" height="100%" aria-label="'+bossInfo.name+'" style="overflow:visible;">';
+  svg += '<defs><radialGradient id="bossGrad" cx="30%" cy="25%" r="80%">';
+  svg += '<stop offset="0" stop-color="#ffffff" stop-opacity="0.8"/><stop offset="0.3" stop-color="'+color+'"/><stop offset="1" stop-color="#000000"/>';
+  svg += '</radialGradient></defs>';
+  svg += '<g stroke="'+color+'" stroke-width="6" stroke-linecap="round" fill="'+color+'">'+spikes+'</g>';
+  svg += '<circle cx="50" cy="50" r="34" fill="url(#bossGrad)" stroke="#7f1d1d" stroke-width="2"/>';
+  svg += '<ellipse cx="35" cy="30" rx="12" ry="6" fill="#ffffff" opacity="0.4" transform="rotate(-25 35 30)"/>';
+  svg += '<g><ellipse cx="38" cy="46" rx="8" ry="10" fill="white"/><ellipse cx="62" cy="46" rx="8" ry="10" fill="white"/>';
+  svg += '<circle cx="40" cy="48" r="4" fill="#0f172a"/><circle cx="60" cy="48" r="4" fill="#0f172a"/>';
+  svg += '<circle cx="41" cy="46" r="1.5" fill="white"/><circle cx="61" cy="46" r="1.5" fill="white"/>';
+  svg += '<path d="M28 36 L45 42 M72 36 L55 42" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/></g>';
+  svg += '<path d="M38 64 L43 68 L48 64 L52 68 L57 64 L62 68" fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+  svg += '<path d="M38 68 Q50 75 62 68" fill="none" stroke="#0f172a" stroke-width="2"/>';
+  svg += '</svg>';
+  avatar.innerHTML = svg;
   avatar.hidden=false;
+  document.getElementById('bossWrap').hidden=false;
 }
 function checkBossPhase(){
   if(!bossActive||bossStartVirusCount===0||virusesLeft<=0)return;
@@ -755,7 +852,6 @@ function checkBossPhase(){
   }
 }
 function triggerBossWave(phaseIndex){
-  const waveSizes=[5,4,3];
   const avatar=document.getElementById('bossAvatar');
   avatar.classList.remove('attacking');void avatar.offsetWidth;avatar.classList.add('attacking');
   setTimeout(()=>avatar.classList.remove('attacking'),600);
@@ -763,10 +859,26 @@ function triggerBossWave(phaseIndex){
   const free=[];
   for(let y=VIRUS_MIN_ROW;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===null)free.push([x,y]);
   for(let i=free.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[free[i],free[j]]=[free[j],free[i]];}
-  const count=Math.min(waveSizes[phaseIndex],free.length);
+  const maxAllowed = BOSS_TUNING.maxVirusesCap - virusesLeft;
+  let waveSize = BOSS_TUNING.waveSizes[phaseIndex] || 5;
+  waveSize = Math.min(waveSize, Math.max(0, maxAllowed), free.length);
+  const count = waveSize;
   for(let i=0;i<count;i++){const [x,y]=free[i];grid[y][x]={type:"virus",color:randomColor()};}
   virusesLeft=countViruses();updateHUD();showBossAttackBanner(phaseIndex,count);
 }
+
+function showBossIntroBanner(){
+  const b = document.createElement('div');
+  b.className = 'boss-intro-banner';
+  b.innerHTML = '⚠️ БОСС: ' + BOSS_LEVELS[currentLevel].name + ' ⚠️';
+  document.body.appendChild(b);
+  setTimeout(() => b.classList.add('show'), 100);
+  setTimeout(() => {
+    b.classList.remove('show');
+    setTimeout(() => b.remove(), 400);
+  }, 2500);
+}
+
 function showBossAttackBanner(phaseIndex,waveSize){
   const banner=document.createElement('div');banner.className='boss-attack-banner';
   banner.textContent='⚠ '+BOSS_LEVELS[currentLevel].name+' атакует! Волна '+(phaseIndex+1)+'/3';
@@ -795,7 +907,7 @@ function createGrid(){
 
   // 3) Расставляем вирусы
   const baseCount = getVirusCount(currentLevel);
-  const virusCount = isBossLevel(currentLevel) ? Math.round(baseCount * 0.8) : baseCount;
+  const virusCount = isBossLevel(currentLevel) ? Math.round(baseCount * BOSS_TUNING.startMultiplier) : baseCount;
   const candidates = [];
   for(let y=VIRUS_MIN_ROW;y<H;y++)
     for(let x=0;x<W;x++) candidates.push([x,y]);
@@ -995,11 +1107,11 @@ function resolveCascades(depth){
       earnedCoins += COINS_PER_VIRUS;
       virusCount++;
       spawnParticles(x, y, COLORS[c.color], 16);
+      affectedColors.add(c.color);
     } else {
       score += POINTS_PER_PILL;
       spawnParticles(x, y, COLORS[c.color], 8);
     }
-    affectedColors.add(c.color);
     grid[y][x] = null;
   }
 
@@ -1077,11 +1189,11 @@ function triggerBomb(cx, cy){
         earnedCoins += COINS_PER_VIRUS;
         virusCount++;
         spawnParticles(x, y, COLORS[c.color], 16);
+        affectedColors.add(c.color);
       } else {
         score += POINTS_PER_PILL;
         spawnParticles(x, y, COLORS[c.color], 8);
       }
-      affectedColors.add(c.color);
       grid[y][x] = null;
     }
   }
@@ -1123,7 +1235,11 @@ function win(){
   gameOver = true;
   Stats.track('level_end', { level: currentLevel, won: true, app: 'match3' });
   levelsCompleted++;
+  const stars = computeStars(currentLevel, elapsed);
+  const earnedBase = earnedCoins;
+  earnedCoins = earnedBase * stars;
   const reward = flushCoins();
+  saveLevelStars(currentLevel, stars);
   if(currentLevel === maxLevel && maxLevel < MAX_LEVEL) maxLevel++;
   saveLevelProgress();
   updateHUD();
@@ -1138,9 +1254,17 @@ function win(){
   document.getElementById('overlayTitle').textContent =
     isFinal ? ' Игра пройдена!' : (isBossLevel(currentLevel) ? (BOSS_LEVELS[currentLevel].name + ' побеждён!') : ('Уровень ' + currentLevel + ' пройден!'));
   document.getElementById('adminMessage').innerHTML = adminHtml;
-  document.getElementById('overlaySubtitle').textContent = isFinal
-    ? ('Ты спас Нику от всех вирусов! +' + reward + ' монет')
-    : (reward > 0 ? ('+' + reward + ' монет заработано') : 'Все вирусы уничтожены!');
+  const _starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  const _praise = getPraise(score);
+  const _details = '<div style="font-size:20px; font-weight:900; color:#fff; margin:4px 0 8px;">' + _praise + '</div>' +
+                   '<div style="margin:8px 0; color:#f59e0b; font-size:28px; letter-spacing:2px;">' + _starStr + '</div>' +
+                   '<p style="font-size:14px; color:#64748b; line-height:1.6; margin-top:12px;">' +
+                     'Заработано: <b>' + reward + '</b> монет' + (stars > 1 ? ' (база ' + earnedBase + ' × ' + stars + ')' : '') + '<br>' +
+                     'Время: <b>' + formatTime(elapsed) + '</b>' +
+                   '</p>';
+  document.getElementById('overlaySubtitle').innerHTML = isFinal
+    ? _details + '<div style="color:#ef4444; font-weight:800; margin-top:12px;">Ты спас Нику! Игра пройдена!</div>'
+    : _details;
   document.getElementById('finalScore').textContent = score;
 
   const btns = document.getElementById('overlayButtons');
@@ -1167,7 +1291,7 @@ function win(){
 
   const menuBtn = document.createElement('button');
   menuBtn.textContent = 'В меню';
-  if(isFinal) menuBtn.className = 'secondary';
+  menuBtn.className = 'secondary';
   menuBtn.onclick = () => { closeToParent(); };
   btns.appendChild(menuBtn);
 
@@ -1199,8 +1323,9 @@ function lose(){
   updateHUD();
 
   document.getElementById('overlayTitle').textContent = 'Игра окончена';
-  document.getElementById('overlaySubtitle').textContent =
-    reward > 0 ? ('+' + reward + ' монет заработано') : 'Ходов не осталось';
+  document.getElementById('overlaySubtitle').innerHTML = reward > 0
+    ? '<span style="color:#64748b; font-size:14px;">Заработано: <b>' + reward + '</b> монет</span>'
+    : 'Ходов не осталось';
   document.getElementById('finalScore').textContent = score;
 
   const btns = document.getElementById('overlayButtons');
@@ -1208,6 +1333,7 @@ function lose(){
 
   const restart = document.createElement('button');
   restart.textContent = 'Заново';
+  restart.className = 'primary';
   restart.onclick = () => {
     beginRound();
   };
@@ -1529,13 +1655,19 @@ function beginRound(){
   bossStartVirusCount=0;
   bossWaveFired=[false,false,false];
   bossPhase=0;
-  if(isBossLevel(currentLevel)) renderBossAvatar(BOSS_LEVELS[currentLevel]);
-  else document.getElementById('bossAvatar').hidden=true;
+  if(isBossLevel(currentLevel)) {
+    renderBossAvatar(BOSS_LEVELS[currentLevel]);
+    showBossIntroBanner();
+  } else {
+    document.getElementById('bossAvatar').hidden=true;
+    document.getElementById('bossWrap').hidden=true;
+  }
 
   score = 0;
   moves = 30 + currentLevel * 2;
   virusesLeft = 0;
   earnedCoins = 0;
+  elapsed = 0;
   bombMode = false;
   gameOver = false;
   busy = false;
@@ -1577,6 +1709,7 @@ function frame(now){
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
   clock += dt;
+  elapsed += dt;
   for(let y=0;y<H;y++){
     for(let x=0;x<W;x++){
       const c=grid[y][x];
@@ -1605,13 +1738,14 @@ function renderLevelMap(){
 
   const container = document.getElementById('levelGrid');
   container.innerHTML = '';
+  const _allStars = loadLevelStars();
 
   for(let n=1; n<=MAX_LEVEL; n++){
     const locked = (n > maxLevel);
     const icon = locked ? '🔒' : n;
 
-    // Прочерк внизу (как в старой игре), так как звезд у нас пока нет
-    const starsHtml = '<small>—</small>';
+    const _s = Number(_allStars[n]) || 0;
+    const starsHtml = '<small>' + (_s > 0 ? ('★'.repeat(_s) + '☆'.repeat(3 - _s)) : '—') + '</small>';
 
     const btn = document.createElement('button');
     btn.innerHTML = String(icon) + starsHtml;
@@ -1631,6 +1765,41 @@ function renderLevelMap(){
 }
 function saveLevelProgress(){try{localStorage.setItem('antivirus-match3-level',String(maxLevel));}catch{}}
 function loadLevelProgress(){try{const n=Number(localStorage.getItem('antivirus-match3-level'));if(Number.isFinite(n))maxLevel=Math.max(1,Math.min(MAX_LEVEL,Math.floor(n)));}catch{}}
+function loadLevelStars(){
+  try { return JSON.parse(localStorage.getItem(STARS_KEY) || '{}') || {}; } catch { return {}; }
+}
+function saveLevelStars(level, stars){
+  try {
+    const all = loadLevelStars();
+    const prev = Number(all[level]) || 0;
+    all[level] = Math.max(prev, stars);
+    localStorage.setItem(STARS_KEY, JSON.stringify(all));
+  } catch {}
+}
+function computeStars(level, secs){
+  const target = 45 + level * 5;
+  if(secs <= target) return 3;
+  if(secs <= target * 1.7) return 2;
+  return 1;
+}
+function getPraise(sc){
+  if(sc >= 50000) return 'Бог Иммунологии! 🧬';
+  if(sc >= 35000) return 'Вирусоборец! 🛡️';
+  if(sc >= 25000) return 'Легендарный Доктор! 🏆';
+  if(sc >= 18000) return 'Гроза Вирусов! 👹';
+  if(sc >= 12000) return 'Профессор! 🥼';
+  if(sc >= 8000)  return 'Опытный Медик! 💉';
+  if(sc >= 5000)  return 'Уверенный боец! 💪';
+  if(sc >= 3000)  return 'Хороший старт! 🚀';
+  if(sc >= 1000)  return 'Практикант! 📝';
+  return 'Новичок! 🌱';
+}
+
+function formatTime(sec){
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
 
 if(isWeb || (window.Platform && window.Platform.mode === 'ok')) document.getElementById('adBombBtn').style.display = 'none';
 loadLevelProgress();
@@ -1640,7 +1809,7 @@ function resizeBoardCanvas(){
   const wrap = document.querySelector('.canvas-wrap');
   const cv = document.getElementById('board');
   if(!wrap || !cv) return;
-  const padRight = 52;
+  const padRight = 96;
   const availW = wrap.clientWidth - padRight;
   const availH = wrap.clientHeight;
   if(availW <= 0 || availH <= 0) return;
