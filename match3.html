@@ -1788,6 +1788,7 @@ function beginRound(){
   rafId = requestAnimationFrame(frame);
 }
 
+loadLevelProgress();
 if(localStorage.getItem('antivirus-match3-tutorial-shown') === '1'){
   document.getElementById('tutorialScreen').hidden = true;
   document.getElementById('levelMapScreen').hidden = false;
