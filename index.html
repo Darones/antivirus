@@ -1064,16 +1064,35 @@ const Stats = (() => {
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
   const anonymousPlayerId = (() => {
+    const KEY = 'antivirus-playerid';
+    const gen = () => 'anon_' + Math.random().toString(36).substring(2, 10);
     try {
-      let id = localStorage.getItem('antivirus-playerid');
-      if (!id) { id = 'anon_' + Math.random().toString(36).substring(2, 10); localStorage.setItem('antivirus-playerid', id); }
+      let id = localStorage.getItem(KEY);
+      if (!id) { id = gen(); localStorage.setItem(KEY, id); }
+      if (localStorage.getItem(KEY) === id) return id;
+    } catch(e){}
+    try {
+      let id = sessionStorage.getItem(KEY);
+      if (!id) { id = gen(); sessionStorage.setItem(KEY, id); }
+      if (sessionStorage.getItem(KEY) === id) return id;
+    } catch(e){}
+    try {
+      const m = document.cookie.match(/(?:^|; )antivirus-playerid=([^;]+)/);
+      if (m) return decodeURIComponent(m[1]);
+      const id = gen();
+      document.cookie = KEY + '=' + id + '; max-age=31536000; path=/; SameSite=Lax';
       return id;
-    } catch { return 'anon_guest'; }
+    } catch(e){}
+    return 'anon_guest';
   })();
   const sessionStart = Math.floor(Date.now() / 1000);
   let lastSessionEndAt = sessionStart;
   function playerId(){
     try { if(typeof vkUserId !== 'undefined' && vkUserId) return String(vkUserId); } catch {}
+    try {
+      const syncId = __vkSearchParams && __vkSearchParams.get('vk_user_id');
+      if(syncId) return String(syncId);
+    } catch {}
     return anonymousPlayerId;
   }
   function track(ev, props){
@@ -2230,7 +2249,7 @@ function levelsMenu(){
       const icon = locked ? (isBoss ? '👹' : '🔒') : n;
       return `<button data-menu="level:${n}" ${locked?'disabled':''}>${icon}<small>${'★'.repeat(stars)||'—'}</small></button>`;
     }).join('')}</div>
-    <div class="stack">${btn(t('levelsBack'),'menu')}</div>`,'levels');
+    <div class="stack">${btn('Меню','menu')}</div>`,'levels');
 }
 function settingsMenu(){
   if(running)paused=true;

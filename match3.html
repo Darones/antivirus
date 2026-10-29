@@ -195,6 +195,12 @@
   .pause-actions{display:grid;gap:8px;margin-top:20px}
   .pause-actions button{width:100%;padding:13px;border:0;border-radius:13px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;font:800 15px inherit;font-family:inherit;cursor:pointer}
   .pause-actions button.secondary{background:#cbd5e1;color:#0f172a}
+  .settings-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.15);color:#fff;font-weight:700;font-size:14px}
+  .settings-row:last-of-type{border-bottom:none}
+  .settings-row input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);cursor:pointer}
+  .settings-row input[type=range]{width:140px;accent-color:var(--accent)}
+  .settings-row select{padding:6px 8px;border-radius:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid rgba(255,255,255,0.3);font-family:inherit;font-size:14px}
+  .settings-row select option{background:#1e293b;color:#fff}
   .boss-avatar{position:relative;width:48px;height:48px;flex-shrink:0;pointer-events:none;opacity:1;transition:transform .2s;display:flex;align-items:center;justify-content:center;margin:0 auto;animation:av-idle 2.6s ease-in-out infinite;filter:drop-shadow(0 3px 5px rgba(0,0,0,0.6))}
   .boss-avatar[hidden]{display:none!important}
   .boss-avatar.attacking{animation:boss-attack-anim .6s ease-out}
@@ -293,7 +299,7 @@
 <body>
 <!-- VK Banner 320x50 -->
 <div class="level-map-screen" id="levelMapScreen" hidden>
-  <div class="level-map-header"><h1>Карта уровней</h1><div class="level-map-actions"><button id="shopLink" type="button">Магазин</button><button id="dailyLink" type="button">Бонус</button></div></div>
+  <div class="level-map-header"><h1>Карта уровней</h1><div class="level-map-actions"><button id="menuLink" type="button">Меню</button><button id="dailyLink" type="button">Бонус</button></div></div>
   <div class="levels" id="levelGrid"></div>
   <button class="level-map-back" id="levelMapBack" type="button">Назад</button>
 </div>
@@ -304,7 +310,7 @@
     <div class="stat"><strong id="coins">0</strong><small>Монеты</small></div>
     <div class="stat"><strong id="viruses">0</strong><small>Вирусов</small></div>
     <div class="stat"><strong id="level">1</strong><small>Уровень</small></div>
-    <button id="pauseBtn" type="button" aria-label="Пауза" title="Пауза">⏸</button>
+    <button id="pauseBtn" type="button" aria-label="Настройки" title="Настройки">⚙</button>
   </div>
   <div class="canvas-wrap">
     <canvas id="board" width="400" height="600"></canvas>
@@ -344,11 +350,14 @@
   </div>
 </div>
 
-<div class="pause-screen" id="pauseScreen" hidden>
+<div class="pause-screen" id="settingsScreen" hidden>
   <div class="pause-dialog">
-    <h2>Пауза</h2>
-    <label class="volume-control" for="musicSelect">Мелодия:</label>
-    <select id="musicSelect">
+    <h2>Настройки</h2>
+    <label class="settings-row">Звуковые эффекты <input id="set-sound" type="checkbox"></label>
+    <label class="settings-row">Музыка <input id="set-music" type="checkbox"></label>
+    <label class="settings-row">Громкость музыки <input id="set-music-vol" type="range" min="0" max="100"></label>
+    <label class="settings-row">Вибрация <input id="set-vibe" type="checkbox"></label>
+    <label class="settings-row">Мелодия <select id="set-music-track">
       <option value="random">Рандом по уровням</option>
       <option value="0">Трек 1</option>
       <option value="1">Трек 2</option>
@@ -356,15 +365,10 @@
       <option value="3">Трек 4</option>
       <option value="4">Трек 5</option>
       <option value="5">Трек 6</option>
-    </select>
-    <label class="volume-control" for="musicVol">Громкость музыки <input id="musicVol" type="range" min="0" max="100" value="30"></label>
-    <label class="volume-control" for="sfxVol">Громкость звуков <input id="sfxVol" type="range" min="0" max="100" value="50"></label>
-    <label class="volume-control" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-      Вибрация <input id="vibeToggle" type="checkbox" style="width:20px; height:20px; accent-color:var(--accent);">
-    </label>
+    </select></label>
     <div class="pause-actions">
-      <button id="resumeBtn" type="button">Продолжить</button>
-      <button type="button" class="secondary" onclick="closeToParent()">В меню</button>
+      <button id="settingsSaveBtn" type="button">Сохранить</button>
+      <button id="settingsResumeBtn" type="button" class="secondary">Продолжить</button>
     </div>
   </div>
 </div>
@@ -532,7 +536,12 @@ let currentScreen = 'levelMap';
 const bgMusic = document.getElementById('bgMusic');
 const musicTracks = ['music/track1.mp3', 'music/track2.mp3', 'music/track3.mp3', 'music/track4.mp3', 'music/track5.mp3', 'music/track6.mp3'];
 let currentMusicSetting = 'random';
-let globalSfxVol = 0.5;
+let globalSfxVol = (function(){
+  try {
+    var _s = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}').settings || {};
+    return _s.sound === false ? 0 : 0.5;
+  } catch(e){ return 0.5; }
+})();
 let isPaused = false;
 let rafId = 0;
 let _lastSync = 0;
@@ -540,6 +549,8 @@ let _lastSync = 0;
 // ==== Состояние ====
 let grid = [];
 let selected = null;
+let hintState = { active: false, until: 0, cells: null };
+let lastPlayerActionAt = performance.now();
 let score = 0;
 let moves = 0;
 let virusesLeft = 0;
@@ -547,7 +558,12 @@ let currentLevel = 1;
 let maxLevel = 1;
 let levelsCompleted = 0;
 let bombs = (function(){ try { const d = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}'); return typeof d.bombs === 'number' ? d.bombs : START_BOMBS; } catch(e){ return START_BOMBS; } })();
-let vibeEnabled = localStorage.getItem('antivirus-match3-vibe') !== 'false';
+let vibeEnabled = (function(){
+  try {
+    var _s = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}').settings || {};
+    return _s.vibe !== false;
+  } catch(e){ return true; }
+})();
 let bombMode = false;
 let coins = loadSharedCoins();
 let earnedCoins = 0;
@@ -731,22 +747,31 @@ document.addEventListener('pointerdown', initAudio, {passive:true});
 document.addEventListener('keydown', initAudio);
 
 try {
-  const savedMusicSetting = localStorage.getItem('antivirus-match3-music');
-  if(savedMusicSetting === 'random' || (savedMusicSetting !== null && /^[0-5]$/.test(savedMusicSetting))) {
-    currentMusicSetting = savedMusicSetting;
+  const _s = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}').settings || {};
+  if(_s.musicTrack === 'random' || (typeof _s.musicTrack === 'number' && _s.musicTrack >= 0 && _s.musicTrack <= 5)) {
+    currentMusicSetting = String(_s.musicTrack);
   }
-} catch {}
-document.getElementById('musicSelect').value = currentMusicSetting;
+} catch(e){}
 
 function musicIsEnabled(){
-  if(localStorage.getItem('antivirus-music-off') === 'true') return false;
-  const volume = document.getElementById('musicVol');
-  return !!volume && Number(volume.value) > 0;
+  try {
+    var _key = getSharedCoinsKey();
+    var _data = JSON.parse(localStorage.getItem(_key) || 'null');
+    if (_data && _data.settings && _data.settings.music === false) return false;
+  } catch(e){}
+  return true;
 }
 function resumeBgMusicIfAllowed(){
   if(!bgMusic || document.hidden || !musicIsEnabled() || !bgMusic.src) return;
   const promise = bgMusic.play();
   if(promise && promise.catch) promise.catch(()=>{});
+}
+function getSharedMusicVolume(){
+  try {
+    var v = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}').settings?.musicVolume;
+    var norm = (typeof v === 'number' ? v : 0.7) / 0.7;
+    return 0.35 * Math.max(0, Math.min(1, norm));
+  } catch(e){ return 0.35; }
 }
 function playMusic(){
   if(!bgMusic || !musicTracks.length) return;
@@ -754,7 +779,7 @@ function playMusic(){
   if (typeof bossActive !== 'undefined' && bossActive) {
     bgMusic.src = musicTracks[3];
     bgMusic.load();
-    bgMusic.volume = Number(document.getElementById('musicVol').value) / 100;
+    bgMusic.volume = getSharedMusicVolume();
     if(typeof resumeBgMusicIfAllowed === 'function') resumeBgMusicIfAllowed();
     return;
   }
@@ -767,7 +792,7 @@ function playMusic(){
     bgMusic.src = musicTracks[trackIndex];
   }
   bgMusic.load();
-  bgMusic.volume = Number(document.getElementById('musicVol').value) / 100;
+  bgMusic.volume = getSharedMusicVolume();
   resumeBgMusicIfAllowed();
 }
 bgMusic.addEventListener('ended', () => {
@@ -798,46 +823,81 @@ if(window.vkBridge && typeof vkBridge.subscribe === 'function') {
   } catch(e) { console.warn('VK Bridge subscribe error:', e); }
 }
 
-document.getElementById('musicSelect').addEventListener('change', event => {
-  currentMusicSetting = event.target.value;
-  try { localStorage.setItem('antivirus-match3-music', currentMusicSetting); } catch {}
-  playMusic();
-});
+// Настройки применяются через #settingsSaveBtn
 
+function loadSettingsUI(){
+  var s = {};
+  try { s = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}').settings || {}; } catch(e){}
+  var elSound = document.getElementById('set-sound');
+  var elMusic = document.getElementById('set-music');
+  var elVol = document.getElementById('set-music-vol');
+  var elVibe = document.getElementById('set-vibe');
+  var elTrack = document.getElementById('set-music-track');
+  if(elSound) elSound.checked = s.sound !== false;
+  if(elMusic) elMusic.checked = s.music !== false;
+  if(elVol) elVol.value = Math.round((typeof s.musicVolume === 'number' ? s.musicVolume : 0.7) * 100);
+  if(elVibe) elVibe.checked = s.vibe !== false;
+  if(elTrack) elTrack.value = (s.musicTrack === 'random' || s.musicTrack == null) ? 'random' : String(s.musicTrack);
+}
+function saveSettingsUI(){
+  var s = {};
+  try { s = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}').settings || {}; } catch(e){}
+  var elSound = document.getElementById('set-sound');
+  var elMusic = document.getElementById('set-music');
+  var elVol = document.getElementById('set-music-vol');
+  var elVibe = document.getElementById('set-vibe');
+  var elTrack = document.getElementById('set-music-track');
+  var newSettings = {
+    sound: elSound ? elSound.checked : (s.sound !== false),
+    music: elMusic ? elMusic.checked : (s.music !== false),
+    musicVolume: elVol ? Math.max(0, Math.min(1, Number(elVol.value)/100)) : (typeof s.musicVolume === 'number' ? s.musicVolume : 0.7),
+    vibe: elVibe ? elVibe.checked : (s.vibe !== false),
+    musicTrack: elTrack ? elTrack.value : (s.musicTrack == null ? 'random' : s.musicTrack)
+  };
+  try {
+    var key = getSharedCoinsKey();
+    var data = JSON.parse(localStorage.getItem(key) || '{}');
+    if(!data || typeof data !== 'object' || Array.isArray(data)) data = {};
+    data.settings = Object.assign({}, data.settings || {}, newSettings);
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch(e){}
+  globalSfxVol = newSettings.sound ? 0.5 : 0;
+  vibeEnabled = newSettings.vibe;
+  if(bgMusic){
+    bgMusic.volume = getSharedMusicVolume();
+    if(!newSettings.music){ try{ bgMusic.pause(); }catch(e){} }
+  }
+  if(newSettings.musicTrack !== currentMusicSetting){
+    currentMusicSetting = newSettings.musicTrack;
+    if(newSettings.music) playMusic();
+  } else if(newSettings.music){
+    resumeBgMusicIfAllowed();
+  }
+}
 function pauseGame(){
   if(gameOver || busy || isPaused) return;
   isPaused = true;
   currentScreen = 'pause';
   if(rafId) cancelAnimationFrame(rafId);
   rafId = 0;
-  document.getElementById('pauseScreen').hidden = false;
+  loadSettingsUI();
+  document.getElementById('settingsScreen').hidden = false;
   updateHUD();
 }
 function resumeGame(){
   if(!isPaused) return;
   isPaused = false;
-  document.getElementById('pauseScreen').hidden = true;
+  document.getElementById('settingsScreen').hidden = true;
   lastTime = performance.now();
+  lastPlayerActionAt = performance.now();
+  hintState.active = false;
+  hintState.cells = null;
   updateHUD();
   if(!gameOver && !rafId) rafId = requestAnimationFrame(frame);
 }
 document.getElementById('pauseBtn').addEventListener('click', pauseGame);
-document.getElementById('resumeBtn').addEventListener('click', resumeGame);
-document.getElementById('musicVol').addEventListener('input', event => {
-  bgMusic.volume = Number(event.target.value) / 100;
-});
-document.getElementById('sfxVol').addEventListener('input', event => {
-  globalSfxVol = Number(event.target.value) / 100;
-});
-const vibeToggle = document.getElementById('vibeToggle');
-if (vibeToggle) {
-  vibeToggle.checked = vibeEnabled;
-  vibeToggle.addEventListener('change', (e) => {
-    vibeEnabled = e.target.checked;
-    localStorage.setItem('antivirus-match3-vibe', String(vibeEnabled));
-    if(vibeEnabled) vibrate(20);
-  });
-}
+document.getElementById('settingsSaveBtn').addEventListener('click', function(){ saveSettingsUI(); resumeGame(); });
+document.getElementById('settingsResumeBtn').addEventListener('click', resumeGame);
 
 // ============================================================
 // СОЗДАНИЕ ДОСКИ
@@ -1095,6 +1155,29 @@ function hasAvailableMoves(){
   return false;
 }
 
+function findHintMoves(){
+  const moves = [];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c = grid[y][x];
+    if(!c || c.type !== 'pill') continue;
+    const neighbors = [[x+1,y],[x,y+1]];
+    for(const [nx,ny] of neighbors){
+      if(nx>=W || ny>=H) continue;
+      const n = grid[ny][nx];
+      if(!n || n.type !== 'pill') continue;
+      swapCells(x,y,nx,ny);
+      const has = findMatches().length > 0;
+      swapCells(x,y,nx,ny);
+      if(has) moves.push([{x,y},{x:nx,y:ny}]);
+    }
+  }
+  return moves;
+}
+function pickRandomHint(){
+  const moves = findHintMoves();
+  if(!moves.length) return null;
+  return moves[Math.floor(Math.random()*moves.length)];
+}
 function checkDeadlock(){
   if((typeof duelMode !== 'undefined' && duelMode) || gameOver || deadlockOpen) return;
   if(hasAvailableMoves()) return;
@@ -1124,6 +1207,9 @@ function handleSwap(x1, y1, x2, y2){
     moves--;
     updateHUD();
     busy = true;
+    lastPlayerActionAt = performance.now();
+    hintState.active = false;
+    hintState.cells = null;
     resolveCascades(0);
     return true;
   }
@@ -1579,6 +1665,21 @@ function draw(){
     ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
     ctx.fill();
   }
+  if(hintState.active && hintState.cells){
+    const pulse = Math.abs(Math.sin(clock * 6)) * 5;
+    ctx.save();
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([7,5]);
+    for(const c of hintState.cells){
+      const cx = c.x*CELL + CELL/2;
+      const cy = c.y*CELL + CELL/2 - pulse;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   ctx.globalAlpha = 1;
 }
 
@@ -1755,7 +1856,8 @@ function beginRound(){
   document.getElementById('deadlockOverlay').hidden = true;
   deadlockOpen = false;
   isPaused = false;
-  document.getElementById('pauseScreen').hidden = true;
+  var _settingsEl = document.getElementById('settingsScreen');
+  if(_settingsEl) _settingsEl.hidden = true;
   bossActive=false;
   bossStartVirusCount=0;
   bossWaveFired=[false,false,false];
@@ -1780,6 +1882,9 @@ function beginRound(){
   busy = false;
   selected = null;
   particles = [];
+  hintState.active = false;
+  hintState.cells = null;
+  lastPlayerActionAt = performance.now();
 
   createGrid();
   updateHUD();
@@ -1801,8 +1906,9 @@ document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('levelMapScreen').hidden = false;
   initAudio();renderLevelMap();
 });
+document.getElementById('menuLink').addEventListener('click',()=>{closeToParent();});
 document.getElementById('levelMapBack').addEventListener('click',()=>{closeToParent();});
-document.getElementById('shopLink').addEventListener('click',()=>{closeToParent('openShop=1');});
+// shopLink удалён в C12-3 (Магазин убран с карты)
 document.getElementById('dailyLink').addEventListener('click',()=>{closeToParent('openDaily=1');});
 
 // ============================================================
@@ -1837,6 +1943,26 @@ function frame(now){
   if(now - _lastSync > 500){
     _lastSync = now;
     syncButtonStates();
+  }
+  if(!gameOver && !busy && !isPaused && !deadlockOpen && !bombMode && !selected){
+    if(hintState.active && now >= hintState.until){
+      hintState.active = false;
+      hintState.cells = null;
+      lastPlayerActionAt = now;
+    }
+    if(!hintState.active && (now - lastPlayerActionAt) > 5000){
+      const hint = pickRandomHint();
+      if(hint){
+        hintState.active = true;
+        hintState.until = now + 5000;
+        hintState.cells = hint;
+      } else {
+        lastPlayerActionAt = now;
+      }
+    }
+  } else if(hintState.active){
+    hintState.active = false;
+    hintState.cells = null;
   }
   updateParticles(dt);
   draw();
