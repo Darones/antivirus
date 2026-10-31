@@ -1088,6 +1088,10 @@ const Stats = (() => {
   const sessionStart = Math.floor(Date.now() / 1000);
   let lastSessionEndAt = sessionStart;
   function playerId(){
+    try {
+      const lsId = localStorage.getItem('antivirus-playerid');
+      if (lsId && !lsId.startsWith('anon_')) return lsId;
+    } catch {}
     try { if(typeof vkUserId !== 'undefined' && vkUserId) return String(vkUserId); } catch {}
     try {
       const syncId = __vkSearchParams && __vkSearchParams.get('vk_user_id');
@@ -1678,6 +1682,7 @@ async function vkInit(){
     const p=__vkSearchParams || new URLSearchParams();
     vkLaunchParams=Object.fromEntries(p);
     vkUserId=p.get('vk_user_id');
+    if(vkUserId) { try { localStorage.setItem('antivirus-playerid', vkUserId); } catch(e){} }
     const vkLang=p.get('vk_language');
     if(vkLang&&save.settings.lang==='auto')applyLanguage(vkLang);
     if (window.FAPI) { try { FAPI.init(); } catch(e) { console.warn('[OK] FAPI.init failed:', e); } }
