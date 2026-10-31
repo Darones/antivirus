@@ -1443,6 +1443,7 @@ function win(){
   vibrate([100, 50, 100]);
   gameOver = true;
   Stats.track('level_end', { level: currentLevel, won: true, app: 'match3' });
+  Stats.flush(true);
   levelsCompleted++;
   const stars = computeStars(currentLevel, elapsed);
   const earnedBase = earnedCoins;
@@ -1533,6 +1534,7 @@ function lose(){
   sfxLose();
   gameOver = true;
   Stats.track('level_end', { level: currentLevel, won: false, app: 'match3' });
+  Stats.flush(true);
   const reward = flushCoins();
   updateHUD();
 
@@ -1934,6 +1936,7 @@ function beginRound(){
   currentScreen = 'game';
   console.log('Bombs at start:', bombs, 'Raw localStorage:', localStorage.getItem('antivirus-match3-bombs'));
   Stats.track('level_start', { level: currentLevel, app: 'match3' });
+  Stats.flush(true);
   document.getElementById('tutorialScreen').hidden = true;
   document.getElementById('levelMapScreen').hidden = true;
   document.getElementById('gameApp').hidden = false;

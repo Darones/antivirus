@@ -2938,6 +2938,7 @@ function start(m,n){
   }
   mode=m;level=n;wave=1;
   Stats.track('level_start', { mode: m, level: n });
+  Stats.flush(true);
   lastCoinsEarned = 0;
   grid=Array.from({length:H},()=>Array(W).fill(null));
   active=null;next=pair();serial=1;
@@ -3307,6 +3308,7 @@ function finish(won){
   running=false;bossState=null;paused=false;active=null;state='end';
   clearInput();record();
   if(!duelMode) Stats.track('level_end', { mode, level, won: !!won, time: Math.floor(elapsed), kills, coins: Math.floor(score) });
+  Stats.flush(true);
   if(duelMode){ duelMyGameOver(won); return; }
   let coinsEarned = 0, coinMultiplier = 1;
   lastCoinsEarned = 0;
