@@ -1113,18 +1113,9 @@ const Stats = (() => {
     return anonymousPlayerId;
   }
   function track(ev, props){
-    let pMode = 'web';
-    try {
-      const isOK = window.Platform && window.Platform.mode === 'ok';
-      const isMob = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (typeof __vkPlatform !== 'undefined' && /mobile/i.test(__vkPlatform));
-      const isVK = (typeof __vkSearchParams !== 'undefined' && __vkSearchParams.get('vk_user_id')) || (window.Platform && window.Platform.mode === 'vk');
-      if (isOK) pMode = isMob ? 'ok_app' : 'ok_web';
-      else if (isVK) pMode = isMob ? 'vk_app' : 'vk_web';
-    } catch(e){}
-    
     queue.push(Object.assign({
       t: Math.floor(Date.now() / 1000), sessionId, playerId: playerId(),
-      platform: pMode, ev
+      platform: window.Platform.mode, ev
     }, props || {}));
     if(queue.length >= 40) flush();
   }
@@ -2067,8 +2058,6 @@ function goToMatch3(){
       if (uid) {
         targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'vk_user_id=' + encodeURIComponent(uid);
       }
-      const isMob = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (typeof __vkPlatform !== 'undefined' && /mobile/i.test(__vkPlatform));
-      targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'vk_platform=' + (isMob ? 'mobile' : 'web');
     } catch(e) {}
     
     location.href = targetUrl;
