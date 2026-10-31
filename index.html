@@ -178,8 +178,8 @@ body:not(.duel-mode) .mini-opp{display:none}
 .story-card .illustration{margin:0 auto 12px;min-height:180px;display:flex;align-items:center;justify-content:center}
 .story-card .illustration svg{width:180px;height:auto;max-width:100%}
 .story-card h2{font-size:20px;margin:8px 0 10px}
-.story-card .story-text{font-size:15px;line-height:1.55;color:#0f172a;background:#f8fafc;border-radius:12px;padding:12px 14px;margin:8px 0;text-align:left}
-.story-card .story-fact{font-size:13px;line-height:1.5;color:#0f172a;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:12px;padding:10px 12px;margin:12px 0;text-align:left}
+.story-card .story-text{font-size:15px;line-height:1.55;color:#f1f5f9;background:rgba(30, 41, 59, 0.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;margin:8px 0;text-align:left}
+.story-card .story-fact{font-size:13px;line-height:1.5;color:#e2e8f0;background:rgba(30, 41, 59, 0.9);border:1px solid #f59e0b;border-radius:12px;padding:10px 12px;margin:12px 0;text-align:left}
 .story-card .story-fact b{color:#78350f}
 .story-card .story-progress{font-size:12px;color:#64748b;margin:8px 0;font-weight:700}
 .story-card .story-skip{font-size:12px;color:#64748b;background:none;border:none;padding:6px;margin-top:4px;text-decoration:underline;cursor:pointer}
@@ -953,7 +953,7 @@ body.duel-mode .bomb-btn{display:none}
       </div>
     </div>
 
-    <div class="notice" id="notice" aria-live="polite"></div>
+    <div class="notice" id="notice" aria-live="polite" style="display:none;"></div>
 
     <div class="controls-v2" id="controls">
       <button class="ctrl-btn drop-btn" data-act="drop" aria-label="Быстрое падение">⤓</button>
@@ -972,7 +972,7 @@ body.duel-mode .bomb-btn{display:none}
       <button class="ctrl-btn right-btn" data-act="right" aria-label="Вправо">→</button>
     </div>
 
-    <div class="footer" id="cloudStatus" aria-live="polite"></div>
+    <div class="footer" id="cloudStatus" aria-live="polite" style="display:none;"></div>
   </main>
 </div>
 
@@ -3333,8 +3333,8 @@ function finish(won){
   }
   lastCoinsEarned = coinsEarned;
   const showNext=won&&mode==='campaign'&&level<N;
-  const showRescue=!won&&!duelMode&&__rewardedAdsAvailable&&vkReady&&window.Platform.mode!=='ok';
-  show(`<h2>${won?t('endWin'):t('endLose')}</h2><div style='font-size:20px; font-weight:900; color:#f59e0b; margin:4px 0 8px;'>${getPraise(score)}</div>${text}
+  const showRescue=false; // Временно отключено
+  show(`<h2>${won?t('endWin'):t('endLose')}</h2>${text}
     <p>${coinsEarned>0?(coinMultiplier>1?t('coinsEarnedWithMult',coinsEarned,score,coinMultiplier):t('coinsEarned',coinsEarned)):t('coinsEarned',0)}<br>${t('endViruses')}: <b>${kills}</b><br>${t('endTime')}: <b>${timeText(elapsed)}</b></p>
     <div class="stack">
       ${false && coinsEarned > 0 && !duelMode && !save.purchases.remove_ads && __rewardedAdsAvailable && vkReady && window.Platform.mode !== 'ok' ? `<button data-menu="double-coins" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent"> Удвоить монеты (+${coinsEarned})</button>` : ''}
