@@ -2032,7 +2032,16 @@ function goToMatch3(){
   if(isOK && isMobile){ openMatch3Iframe(); } else {
     transitioningToMatch3 = true;
     try { Stats.flush(true); } catch(e){}
-    location.href = isOK ? 'match3.html?vk_client=ok' : 'match3.html';
+    
+    let targetUrl = isOK ? 'match3.html?vk_client=ok' : 'match3.html';
+    try {
+      const uid = (typeof vkUserId !== 'undefined' && vkUserId) ? vkUserId : (__vkSearchParams ? __vkSearchParams.get('vk_user_id') : null);
+      if (uid) {
+        targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'vk_user_id=' + encodeURIComponent(uid);
+      }
+    } catch(e) {}
+    
+    location.href = targetUrl;
   }
 }
 function openMatch3Iframe(){

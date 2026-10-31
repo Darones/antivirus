@@ -563,11 +563,24 @@ const Stats = (() => {
   const queue = [];
   const sessionId = Math.random().toString(36).slice(2, 10);
   const sessionStart = Math.floor(Date.now() / 1000);
+  function getPlayerId() {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const uid = p.get('vk_user_id');
+      if (uid) return uid;
+    } catch(e) {}
+    try {
+      const lsId = localStorage.getItem('antivirus-playerid');
+      if (lsId) return lsId;
+    } catch(e) {}
+    return 'match3_' + sessionId;
+  }
+
   function track(ev, props) {
     queue.push(Object.assign({
       t: Math.floor(Date.now() / 1000),
       sessionId,
-      playerId: 'match3_' + sessionId,
+      playerId: getPlayerId(),
       platform: 'web',
       app: 'match3',
       ev
