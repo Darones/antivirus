@@ -1088,15 +1088,28 @@ const Stats = (() => {
   const sessionStart = Math.floor(Date.now() / 1000);
   let lastSessionEndAt = sessionStart;
   function playerId(){
+    // 1. Всегда проверяем URL на наличие реального ID (самый надежный источник)
+    try {
+      const urlId = __vkSearchParams && __vkSearchParams.get('vk_user_id');
+      if (urlId) {
+        try { localStorage.setItem('antivirus-playerid', urlId); } catch {}
+        return String(urlId);
+      }
+    } catch {}
+    
+    // 2. Проверяем глобальную переменную (если VK Bridge проснулся)
+    try { if(typeof vkUserId !== 'undefined' && vkUserId) {
+        try { localStorage.setItem('antivirus-playerid', vkUserId); } catch {}
+        return String(vkUserId); 
+    } } catch {}
+    
+    // 3. Читаем из localStorage (если мы там сохранили VK ID)
     try {
       const lsId = localStorage.getItem('antivirus-playerid');
       if (lsId && !lsId.startsWith('anon_')) return lsId;
     } catch {}
-    try { if(typeof vkUserId !== 'undefined' && vkUserId) return String(vkUserId); } catch {}
-    try {
-      const syncId = __vkSearchParams && __vkSearchParams.get('vk_user_id');
-      if(syncId) return String(syncId);
-    } catch {}
+    
+    // 4. Фоллбэк
     return anonymousPlayerId;
   }
   function track(ev, props){
@@ -1649,6 +1662,7 @@ try { save = normalize(JSON.parse(localStorage.getItem(getSaveKey()) || 'null'))
 function writeLocal(){try{localStorage.setItem(getSaveKey(),JSON.stringify(save));}catch{}}
 
 let vkReady = false, vkUserId = null, vkLaunchParams = {};
+let lastAppCloseTime = 0;
 // [PLATFORM-FIX] Уточняет платформу через VKWebAppGetLaunchParams.
 // Вызывается после успешного VKWebAppInit.
 async function detectPlatform(){
@@ -4224,10 +4238,14 @@ document.addEventListener('visibilitychange',()=>{
   }
   if(duelMode) return;
   if(document.hidden){
-    pause();record();
-    if(!transitioningToMatch3){
-      Stats.track('app_close', { screen, mode, level });
-      Stats.endSession();
+    const now = Date.now();
+    if (now - lastAppCloseTime > 5000) {
+      lastAppCloseTime = now;
+      pause();record();
+      if(!transitioningToMatch3){
+        Stats.track('app_close', { screen, mode, level });
+        Stats.endSession();
+      }
     }
   }
   sync();
