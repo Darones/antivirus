@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -676,7 +676,7 @@ body.duel-mode .bomb-btn{display:none}
   width: 100%;
 }
 .dialog.menu-dialog > div {
-  max-width: 400px;
+  max-width: 540px;
   margin: 0 auto;
   width: 100%;
 }
@@ -689,7 +689,7 @@ body.duel-mode .bomb-btn{display:none}
 }
 .game-card {
   flex: 1;
-  max-width: 140px;
+  max-width: 240px;
   aspect-ratio: 2/3;
   border-radius: 16px;
   overflow: hidden;
@@ -729,11 +729,11 @@ body.duel-mode .bomb-btn{display:none}
   -webkit-backdrop-filter: blur(10px);
   border: 2px solid rgba(255, 255, 255, 0.4) !important;
   color: white !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 800 !important;
   border-radius: 12px !important;
-  padding: 14px 5px !important;
-  min-height: 48px !important;
+  padding: 8px 5px !important;
+  min-height: 38px !important;
   box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
   transition: transform 0.08s, background 0.2s;
   cursor: pointer;
@@ -2266,11 +2266,7 @@ function settingsMenu(){
       <option value="random" ${s.musicTrack==='random'?'selected':''}>Рандом по уровням</option>
       ${MUSIC_TRACKS.filter(t=>!t.boss).map((tr,i)=>`<option value="${i}" ${s.musicTrack===i?'selected':''}>${tr.name}</option>`).join('')}
     </select></label>
-    <label class="row">${t('settingsLang')}<select id="set-lang">
-      <option value="auto" ${s.lang==='auto'?'selected':''}>${t('settingsLangAuto')}</option>
-      <option value="ru" ${s.lang==='ru'?'selected':''}>Русский</option>
-      <option value="en" ${s.lang==='en'?'selected':''}>English</option>
-    </select></label>
+    <!-- Выбор языка отключен -->
     <p class="status">${t('settingsStatus')}</p>
     <div class="stack">${btn(t('settingsSave'),'saveSettings',true)}${btn(t('levelsBack'),'back')}</div>
     <div class="stack" style="margin-top:12px">
@@ -4271,7 +4267,7 @@ async function boot(){
     else                { menu(); }
     $('app').hidden=false;
   } else {
-    welcomeScreen();
+    goToMatch3();
     $('app').hidden=true;
   }
   $('boot').hidden=true;
@@ -4289,6 +4285,8 @@ async function boot(){
         safeStorage.remove('antivirus-match3-level');
         safeStorage.remove('antivirus-match3-bombs');
         safeStorage.remove('antivirus-match3-coins');
+        safeStorage.remove('antivirus-match3-tutorial-shown');
+        safeStorage.remove('antivirus-match3-stars');
         if(vkReady && window.vkBridge){
           await vkBridge.send('VKWebAppStorageSet',{key:getCloudKey(),value:'{}'});
         }

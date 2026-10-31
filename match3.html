@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -342,11 +342,23 @@
   </div>
 </div>
 
-<div class="tutorial" id="tutorialScreen">
-  <div class="tutorial-dialog">
-    <h2>Как играть</h2>
-    <p>Составьте линию из 3-х ячеек одного цвета, и она исчезнет вместе с вирусом!</p>
-    <button id="startBtn">Начать игру</button>
+<div class="tutorial" id="tutorialScreen" style="display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.85); position:fixed; inset:0; z-index:999;">
+  <div class="tutorial-dialog" style="background:linear-gradient(180deg, #1e293b, #0f172a); border:2px solid #38bdf8; border-radius:16px; padding:20px; max-width:400px; width:90%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.8); color:#fff;">
+    
+    <div style="display:flex; justify-content:center; align-items:flex-end; gap:10px; margin-bottom:15px;">
+      <div id="svgNika" style="width:80px; height:110px;"></div>
+      <div id="svgLeu" style="width:80px; height:80px;"></div>
+    </div>
+
+    <h2 style="color:#38bdf8; margin-top:0; font-size:20px;">Ника заболела</h2>
+    <p style="font-size:14px; line-height:1.4; color:#cbd5e1;">Ника играла в комнате, но вдруг громко чихнула...<br><br>
+    <b>Иммунитет:</b> «Привет, Доктор! Я — Иммунитет. Помоги мне победить вирусы!»</p>
+    
+    <div style="background:rgba(56, 189, 248, 0.1); border:1px solid #38bdf8; border-radius:8px; padding:10px; margin:15px 0;">
+      <p style="font-size:13px; margin:0; color:#e0f2fe;"><b>🎯 Как играть:</b><br>Составьте линию из 3-х ячеек одного цвета, и она исчезнет вместе с вирусом!</p>
+    </div>
+
+    <button id="startBtn" style="width:100%; padding:12px; font-size:16px; font-weight:bold; border-radius:14px; border:none; background:linear-gradient(135deg,#6366f1,#ec4899); color:#fff; cursor:pointer; box-shadow:0 4px 16px rgba(99,102,241,.35); font-family:inherit;">▶ Начать игру</button>
   </div>
 </div>
 
@@ -432,6 +444,54 @@ console.log('=== MATCH3 V2.0 ===');
     console.log('[MOB-OK] vkBridge.send proxied to parent');
   }
 })();
+
+// === Daily Bonus System ===
+const STREAK_REWARDS = [
+  { day:1, coins:20, bombs:0 }, { day:2, coins:40, bombs:0 }, { day:3, coins:60, bombs:1 },
+  { day:4, coins:100, bombs:0 }, { day:5, coins:150, bombs:1 }, { day:6, coins:250, bombs:0 },
+  { day:7, coins:500, bombs:3 }
+];
+
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function checkBonusAndProceed(callback) {
+  try {
+    const key = getSharedCoinsKey();
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    const today = getTodayStr();
+    if(data.dailyLastClaim === today) { callback(); return; }
+
+    const streak = Math.max(1, Math.min(7, data.dailyStreak || 1));
+    const reward = STREAK_REWARDS[streak - 1] || STREAK_REWARDS[0];
+
+    document.getElementById('bonusRewardText').innerHTML = reward.coins + ' монет' + (reward.bombs ? ' + ' + reward.bombs + ' бомб' : '');
+
+    const claimBtn = document.getElementById('claimBonusBtn');
+    claimBtn.onclick = () => {
+      data.coins = (data.coins || 0) + reward.coins;
+      if (reward.bombs) {
+        let currentBombs = Number(localStorage.getItem('antivirus-match3-bombs') || '0');
+        localStorage.setItem('antivirus-match3-bombs', String(currentBombs + reward.bombs));
+        bombs = currentBombs + reward.bombs;
+        updateHUD();
+      }
+      data.dailyLastClaim = today;
+      localStorage.setItem(key, JSON.stringify(data));
+      coins = data.coins;
+      updateHUD();
+
+      document.getElementById('bonusPopup').style.display = 'none';
+      sfxWin();
+      callback();
+    };
+
+    document.getElementById('bonusPopup').style.display = 'flex';
+  } catch(e) { console.error('Bonus error', e); callback(); }
+}
+
 function closeToParent(extra){
   try { Stats.track('app_close', { screen: currentScreen, app: 'match3' }); Stats.flush(true); } catch(e){}
   if(typeof earnedCoins !== 'undefined' && earnedCoins > 0 && typeof flushCoins === 'function') flushCoins();
@@ -746,12 +806,8 @@ function vibrate(pattern){
 document.addEventListener('pointerdown', initAudio, {passive:true});
 document.addEventListener('keydown', initAudio);
 
-try {
-  const _s = JSON.parse(localStorage.getItem(getSharedCoinsKey()) || '{}').settings || {};
-  if(_s.musicTrack === 'random' || (typeof _s.musicTrack === 'number' && _s.musicTrack >= 0 && _s.musicTrack <= 5)) {
-    currentMusicSetting = String(_s.musicTrack);
-  }
-} catch(e){}
+  // Временно принудительно ставим рандом (или можно просто закомментировать блок)
+  currentMusicSetting = 'random';
 
 function musicIsEnabled(){
   try {
@@ -784,7 +840,9 @@ function playMusic(){
     return;
   }
   if(currentMusicSetting === 'random') {
-    const randomIndex = Math.floor(Math.random() * musicTracks.length);
+    // Исключаем боссовый трек (индекс 3) из обычного рандома
+    const availableTracks = [0, 1, 2, 4, 5];
+    const randomIndex = availableTracks[Math.floor(Math.random() * availableTracks.length)];
     bgMusic.src = musicTracks[randomIndex];
   } else {
     const trackIndex = Number(currentMusicSetting);
@@ -797,7 +855,11 @@ function playMusic(){
 }
 bgMusic.addEventListener('ended', () => {
   if(currentMusicSetting === 'random') {
-    playMusic();
+    const availableTracks = [0, 1, 2, 4, 5];
+    const randomIndex = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+    bgMusic.src = musicTracks[randomIndex];
+    bgMusic.load();
+    resumeBgMusicIfAllowed();
   } else {
     bgMusic.currentTime = 0;
     resumeBgMusicIfAllowed();
@@ -1429,9 +1491,11 @@ function win(){
     const next = document.createElement('button');
     next.textContent = 'Следующий уровень';
     next.id = 'nextLevelBtn';
-    next.onclick = async () => {
-      currentLevel = Math.min(MAX_LEVEL, currentLevel + 1);
-      beginRound();
+    next.onclick = () => {
+      checkBonusAndProceed(() => {
+        currentLevel = Math.min(MAX_LEVEL, currentLevel + 1);
+        beginRound();
+      });
     };
     btns.appendChild(next);
   }
@@ -1439,7 +1503,9 @@ function win(){
   const menuBtn = document.createElement('button');
   menuBtn.textContent = 'В меню';
   menuBtn.className = 'secondary';
-  menuBtn.onclick = () => { closeToParent(); };
+  menuBtn.onclick = () => {
+    checkBonusAndProceed(() => { closeToParent(); });
+  };
   btns.appendChild(menuBtn);
 
   document.getElementById('overlay').hidden = false;
@@ -1845,6 +1911,25 @@ function updateHUD(){
 // ============================================================
 // УПРАВЛЕНИЕ РАУНДОМ
 // ============================================================
+
+// === SVG-функции персонажей (из index.html) ===
+function getNikaSVG(state){
+  const s=state||'happy', sick=s==='sick', better=s==='better', sleeping=s==='sleeping';
+  const eyes=sleeping?'<path d="M30 52q5 5 10 0M60 52q5 5 10 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>':sick?'<path d="M28 53q7-5 14 0M58 53q7-5 14 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>':'<ellipse cx="36" cy="51" rx="9" ry="11" fill="#fff"/><ellipse cx="64" cy="51" rx="9" ry="11" fill="#fff"/><circle cx="37" cy="53" r="5"/><circle cx="63" cy="53" r="5"/><circle cx="39" cy="50" r="1.8" fill="#fff"/><circle cx="65" cy="50" r="1.8" fill="#fff"/>';
+  const mouth=sick?'<path d="M43 70q7-6 14 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>':sleeping?'<path d="M45 69q5 4 10 0" fill="none" stroke="#7c2d12" stroke-width="2" stroke-linecap="round"/>':'<path d="M40 68q10 12 20 0" fill="none" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>';
+  const blanket=sick?'<path d="M15 91Q50 78 85 91v25H15Z" fill="#f9a8d4" stroke="#7c2d12" stroke-width="1.5"/>':sleeping?'<path d="M15 83Q50 72 85 83v33H15Z" fill="#f9a8d4" stroke="#7c2d12" stroke-width="1.5"/>':better?'<path d="M20 91Q50 83 80 91v22H20Z" fill="#f9a8d4" stroke="#7c2d12" stroke-width="1.5"/>':'';
+  const arms=better?'<path d="M25 91q-12-7-13-18M75 91q14-13 9-25" fill="none" stroke="#ffe0cc" stroke-width="7" stroke-linecap="round"/><path d="M84 66l3-4m-3 4l-4-2" stroke="#7c2d12" stroke-width="2" stroke-linecap="round"/>':sick||sleeping?'':'<path d="M25 91q-15-20-8-34M75 91q15-20 8-34" fill="none" stroke="#ffe0cc" stroke-width="7" stroke-linecap="round"/>';
+  const extras=sick?'<circle cx="50" cy="61" r="3" fill="#f43f5e"/><path d="M76 34q5 6 0 11q-5-5 0-11" fill="#93c5fd"/>':sleeping?'<text x="76" y="27" font-size="14" font-weight="900" fill="#6366f1">Z</text><text x="86" y="17" font-size="10" font-weight="900" fill="#6366f1">Z</text>':s==='happy'?'<path d="M12 42l3 5 5 1-4 3 1 5-5-3-5 3 1-5-4-3 5-1zM82 55l2 4 4 1-3 2 1 4-4-2-4 2 1-4-3-2 4-1z" fill="#f59e0b"/>':'';
+  return '<svg class="character-svg" viewBox="0 0 100 140" aria-label="Ника" xmlns="http://www.w3.org/2000/svg"><g stroke="#7c2d12" stroke-width="1.5" stroke-linejoin="round"><ellipse cx="50" cy="25" rx="24" ry="10" fill="#f5d76e"/><path d="M28 27q-12 2-9 15M72 27q12 2 9 15" fill="none" stroke="#f5d76e" stroke-width="9" stroke-linecap="round"/><circle cx="20" cy="43" r="4" fill="#f9a8d4"/><circle cx="80" cy="43" r="4" fill="#f9a8d4"/><circle cx="50" cy="54" r="28" fill="#ffe0cc"/><path d="M29 37q21-20 42 0" fill="#f5d76e" stroke="none"/>'+eyes+'<circle cx="32" cy="64" r="4" fill="#ffb7ca" stroke="none"/><circle cx="68" cy="64" r="4" fill="#ffb7ca" stroke="none"/>'+mouth+'<path d="M38 91h24v27H38z" fill="#f9a8d4"/><path d="M42 99l8-4 8 4-8 4zM43 110l7-4 7 4-7 4z" fill="#fff" stroke="none"/>'+arms+''+blanket+'<path d="M40 117v12M60 117v12" stroke="#ffe0cc" stroke-width="6" stroke-linecap="round"/>'+extras+'</g></svg>';
+}
+function getLeukocyteSVG(state){
+  const s=state||'idle', point=s==='point', cheer=s==='cheer';
+  const arms=point?'<path d="M22 58Q8 49 15 28" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/><path d="M15 28l-3 6m3-6l6 2" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>':cheer?'<path d="M25 61Q10 48 10 30M75 61Q90 48 90 30" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/>':'<path d="M23 62Q10 70 12 78M77 62Q90 70 88 78" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/>';
+  const mouth=point?'<ellipse cx="50" cy="69" rx="8" ry="6" fill="#1e293b"/>':cheer?'<path d="M32 66Q50 88 68 66" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>':'<path d="M39 68q11 9 22 0" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>';
+  const spark=cheer?'<path d="M12 18v12m-6-6h12M88 18v12m-6-6h12" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>':'';
+  return '<svg class="character-svg" viewBox="0 0 100 100" aria-label="Лейкоцит" xmlns="http://www.w3.org/2000/svg"><g stroke="#93c5fd" stroke-width="2"><ellipse cx="50" cy="52" rx="35" ry="29" fill="#fff"/><circle cx="27" cy="38" r="12" fill="#fff" stroke="none"/><circle cx="73" cy="38" r="12" fill="#fff" stroke="none"/>'+arms+'<ellipse cx="37" cy="51" rx="7" ry="9" fill="#0f172a"/><ellipse cx="63" cy="51" rx="7" ry="9" fill="#0f172a"/><circle cx="39" cy="48" r="2" fill="#fff" stroke="none"/><circle cx="65" cy="48" r="2" fill="#fff" stroke="none"/>'+mouth+''+spark+'</g></svg>';
+}
+
 function beginRound(){
   currentScreen = 'game';
   console.log('Bombs at start:', bombs, 'Raw localStorage:', localStorage.getItem('antivirus-match3-bombs'));
@@ -1903,8 +1988,17 @@ if(localStorage.getItem('antivirus-match3-tutorial-shown') === '1'){
 document.getElementById('startBtn').addEventListener('click', () => {
   localStorage.setItem('antivirus-match3-tutorial-shown', '1');
   document.getElementById('tutorialScreen').hidden = true;
-  document.getElementById('levelMapScreen').hidden = false;
-  initAudio();renderLevelMap();
+  initAudio();
+  currentLevel = 1;
+  beginRound();
+});
+
+// === Populate tutorial SVGs ===
+document.addEventListener('DOMContentLoaded', () => {
+  const nikaEl = document.getElementById('svgNika');
+  const leuEl = document.getElementById('svgLeu');
+  if(nikaEl) nikaEl.innerHTML = getNikaSVG('sick');
+  if(leuEl) leuEl.innerHTML = getLeukocyteSVG('point');
 });
 document.getElementById('menuLink').addEventListener('click',()=>{closeToParent();});
 document.getElementById('levelMapBack').addEventListener('click',()=>{closeToParent();});
@@ -2066,6 +2160,15 @@ window.addEventListener('load', resizeBoardCanvas);
 setTimeout(resizeBoardCanvas, 100);
 
 </script>
+
+<div id="bonusPopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
+  <div style="background:linear-gradient(180deg, #1e293b, #0f172a); border:2px solid #fbbf24; border-radius:16px; padding:20px; max-width:340px; width:90%; text-align:center; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
+    <h2 style="color:#fbbf24; margin-top:0;">🎁 Ежедневный бонус</h2>
+    <p style="font-size:16px;">Вы получаете:</p>
+    <div id="bonusRewardText" style="font-size:20px; font-weight:bold; color:#4ade80; margin:15px 0;"></div>
+    <button id="claimBonusBtn" style="width:100%; padding:12px; font-size:16px; background:linear-gradient(180deg,#fbbf24,#d97706); border:none; color:#000; font-weight:bold; border-radius:8px; cursor:pointer; margin-bottom:10px;">Забрать</button>
+  </div>
+</div>
 
 </body>
 </html>
