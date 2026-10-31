@@ -576,12 +576,23 @@ const Stats = (() => {
     return 'match3_' + sessionId;
   }
 
+  function getPlatformMode() {
+    try {
+      const isOK = window.Platform && window.Platform.mode === 'ok';
+      const urlParams = new URLSearchParams(window.location.search);
+      const isMob = urlParams.get('vk_platform') === 'mobile' || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || '');
+      if (isOK) return isMob ? 'ok_app' : 'ok_web';
+      return isMob ? 'vk_app' : 'vk_web';
+    } catch(e) {}
+    return 'vk_web';
+  }
+
   function track(ev, props) {
     queue.push(Object.assign({
       t: Math.floor(Date.now() / 1000),
       sessionId,
       playerId: getPlayerId(),
-      platform: 'web',
+      platform: getPlatformMode(),
       app: 'match3',
       ev
     }, props || {}));
