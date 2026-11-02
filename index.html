@@ -2070,7 +2070,9 @@ function openMatch3Iframe(){
   const overlay=document.getElementById('match3Overlay');
   const frame=document.getElementById('match3Frame');
   if(!overlay || !frame) return;
+  let iframeLoaded = false;
   frame.onload=()=>{
+    iframeLoaded = true;
     if(frame.getAttribute('src') === 'about:blank') return;
     try {
       const adBtn = frame.contentWindow.document.getElementById('adBombBtn');
@@ -2084,6 +2086,12 @@ function openMatch3Iframe(){
   };
   overlay.hidden=false;
   frame.src='match3.html';
+  setTimeout(()=>{
+    if(!iframeLoaded){
+      console.log('[iOS Fallback] iframe timeout, redirecting...');
+      location.href='match3.html?vk_client=ok';
+    }
+  },8000);
 }
 
 function closeMatch3Iframe(skipMenu){
