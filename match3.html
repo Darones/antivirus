@@ -403,6 +403,20 @@
 
 'use strict';
 console.log('=== MATCH3 V2.0 ===');
+
+const INTERSTITIAL_EVERY = 2;
+
+async function showInterstitialMatch3() {
+  if (!window.vkBridge) return false;
+  if (window.Platform && window.Platform.mode === 'ok') return false; // На OK реклама не работает
+  try {
+    const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
+    return !!(r && (r.result || r.success));
+  } catch(e) {
+    console.warn('Interstitial error:', e);
+    return false;
+  }
+}
 // Mobile OK child frame context and vkBridge forwarding.
 (function(){
   let ownedFrame=false;
@@ -1506,7 +1520,10 @@ function win(){
     next.textContent = 'Следующий уровень';
     next.id = 'nextLevelBtn';
     next.onclick = () => {
-      checkBonusAndProceed(() => {
+      checkBonusAndProceed(async () => {
+        if (levelsCompleted > 0 && levelsCompleted % INTERSTITIAL_EVERY === 0) {
+          await showInterstitialMatch3();
+        }
         currentLevel = Math.min(MAX_LEVEL, currentLevel + 1);
         beginRound();
       });

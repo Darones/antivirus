@@ -1241,7 +1241,7 @@ const DUEL_BOT_DELAY = 120 * 1000;
 
 // === Менеджер рекламы ===
 // [AD-FIX] Ограничивает частоту и суточное количество рекламных показов.
-const AD_INTERSTITIAL_COOLDOWN = 60 * 1000;
+const AD_INTERSTITIAL_COOLDOWN = 5 * 1000;
 const AD_REWARDED_COOLDOWN     = 30 * 1000;
 const AD_DAILY_LIMIT           = 15;
 const AD_CHECK_TIMEOUT         = 1500;
@@ -1774,7 +1774,6 @@ function setCloudStatus(text){const el=$('cloudStatus');if(el)el.textContent=tex
 
 // [AD-FIX] Все interstitial проходят через единый менеджер рекламы.
 async function showInterstitial(){
-  return false;
   if(save.purchases.remove_ads) return false;
   return await adShow('interstitial');
 }
@@ -4172,27 +4171,28 @@ $('dialog').addEventListener('click',async e=>{
       if(running)pauseMenu();else menu();
       break;
     case'resume':resume();break;
-    case'restart':
+    case'restart': (async () => {
       record();
       if(mode==='endless' && !save.purchases.remove_ads && __rewardedAdsAvailable && vkReady){
-        showInterstitial().then(()=>start(mode,level));
-      } else {
-        start(mode,level);
+        await showInterstitial();
       }
-      break;
-    case'next':{
+      start(mode,level);
+    })();
+    break;
+    case'next': (async () => {
       const bossKey='boss'+level;
       if(level%5===0&&level<30&&save.story[bossKey]===false){
         save.story[bossKey]=true;persist();
-        showStorySequence(bossKey,()=>{
-          if(levelsCompleted>0&&levelsCompleted%INTERSTITIAL_EVERY===0)showInterstitial();
+        showStorySequence(bossKey, async () => {
+          if(levelsCompleted>0&&levelsCompleted%INTERSTITIAL_EVERY===0) await showInterstitial();
           start('campaign',level+1);
         });
-        break;
+        return;
       }
-      if(levelsCompleted>0&&levelsCompleted%INTERSTITIAL_EVERY===0)showInterstitial();
-      start('campaign',level+1);break;
-    }
+      if(levelsCompleted>0&&levelsCompleted%INTERSTITIAL_EVERY===0) await showInterstitial();
+      start('campaign',level+1);
+    })();
+    break;
     case'records':recordsMenu();break;
     case'share': doShare(); break;
     case'shop':shopMenu();break;
