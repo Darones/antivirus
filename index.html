@@ -1170,6 +1170,11 @@ if(method === 'showLoadedAd') {
   if(window.__okAdResolve){ window.__okAdResolve(isOk); window.__okAdResolve = null; }
   return;
 }
+if (method === 'showAd') {
+  const isOk = (result === 'ok' && (data === 'complete' || data === 'ad_shown'));
+  if (window.__okAdResolve) { window.__okAdResolve(isOk); }
+  return;
+}
 if(method !== 'showPayment') return;
   if(result === 'ok' || result === 'success'){
     const code = (data && (data.product_code || data.code)) || '';
@@ -1775,6 +1780,27 @@ function setCloudStatus(text){const el=$('cloudStatus');if(el)el.textContent=tex
 // [AD-FIX] Все interstitial проходят через единый менеджер рекламы.
 async function showInterstitial(){
   if(save.purchases.remove_ads) return false;
+  if (window.Platform.mode === 'ok') {
+    if (!window.FAPI) return false;
+    const musicWasPlaying = !!(musicAudio && !musicAudio.paused);
+    if (musicAudio) musicAudio.pause();
+    return new Promise((resolve) => {
+      window.__okAdResolve = (success) => {
+        if (success) Stats.track('ad_watch', { kind: 'interstitial', ok: true });
+        else Stats.track('ad_watch', { kind: 'interstitial', ok: false });
+        window.__okAdResolve = null; 
+        if (musicWasPlaying) musicResumeIfAllowed();
+        resolve(success); 
+      };
+      window.__okAdTimeout = setTimeout(() => { 
+        if(window.__okAdResolve) { window.__okAdResolve(false); } 
+      }, 15000);
+      try { FAPI.UI.showAd(); } catch(e) { 
+        console.warn('[OK] showAd failed:', e); 
+        if(window.__okAdResolve) window.__okAdResolve(false); 
+      }
+    });
+  }
   return await adShow('interstitial');
 }
 // [AD-FIX] Все rewarded проходят через единый менеджер рекламы.
