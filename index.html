@@ -37,6 +37,10 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-r
   display:flex;flex-direction:column;gap:5px;overflow:hidden;
 box-sizing:border-box;}
 
+body.ok-banner-active .app{
+  padding-top: calc(env(safe-area-inset-top) + 64px) !important;
+}
+
 .duel-bar{
   display:flex;gap:10px;align-items:center;justify-content:space-between;
   background:linear-gradient(135deg,#fef3c7,#fde68a);
@@ -1203,6 +1207,7 @@ async function showBannerAd(){
     try {
       OK_FAPI.UI.requestBannerAds();
       OK_FAPI.UI.showBannerAds();
+      document.body.classList.add('ok-banner-active');
       bannerAdShown = true;
       console.log('[OK] Banner requested');
     } catch(e) { console.warn('[OK] Banner error:', e); }

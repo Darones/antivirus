@@ -20,6 +20,10 @@
     overflow:hidden;user-select:none;-webkit-user-select:none;
   }
   .app{margin:0 auto;width:100%;max-width:440px;height:100dvh;display:flex;flex-direction:column;justify-content:space-between;gap:4px;padding:4px; padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:calc(env(safe-area-inset-bottom) + 4px);box-sizing:border-box;align-items:center;overflow:hidden}
+body.ok-banner-active .app{
+  padding-top: calc(env(safe-area-inset-top) + 64px) !important;
+}
+
   .top-bar{
     flex-shrink:0;
     display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:100%;
@@ -577,6 +581,7 @@ async function showBanner() {
     try {
       OK_FAPI.UI.requestBannerAds();
       OK_FAPI.UI.showBannerAds();
+      document.body.classList.add('ok-banner-active');
       console.log('[OK] Banner requested');
     } catch(e) { console.warn('[OK] Banner error:', e); }
     return;
