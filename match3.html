@@ -392,6 +392,13 @@
   var p = new URLSearchParams(window.location.search);
   var ok = p.get('vk_client') === 'ok' || /ok\.ru/i.test(p.get('vk_referrer') || '') || /ok\.ru/i.test(document.referrer || '');
   window.Platform = { mode: ok ? 'ok' : 'vk', isOK: function(){ return this.mode === 'ok'; } };
+  window.API_callback = function(method, result, data) {
+    if (method === 'showAd') {
+      const isOk = (result === 'ok' && (data === 'complete' || data === 'ad_shown'));
+      if (window.__okAdResolve) { window.__okAdResolve(isOk); }
+      return;
+    }
+  };
   if (ok && !window.vkBridge) {
     window.vkBridge = {
       send: function(method, params){ console.log('[VK-OK stub]', method); return Promise.resolve({}); },
@@ -407,23 +414,37 @@ console.log('=== MATCH3 V2.0 ===');
 const INTERSTITIAL_EVERY = 2;
 
 async function showInterstitialMatch3() {
+  if (window.Platform && window.Platform.mode === 'ok') {
+    if (!window.FAPI) return false;
+    const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
+    if (bgMusic) bgMusic.pause();
+    return new Promise((resolve) => {
+      window.__okAdResolve = (success) => {
+        if (success) Stats.track('ad_watch', { kind: 'interstitial', ok: true, app: 'match3' });
+        else Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' });
+        window.__okAdResolve = null;
+        if (musicWasPlaying) resumeBgMusicIfAllowed();
+        resolve(success);
+      };
+      window.__okAdTimeout = setTimeout(() => {
+        if(window.__okAdResolve) { window.__okAdResolve(false); }
+      }, 15000);
+      try { FAPI.UI.showAd(); } catch(e) {
+        console.warn('[OK] showAd failed:', e);
+        if(window.__okAdResolve) window.__okAdResolve(false);
+      }
+    });
+  }
   if (!window.vkBridge) return false;
-  if (window.Platform && window.Platform.mode === 'ok') return false;
-  
   const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
   if (bgMusic) bgMusic.pause();
-
   try {
     const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
     const ok = !!(r && (r.result || r.success));
-    if (ok) {
-      Stats.track('ad_watch', { kind: 'interstitial', ok: true, app: 'match3' });
-    } else {
-      Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' });
-    }
+    if (ok) { Stats.track('ad_watch', { kind: 'interstitial', ok: true, app: 'match3' }); }
+    else { Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' }); }
     return ok;
   } catch(e) {
-    console.warn('Interstitial error:', e);
     Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' });
     return false;
   } finally {
