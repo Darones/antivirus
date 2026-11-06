@@ -417,29 +417,60 @@ if (window.Platform.mode === 'ok' && window.FAPI) {
 console.log('=== MATCH3 V2.0 ===');
 
 const INTERSTITIAL_EVERY = 2;
+let _interstitialCounter = 0;
+async function maybeShowInterstitialMatch3(){
+  _interstitialCounter++;
+  if(_interstitialCounter % INTERSTITIAL_EVERY === 0){
+    try { await showInterstitialMatch3(); } catch(e){ console.warn('[interstitial]',e); }
+  }
+}
 
+function requestOkAdFromParent(){
+  return new Promise((resolve) => {
+    const id = 'ok-ad-' + Math.random().toString(36).slice(2,10);
+    const timer = setTimeout(() => { window.removeEventListener('message', handler); resolve(false); }, 20000);
+    function handler(ev){
+      if(ev.source !== window.parent) return;
+      if(!ev.data || ev.data.type !== 'ok-ad-result' || ev.data.id !== id) return;
+      clearTimeout(timer);
+      window.removeEventListener('message', handler);
+      resolve(!!ev.data.ok);
+    }
+    window.addEventListener('message', handler);
+    try { window.parent.postMessage({type:'ok-show-interstitial', id}, location.origin); }
+    catch(e){ clearTimeout(timer); window.removeEventListener('message', handler); resolve(false); }
+  });
+}
+function showOkAdDirect(){
+  return new Promise((resolve) => {
+    if (!window.FAPI) { resolve(false); return; }
+    window.__okAdResolve = (success) => {
+      window.__okAdResolve = null;
+      resolve(!!success);
+    };
+    window.__okAdTimeout = setTimeout(() => {
+      if(window.__okAdResolve) { window.__okAdResolve(false); }
+    }, 15000);
+    try { window.FAPI.UI.showAd(); }
+    catch(e){ console.warn('[OK] showAd failed:', e); if(window.__okAdResolve) window.__okAdResolve(false); }
+  });
+}
 async function showInterstitialMatch3() {
   if (window.Platform && window.Platform.mode === 'ok') {
-    const OK_FAPI = window.FAPI || (window.parent && window.parent.FAPI);
-    if (!OK_FAPI) { console.warn('[OK] FAPI not found in match3'); return false; }
     const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
     if (bgMusic) bgMusic.pause();
-    return new Promise((resolve) => {
-      window.__okAdResolve = (success) => {
-        if (success) Stats.track('ad_watch', { kind: 'interstitial', ok: true, app: 'match3' });
-        else Stats.track('ad_watch', { kind: 'interstitial', ok: false, app: 'match3' });
-        window.__okAdResolve = null;
-        if (musicWasPlaying) resumeBgMusicIfAllowed();
-        resolve(success);
-      };
-      window.__okAdTimeout = setTimeout(() => {
-        if(window.__okAdResolve) { window.__okAdResolve(false); }
-      }, 15000);
-      try { OK_FAPI.UI.showAd(); } catch(e) {
-        console.warn('[OK] showAd failed:', e);
-        if(window.__okAdResolve) window.__okAdResolve(false);
+    let result = false;
+    try {
+      if (window.parent !== window) {
+        result = await requestOkAdFromParent();
+      } else {
+        result = await showOkAdDirect();
       }
-    });
+    } finally {
+      if (musicWasPlaying) resumeBgMusicIfAllowed();
+    }
+    Stats.track('ad_watch', { kind: 'interstitial', ok: result, app: 'match3' });
+    return result;
   }
   if (!window.vkBridge) return false;
   const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
@@ -473,7 +504,7 @@ async function showInterstitialMatch3() {
   } catch(e){}
   if(!ownedFrame || !window.OK_CONTEXT) return;
   window.addEventListener('message',e=>{
-    if(e.source!==window.parent || e.origin!==location.origin || !e.data || e.data.type!=='ok-context') return;
+    if(e.source!==window.parent || !e.data || e.data.type!=='ok-context') return;
     window.OK_CONTEXT=e.data;
     if(e.data.vk_client==='ok' || /_ok$/i.test(e.data.vk_platform||'')){ if(window.Platform) window.Platform.mode='ok'; }
     console.log('[MOB-OK] ok-context',JSON.stringify({mode:window.Platform&&window.Platform.mode,hasUserId:!!e.data.vk_user_id,vk_platform:e.data.vk_platform}));
@@ -481,7 +512,7 @@ async function showInterstitialMatch3() {
   if(window.vkBridge && typeof window.vkBridge.send==='function'){
     const pending=new Map(); let nextId=1;
     window.addEventListener('message',e=>{
-      if(e.source!==window.parent || e.origin!==location.origin || !e.data || e.data.type!=='vkbridge-result') return;
+      if(e.source!==window.parent || !e.data || e.data.type!=='vkbridge-result') return;
       const p=pending.get(e.data.id); if(!p) return;
       pending.delete(e.data.id); clearTimeout(p.timer);
       if(e.data.error) p.reject(e.data.error); else p.resolve(e.data.result);
@@ -549,18 +580,35 @@ function checkBonusAndProceed(callback) {
 function closeToParent(extra){
   try { Stats.track('app_close', { screen: currentScreen, app: 'match3' }); Stats.flush(true); } catch(e){}
   if(typeof earnedCoins !== 'undefined' && earnedCoins > 0 && typeof flushCoins === 'function') flushCoins();
-  try {
-    if(window.parent!==window){
-      const _pframe = window.parent.document.getElementById('match3Frame');
-      if(_pframe && _pframe.contentWindow===window){
-        window.parent.postMessage({type:'match3-close', extra: extra || ''},location.origin); return;
-      }
+
+  const _isOk = (typeof getSharedCoinsKey === 'function' && getSharedCoinsKey() === 'antivirus-ok-1');
+  const _fallback = 'index.html?menu=1' + (_isOk ? '&vk_client=ok' : '') + '&from_match3=1' + (extra ? '&' + extra : '');
+
+  if (window.parent !== window) {
+    let _acked = false;
+    const _ackHandler = (ev) => {
+      if (ev && ev.data && ev.data.type === 'match3-close-ack') { _acked = true; }
+    };
+    try { window.addEventListener('message', _ackHandler); } catch(e){}
+    try {
+      window.parent.postMessage({type:'match3-close', extra: extra || ''}, '*');
+    } catch(e) {
+      try { window.removeEventListener('message', _ackHandler); } catch(_e){}
+      try { window.parent.location.href = _fallback; return; } catch(_e){}
+      location.href = _fallback; return;
     }
-  } catch(e){}
-  const isOk = (typeof getSharedCoinsKey === 'function' && getSharedCoinsKey() === 'antivirus-ok-1');
-  location.href='index.html?menu=1' + (isOk ? '&vk_client=ok' : '') + '&from_match3=1' + (extra?'&'+extra:'');
+    setTimeout(() => {
+      try { window.removeEventListener('message', _ackHandler); } catch(e){}
+      if (!_acked) {
+        try { window.parent.location.href = _fallback; return; } catch(e){}
+        location.href = _fallback;
+      }
+    }, 700);
+    return;
+  }
+  location.href = _fallback;
 }
-window.closeToParent=closeToParent;
+window.closeToParent = closeToParent;
 
 
 try {
@@ -1572,9 +1620,7 @@ function win(){
     next.id = 'nextLevelBtn';
     next.onclick = () => {
       checkBonusAndProceed(async () => {
-        if (levelsCompleted > 0 && levelsCompleted % INTERSTITIAL_EVERY === 0) {
-          await showInterstitialMatch3();
-        }
+        await maybeShowInterstitialMatch3();
         currentLevel = Math.min(MAX_LEVEL, currentLevel + 1);
         beginRound();
       });
@@ -1631,7 +1677,8 @@ function lose(){
   const restart = document.createElement('button');
   restart.textContent = 'Заново';
   restart.className = 'primary';
-  restart.onclick = () => {
+  restart.onclick = async () => {
+    await maybeShowInterstitialMatch3();
     beginRound();
   };
   btns.appendChild(restart);

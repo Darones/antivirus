@@ -988,6 +988,7 @@ body.duel-mode .bomb-btn{display:none}
 </div>
 
 <div id="fireworkLayer" aria-hidden="true"></div>
+<div id="okBannerTop" style="display:none;position:fixed;top:0;left:0;right:0;height:60px;z-index:10000;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);"></div>
 <div id="match3Overlay" hidden style="position:fixed;inset:0;z-index:9999;background:#000;">
   <iframe id="match3Frame" src="about:blank" style="width:100%;height:100%;border:0;display:block;background:#fff;" allow="autoplay"></iframe>
 </div>
@@ -2127,7 +2128,6 @@ function closeMatch3Iframe(skipMenu){
       const bgMusic = frame.contentWindow.document.getElementById('bgMusic');
       if(bgMusic) bgMusic.pause();
     } catch(e){}
-    frame.src='about:blank';
   }
   if(overlay) overlay.hidden=true;
   try {
@@ -2139,13 +2139,16 @@ function closeMatch3Iframe(skipMenu){
   } catch(e){ console.warn('[closeMatch3Iframe] sync failed:', e); }
   try {
     const welcomeEl = document.getElementById('welcomeFull');
-    if(welcomeEl && !welcomeEl.hidden){
-      welcomeEl.hidden = true;
-      const appEl = document.getElementById('app');
-      if(appEl) appEl.hidden = false;
-      if(!skipMenu && typeof menu === 'function') menu();
-    }
-  } catch(e){ console.warn('[closeMatch3Iframe] welcome->menu failed:', e); }
+    if(welcomeEl) welcomeEl.hidden = true;
+  } catch(e){}
+  try {
+    const appEl = document.getElementById('app');
+    if(appEl) appEl.hidden = false;
+  } catch(e){}
+  if(!skipMenu && typeof menu === 'function'){
+    try { menu(); } catch(e){ console.warn('[closeMatch3Iframe] menu failed:', e); }
+  }
+  if(frame){ try { frame.src='about:blank'; } catch(e){} }
   try {
     if(musicAudio && save && save.settings && save.settings.music && !document.hidden && !platformPaused){
       const p = musicAudio.play();
@@ -2158,19 +2161,35 @@ window.goToMatch3=goToMatch3;
 window.closeMatch3Iframe=closeMatch3Iframe;
 window.addEventListener('message',e=>{
   const frame=document.getElementById('match3Frame');
-  if(!frame || e.source!==frame.contentWindow || e.origin!==location.origin || !e.data) return;
+  if(!frame || !e.data) return;
+  if(e.source!==frame.contentWindow){
+    // Не наш фрейм — игнорируем, но не падаем.
+    return;
+  }
   if(e.data.type==='match3-close'){
     const _extra = e.data.extra || '';
     const _wantShop  = _extra === 'openShop=1';
     const _wantDaily = _extra === 'openDaily=1';
+    try { e.source.postMessage({type:'match3-close-ack'}, '*'); } catch(err){}
     closeMatch3Iframe(_wantShop || _wantDaily);
     if(_wantShop)       { shopMenu(); }
     else if(_wantDaily) { dailyMenu(); }
     return;
   }
+  if(e.data.type==='ok-show-interstitial'){
+    const reqId=e.data.id;
+    (async()=>{
+      let ok=false;
+      try { ok = await showInterstitial(); }
+      catch(err){ console.warn('[iframe ok-ad]',err); }
+      try { frame.contentWindow.postMessage({type:'ok-ad-result',id:reqId,ok:!!ok}, '*'); }
+      catch(err){}
+    })();
+    return;
+  }
   if(e.data.type!=='vkbridge-call') return;
   const {id,method,params}=e.data;
-  const reply=payload=>{ try { e.source.postMessage({type:'vkbridge-result',id,...payload},e.origin); } catch(err){} };
+  const reply=payload=>{ try { e.source.postMessage({type:'vkbridge-result',id,...payload},'*'); } catch(err){} };
   if(!vkReady || !window.vkBridge){ reply({error:{message:'vkBridge not ready'}}); return; }
   try { Promise.resolve(vkBridge.send(method,params||{})).then(
     result=>reply({result}), err=>reply({error:{message:String(err&&err.message||err)}})
@@ -4189,10 +4208,12 @@ $('dialog').addEventListener('click',async e=>{
           musicStart(p);
         }
       }
-      save.settings.lang=$('set-lang').value;
       save.settings.vibe=$('set-vibe').checked;
-      if(save.settings.lang!=='auto')applyLanguage(save.settings.lang);
-      else applyLanguage(vkLaunchParams.vk_language||navigator.language);
+      if(save.settings.lang === 'auto'){
+        applyLanguage(vkLaunchParams.vk_language || navigator.language);
+      } else {
+        applyLanguage(save.settings.lang);
+      }
       stopSpeech();persist();syncAudio();
       if(running)pauseMenu();else menu();
       break;
@@ -4381,6 +4402,7 @@ async function boot(){
     if(!vkReady){ document.body.classList.add('no-rewarded-ads'); }
     preloadRewarded();
     if(__rewardedAdsAvailable && vkReady){ setTimeout(() => showBannerAd(), 1500); }
+    if(window.Platform.mode === 'ok'){ setTimeout(initOkBanner, 500); }
 
     if(vkReady&&window.vkBridge){
       try{
@@ -4416,6 +4438,53 @@ async function boot(){
   })();
 
   Stats.track('session_start');
+}
+const OK_BANNER_CONFIG = {
+  enabled: true,
+  blockId: 'PASTE_ID_HERE',   /* заменить на R-A-XXXXXXX-Y из partner.yandex.ru */
+  height: 60
+};
+function initOkBanner(){
+  try {
+    if(!OK_BANNER_CONFIG.enabled) return;
+    if(!OK_BANNER_CONFIG.blockId || OK_BANNER_CONFIG.blockId === 'PASTE_ID_HERE'){
+      console.warn('[OK-Banner] blockId not configured — banner skipped');
+      return;
+    }
+    if(window.Platform.mode !== 'ok') return;
+    const el = document.getElementById('okBannerTop');
+    if(!el) return;
+    el.style.display = 'block';
+    el.style.height = OK_BANNER_CONFIG.height + 'px';
+    const frame = document.getElementById('match3Frame');
+    if(frame){
+      frame.style.position = 'absolute';
+      frame.style.top = OK_BANNER_CONFIG.height + 'px';
+      frame.style.left = '0';
+      frame.style.right = '0';
+      frame.style.bottom = '0';
+      frame.style.width = 'auto';
+      frame.style.height = 'auto';
+    }
+    window.yaContextCb = window.yaContextCb || [];
+    if(!document.getElementById('yandex-rtb-sdk')){
+      const sc = document.createElement('script');
+      sc.id = 'yandex-rtb-sdk';
+      sc.src = 'https://yandex.ru/ads/system/context.js';
+      sc.async = true;
+      document.head.appendChild(sc);
+    }
+    window.yaContextCb.push(() => {
+      try {
+        Ya.Context.AdvManager.render({
+          blockId: OK_BANNER_CONFIG.blockId,
+          renderTo: 'okBannerTop',
+          type: 'floorAd'
+        });
+        console.log('[OK-Banner] render ok, blockId=', OK_BANNER_CONFIG.blockId);
+      } catch(e){ console.warn('[OK-Banner] render failed:', e); }
+    });
+  } catch(e){ console.warn('[OK-Banner] init failed:', e); }
 }
 boot();
 // [DEBUG] ??????? ??? ?????? ?? ??????? ????????
