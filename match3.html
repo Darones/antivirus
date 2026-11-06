@@ -570,6 +570,19 @@ try {
 } catch(e) { console.warn(e); }
 
 async function showBanner() {
+  // [OK] Ветка для ОК
+  if (window.Platform && window.Platform.mode === 'ok') {
+    const OK_FAPI = window.FAPI || (window.parent && window.parent.FAPI);
+    if (!OK_FAPI) { console.warn('[OK] FAPI not found for banner'); return; }
+    try {
+      OK_FAPI.UI.requestBannerAds();
+      OK_FAPI.UI.showBannerAds();
+      console.log('[OK] Banner requested');
+    } catch(e) { console.warn('[OK] Banner error:', e); }
+    return;
+  }
+  
+  // [VK] Ветка для ВК
   if (!window.vkBridge) return;
   try {
     await vkBridge.send('VKWebAppShowBannerAd', { banner_location: 'top', height_type: 'small', orientation: 'vertical' });

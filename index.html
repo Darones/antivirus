@@ -1193,9 +1193,24 @@ const VK_APP_ID = 54764920;
 let bannerAdShown = false;
 
 async function showBannerAd(){
-  if(!vkReady || !window.vkBridge) return;
   if(save.purchases.remove_ads) return;
   if(bannerAdShown) return;
+
+  // [OK] Ветка для ОК
+  if (window.Platform.mode === 'ok') {
+    const OK_FAPI = window.FAPI || (window.parent && window.parent.FAPI);
+    if (!OK_FAPI) { console.warn('[OK] FAPI not found for banner'); return; }
+    try {
+      OK_FAPI.UI.requestBannerAds();
+      OK_FAPI.UI.showBannerAds();
+      bannerAdShown = true;
+      console.log('[OK] Banner requested');
+    } catch(e) { console.warn('[OK] Banner error:', e); }
+    return;
+  }
+
+  // [VK] Ветка для ВК
+  if(!vkReady || !window.vkBridge) return;
   try{
     const r = await vkBridge.send('VKWebAppShowBannerAd', {
       banner_location: 'top',
