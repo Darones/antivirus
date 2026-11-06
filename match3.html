@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script src="https://api.ok.ru/js/fapi.js"></script>
 <title>Антивирус — Match-3</title>
 <style>
   :root{
@@ -408,6 +409,10 @@
   }
 })();
 
+if (window.Platform.mode === 'ok' && window.FAPI) {
+  try { FAPI.init(); } catch(e) { console.warn('[OK] FAPI.init failed:', e); }
+}
+
 'use strict';
 console.log('=== MATCH3 V2.0 ===');
 
@@ -415,7 +420,8 @@ const INTERSTITIAL_EVERY = 2;
 
 async function showInterstitialMatch3() {
   if (window.Platform && window.Platform.mode === 'ok') {
-    if (!window.FAPI) return false;
+    const OK_FAPI = window.FAPI || (window.parent && window.parent.FAPI);
+    if (!OK_FAPI) { console.warn('[OK] FAPI not found in match3'); return false; }
     const musicWasPlaying = !!(bgMusic && !bgMusic.paused);
     if (bgMusic) bgMusic.pause();
     return new Promise((resolve) => {
@@ -429,7 +435,7 @@ async function showInterstitialMatch3() {
       window.__okAdTimeout = setTimeout(() => {
         if(window.__okAdResolve) { window.__okAdResolve(false); }
       }, 15000);
-      try { FAPI.UI.showAd(); } catch(e) {
+      try { OK_FAPI.UI.showAd(); } catch(e) {
         console.warn('[OK] showAd failed:', e);
         if(window.__okAdResolve) window.__okAdResolve(false);
       }
