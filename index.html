@@ -1782,7 +1782,7 @@ function setCloudStatus(text){const el=$('cloudStatus');if(el)el.textContent=tex
 async function showInterstitial(){
   if(save.purchases.remove_ads) return false;
   if (window.Platform.mode === 'ok') {
-    if (!window.FAPI) return false;
+    if (!window.vkBridge) { console.warn('[OK-Ad] vkBridge not available'); return false; }
     const musicWasPlaying = !!(musicAudio && !musicAudio.paused);
     if (musicAudio) musicAudio.pause();
     return new Promise((resolve) => {
@@ -1796,7 +1796,7 @@ async function showInterstitial(){
       window.__okAdTimeout = setTimeout(() => { 
         if(window.__okAdResolve) { window.__okAdResolve(false); } 
       }, 15000);
-      try { FAPI.UI.showAd(); } catch(e) { 
+      try { vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }).then(function(r){ if(window.__okAdResolve) window.__okAdResolve(!!(r && (r.result || r.success))); }).catch(function(e){ console.warn('[OK-Ad] VKWebAppShowNativeAds failed:', e); if(window.__okAdResolve) window.__okAdResolve(false); }); } catch(e) { 
         console.warn('[OK] showAd failed:', e); 
         if(window.__okAdResolve) window.__okAdResolve(false); 
       }
@@ -1816,7 +1816,7 @@ async function showRewarded(){
     if(!gate.ok){ console.warn('[Ads] OK blocked:', gate.reason); return false; }
     adRequestPending = true;
     try {
-      const res = await showRewardedOK();
+      let res = false; try { const r = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }); res = !!(r && (r.result || r.success)); } catch(e) { console.warn('[OK-Ad] rewarded failed:', e); res = false; }
       if(res){ lastRewardedAt = Date.now(); adDailyCount++; Stats.track('ad_watch', { kind: 'rewarded', ok: true }); }
       else { Stats.track('ad_watch', { kind: 'rewarded', ok: false }); }
       return res;

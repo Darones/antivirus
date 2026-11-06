@@ -437,7 +437,7 @@ function requestOkAdFromParent(){
       resolve(!!ev.data.ok);
     }
     window.addEventListener('message', handler);
-    try { window.parent.postMessage({type:'ok-show-interstitial', id}, location.origin); }
+    try { window.parent.postMessage({type:'ok-show-interstitial', id}, '*'); }
     catch(e){ clearTimeout(timer); window.removeEventListener('message', handler); resolve(false); }
   });
 }
