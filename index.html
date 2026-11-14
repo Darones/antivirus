@@ -2078,7 +2078,7 @@ function goToMatch3(){
     transitioningToMatch3 = true;
     try { Stats.flush(true); } catch(e){}
     
-    let targetUrl = isOK ? 'match3.html?vk_client=ok' : 'match3.html';
+    let targetUrl = isOK ? 'immunity.html?vk_client=ok' : 'immunity.html';
     try {
       const uid = (typeof vkUserId !== 'undefined' && vkUserId) ? vkUserId : (__vkSearchParams ? __vkSearchParams.get('vk_user_id') : null);
       if (uid) {
@@ -2111,11 +2111,11 @@ function openMatch3Iframe(){
     } catch(e){ console.warn('[openMatch3Iframe] onload failed:',e); }
   };
   overlay.hidden=false;
-  frame.src='match3.html';
+  frame.src='immunity.html?vk_client=ok';
   setTimeout(()=>{
     if(!iframeLoaded){
       console.log('[iOS Fallback] iframe timeout, redirecting...');
-      location.href='match3.html?vk_client=ok';
+      location.href='immunity.html?vk_client=ok';
     }
   },8000);
 }
