@@ -2248,7 +2248,7 @@ function renderStories(){
     .concat(CHAPTERS.map(ch=>({kind:'intro',chapter:ch.id,key:'ch'+ch.id,title:'Глава '+ch.id,sub:ch.name,emoji:'🧬',cls:''})))
     .concat([{kind:'ending',chapter:10,key:'ending',title:'Финал',sub:'Ника выздоровела',emoji:'🏁',cls:'final'}]);
   el.innerHTML=items.map(it=>'<button class="story-card '+it.cls+'" onclick="openStory(\''+it.kind+'\','+it.chapter+')">'
-    +'<span class="sc-thumb"><span>'+it.emoji+'</span><img src="assets/story/'+it.key+'.png" alt="" onerror="this.remove()"></span>'
+    +'<span class="sc-thumb"><span>'+it.emoji+'</span><img src="assets/story/'+it.key+'.jpg" alt="" data-key="'+it.key+'" onerror="storyThumbError(this)"></span>'
     +'<b>'+it.title+'</b><small>'+it.sub+'</small><span class="sc-open">Открыть</span></button>').join('');
 }
 function openStory(kind,chapter){startStory(kind,chapter,()=>showScreen('stories'),true);}
@@ -2267,10 +2267,21 @@ function renderStoryPage(){
   $('#storyNext').textContent='Дальше';
   const scene=$('#storyScene');
   const key=B.story.kind==='tutorial'?'start':(B.story.kind==='ending'?'ending':'ch'+B.story.chapter);
-  const src='assets/story/'+key+'.png';
-  scene.innerHTML='<img class="story-img" src="'+src+'" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'"><div class="story-fallback" style="display:none">'+STORY_SCENE_SVG+'</div>';
+  const src='assets/story/'+key+'.jpg';
+  scene.innerHTML='<img class="story-img" src="'+src+'" alt="" data-key="'+key+'" onerror="storyImgError(this)"><div class="story-fallback" style="display:none">'+STORY_SCENE_SVG+'</div>';
   const virus=scene.querySelector('#storyVirus');
   if(virus)virus.style.opacity='0';
+}
+function storyImgError(img){
+  const key=img.dataset.key||'';
+  if(img.dataset.ext!=='png'){img.dataset.ext='png';img.src='assets/story/'+key+'.png';return;}
+  img.style.display='none';
+  const fb=img.nextElementSibling; if(fb)fb.style.display='block';
+}
+function storyThumbError(img){
+  const key=img.dataset.key||'';
+  if(img.dataset.ext!=='png'){img.dataset.ext='png';img.src='assets/story/'+key+'.png';return;}
+  img.remove();
 }
 function nextStoryPage(){
   if(!B.story)return;
