@@ -453,6 +453,7 @@ body.tiles-art .tile-svg{display:none}
 .tutorial-bubble.nudge p{color:#ffe9a8}
 .tutorial-bubble .tb-actions{display:flex;align-items:center;gap:8px}
 .tutorial-bubble .tb-actions .btn{padding:7px 10px;font-size:10px}
+.tutorial-bubble .tb-actions .tb-skip{width:100%;font-size:10px}
 .tutorial-bubble .skip{margin-left:auto;background:none;border:0;color:var(--muted);font-size:9px;text-decoration:underline;cursor:pointer}
 .tutorial-hand{position:absolute;z-index:26;font-size:22px;pointer-events:none;animation:handBob .8s infinite;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
 @keyframes handBob{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-62%)}}
@@ -715,9 +716,9 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div class="boss-banner hidden" id="bossBanner"></div>
     <div class="tutorial-bubble hidden" id="tutorialBubble">
-      <div class="tb-top"><span class="tb-speaker"><i class="tb-cell"></i>Лейкоцит</span><span id="tutorialProgress">1 / 5</span></div>
+      <div class="tb-top"><span class="tb-speaker"><i class="tb-cell"></i>Лейкоцит</span><span id="tutorialProgress">1 / 3</span></div>
       <p id="tutorialText"></p>
-      <div class="tb-actions"><button class="skip" onclick="skipTutorial()">Пропустить</button></div>
+      <div class="tb-actions"><button class="btn btn-ghost tb-skip" onclick="skipTutorial()">Пропустить обучение</button></div>
     </div>
     <div class="tutorial-arrow hidden" id="tutorialArrow"><span class="ta-label">НАЖМИ</span><span class="ta-tri">▼</span></div>
     <div class="classic-intro hidden" id="classicIntro">
@@ -766,7 +767,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div id="settingsList"></div>
     <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.4 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.5 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -1880,7 +1881,7 @@ function updateHud(){
   if(!setNikaMood._busy){$$('#battleNikaFace').forEach(el=>{if(!el.classList.contains('face-happy')&&!el.classList.contains('face-shake'))el.className='nika-face mood-'+base;});}
 }
 async function useUltimate(id){
-  if(B.busy||B.paused||B.screen!=='battle'||B.tutorial&&B.tutorialStep<4)return;
+  if(B.busy||B.paused||B.screen!=='battle'||B.tutorial&&B.tutorialStep<2)return;
   if((B.charge[id]||0)<100){toast('Ульта ещё не готова');return;}
   B.busy=true; B.charge[id]=0;
   Stats.track('ultimate_used',{hero:id,level:B.level?.id});
@@ -1896,7 +1897,7 @@ async function useUltimate(id){
   await endTurn();
   if(B.player.hp<=0){loseBattle();return;}
   B.busy=false;
-  if(B.tutorial&&B.tutorialStep>=4){finishTutorial();}
+  if(B.tutorial&&B.tutorialStep>=2){finishTutorial();}
 }
 function useBomb(){
   if(B.busy||B.paused||B.screen!=='battle')return;
@@ -1991,7 +1992,6 @@ function showResult(type,data){
       +'<div class="modal-actions">'
       +'<button class="btn btn-warm" onclick="doubleReward()">📺 Удвоить за рекламу</button>'
       +'<button class="btn btn-primary" onclick="nextFromResult()">Дальше</button>'
-      +'<button class="btn btn-ghost" onclick="retryBattle()">Ещё раз</button>'
       +'</div>';
   }else{
     const classicFail=!!B.classicFailed;
@@ -2008,6 +2008,7 @@ function showResult(type,data){
   injectFaces(); $('#resultModal').classList.remove('hidden');
 }
 async function nextFromResult(){
+  Stats.track('result_action',{action:'next',win:B.result==='victory'});
   $('#resultModal').classList.add('hidden');
   const lvl=B.level;
   if(B.result==='victory'&&lvl){
@@ -2024,11 +2025,13 @@ function afterVictoryNext(){
   showScreen('map');
 }
 function retryBattle(){
+  Stats.track('result_action',{action:'retry',win:B.result==='victory'});
   $('#resultModal').classList.add('hidden'); $('#pauseModal').classList.add('hidden');
   if(B.tutorial)startBattle(LEVELS[0],{tutorial:true});
   else if(B.level)startBattle(B.level,{tutorial:false});
 }
 async function doubleReward(){
+  Stats.track('result_action',{action:'ad_double',win:B.result==='victory'});
   if(!adCanShow('rewarded')){toast('Реклама недоступна');return;}
   const ok=await adShow('rewarded');
   if(!ok){toast('Реклама недоступна');return;}
@@ -2060,9 +2063,7 @@ function resumeBattle(){B.paused=false;$('#pauseModal').classList.add('hidden');
 /* ===================== TUTORIAL ===================== */
 const TUTORIAL_STEPS=[
   {kind:'red', text:'Собери 3 красных — Т-киллер ударит вирус.', wrong:'Не тот цвет. Нужны красные — они бьют вирус.'},
-  {kind:'greenblue', text:'Зелёный лечит Нику, синий ставит щит. Собери любой.', wrong:'Нужен зелёный или синий — лечение или щит.'},
   {kind:'infect', text:'Заражённые клетки не собираются в тройки. Собери тройку рядом — заражение очистится.', wrong:'Заражённую клетку не собрать. Собери тройку рядом с ней.'},
-  {kind:'attack', text:'Следи за счётчиком: вирус атакует через 2 хода. Сделай ход.', wrong:'Просто сделай любой ход — вирус атакует через 2 хода.'},
   {kind:'ult', text:'Ульта готова! Нажми на подсвеченную карточку героя — стрелка покажет куда.', wrong:'Нажми на подсвеченную карточку героя — стрелка покажет куда.'}
 ];
 function startTutorial(){
@@ -2202,11 +2203,9 @@ function tutorialAfterMove(){
   const types=B.lastMatchTypes||[];
   let advance=false;
   if(step===0)advance=types.includes('red');
-  else if(step===1)advance=types.includes('green')||types.includes('blue');
-  else if(step===2)advance=!!B.tutorialInfCleared;
-  else if(step===3)advance=!!B.enemyAttacked;
+  else if(step===1)advance=!!B.tutorialInfCleared;
   if(advance){
-    if(step<4)showTutorialStep(step+1);
+    if(step<2)showTutorialStep(step+1);
     else finishTutorial();
   }else{
     tutorialNudge(step);
@@ -2459,6 +2458,11 @@ function renderMap(){
       +'</div>';
   }).join('');
   renderMapHeader(); renderAll();
+  const cur=el.querySelector('.node.current');
+  if(cur)requestAnimationFrame(()=>{
+    const r=cur.getBoundingClientRect(), er=el.getBoundingClientRect();
+    el.scrollTop=Math.max(0, el.scrollTop + (r.top-er.top) - (el.clientHeight-r.height)/2);
+  });
 }
 function renderAll(){
   const set=(id,v)=>{const el=$('#'+id);if(el)el.textContent=v;};
@@ -2526,7 +2530,7 @@ function init(){
     else{if(!AD.pending)resumeMusic();}
   });
   window.addEventListener('pagehide',()=>{Stats.endSession();});
-  window.addEventListener('resize',()=>{resizeBoard();if(B.tutorial&&B.tutorialStep===4)positionTutorialArrow(B.tutorialHero);});
+  window.addEventListener('resize',()=>{resizeBoard();if(B.tutorial&&B.tutorialStep===2)positionTutorialArrow(B.tutorialHero);});
   document.addEventListener('pointerdown',unlockAudio,{once:true});
 }
 document.addEventListener('DOMContentLoaded',init);
