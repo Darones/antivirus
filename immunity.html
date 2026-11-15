@@ -767,7 +767,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div id="settingsList"></div>
     <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.5 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.6 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -1172,15 +1172,25 @@ function setCloud(t){const el=$('#cloudStatus');if(el)el.textContent='облак
 function setBoot(t){const el=$('#bootStatus');if(el)el.textContent=t;}
 
 /* ===================== ADS ===================== */
-const AD={lastInt:0,lastRew:0,dayCount:0,dayReset:Date.now()+86400000,pending:false};
-function adCanShow(kind){
-  if(kind==='interstitial'&&S.purchases.remove_ads) return false;
-  const now=Date.now(); if(now>=AD.dayReset){AD.dayCount=0;AD.dayReset=now+86400000;}
-  if(AD.dayCount>=15) return false;
-  if(kind==='interstitial'&&now-AD.lastInt<45000) return false;
-  if(kind==='rewarded'&&now-AD.lastRew<20000) return false;
-  if(AD.pending) return false;
-  return true;
+const AD={lastInt:0,lastRew:0,dayCount:0,dayReset:Date.now()+86400000,pending:false,pendingSince:0};
+function adBlockReason(kind){
+  if(kind==='interstitial'&&S.purchases.remove_ads) return 'ads-off';
+  const now=Date.now();
+  if(now>=AD.dayReset){AD.dayCount=0;AD.dayReset=now+86400000;}
+  if(AD.pending&&now-(AD.pendingSince||0)>70000){AD.pending=false;}
+  if(AD.dayCount>=15) return 'daily-limit';
+  if(kind==='interstitial'&&now-AD.lastInt<45000) return 'cooldown';
+  if(kind==='rewarded'&&now-AD.lastRew<20000) return 'cooldown';
+  if(AD.pending) return 'pending';
+  return '';
+}
+function adCanShow(kind){return !adBlockReason(kind);}
+function adBlockToast(why){
+  if(why==='cooldown')toast('Подожди 20 секунд');
+  else if(why==='daily-limit')toast('Лимит рекламы на сегодня');
+  else if(why==='pending')toast('Реклама уже загружается');
+  else if(why==='ads-off')toast('Реклама отключена');
+  else toast('Реклама недоступна');
 }
 async function adShowRaw(kind){
   if(!adCanShow(kind)) return false;
@@ -1191,6 +1201,7 @@ async function adShowRaw(kind){
     return false;
   }
   AD.pending=true;
+  AD.pendingSince=Date.now();
   let pre=null;
   try{
     try{
@@ -2032,7 +2043,8 @@ function retryBattle(){
 }
 async function doubleReward(){
   Stats.track('result_action',{action:'ad_double',win:B.result==='victory'});
-  if(!adCanShow('rewarded')){toast('Реклама недоступна');return;}
+  const why=adBlockReason('rewarded');
+  if(why){Stats.track('ad_blocked',{kind:'rewarded',why});adBlockToast(why);return;}
   const ok=await adShow('rewarded');
   if(!ok){toast('Реклама недоступна');return;}
   const extra=Math.round((B.lastReward&&B.lastReward.coins?B.lastReward.coins:(B.level.reward.coins||0))/2); S.coins+=extra; persist(); updateHeader();
@@ -2041,6 +2053,8 @@ async function doubleReward(){
 async function continueBattle(kind){
   if(B.continued)return;
   if(kind==='rewarded'){
+    const why=adBlockReason('rewarded');
+    if(why){Stats.track('ad_blocked',{kind:'rewarded',why});adBlockToast(why);return;}
     const ok=await adShow('rewarded'); if(!ok){toast('Реклама недоступна');return;}
     Stats.track('continue_used',{level:B.level.id,kind:'rewarded'});
   }else{
@@ -2401,6 +2415,8 @@ function renderShop(){
 async function freeBombAd(){
   const today=new Date().toISOString().slice(0,10);
   if(S.daily.lastFreeBomb===today){toast('Сегодня уже получено');return;}
+  const why=adBlockReason('rewarded');
+  if(why){Stats.track('ad_blocked',{kind:'rewarded',why});adBlockToast(why);return;}
   const ok=await adShow('rewarded'); if(!ok){toast('Реклама недоступна');return;}
   S.daily.lastFreeBomb=today; S.bombs=Math.min(999,S.bombs+1); persist(); renderAll(); renderShop(); toast('+1 бомба');
 }
