@@ -766,7 +766,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div id="settingsList"></div>
     <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.3 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.4 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -1051,7 +1051,7 @@ function freshSave(){
     stars:{}, cleared:0, totalWins:0,
     tutorialDone:false, storySeen:{}, seenBosses:{},
     purchases:{remove_ads:false},
-    settings:{music:true,sfx:true,vibe:true,musicVolume:.7,sfxVolume:.8},
+    settings:{music:true,sfx:true,vibe:true,musicVolume:.25,sfxVolume:1},
     daily:{lastClaim:'',streak:0,lastFreeBomb:''},
     importedOld:false
   };
@@ -1071,7 +1071,12 @@ function normalize(raw){
   const p=raw.purchases||{}; s.purchases.remove_ads=!!p.remove_ads;
   const st=raw.settings||{};
   s.settings.music=st.music!==false; s.settings.sfx=st.sfx!==false; s.settings.vibe=st.vibe!==false;
-  s.settings.musicVolume=clamp(st.musicVolume??.7,0,1); s.settings.sfxVolume=clamp(st.sfxVolume??.8,0,1);
+  s.settings.musicVolume=clamp(st.musicVolume??.25,0,1); s.settings.sfxVolume=clamp(st.sfxVolume??1,0,1);
+  if(st.volMigrated!==true){
+    if(Math.abs(s.settings.musicVolume-0.7)<0.001)s.settings.musicVolume=0.25;
+    if(Math.abs(s.settings.sfxVolume-0.8)<0.001)s.settings.sfxVolume=1;
+  }
+  s.settings.volMigrated=true;
   const d=raw.daily||{}; s.daily.lastClaim=typeof d.lastClaim==='string'?d.lastClaim:''; s.daily.streak=clamp(d.streak,0,7); s.daily.lastFreeBomb=typeof d.lastFreeBomb==='string'?d.lastFreeBomb:'';
   s.team=s.team.filter(id=>s.unlockedHeroes.includes(id));
   while(s.team.length<3){const id=HERO_ORDER.find(h=>s.unlockedHeroes.includes(h)&&!s.team.includes(h));if(!id)break;s.team.push(id);}
@@ -1178,26 +1183,29 @@ function adCanShow(kind){
 }
 async function adShowRaw(kind){
   if(!adCanShow(kind)) return false;
-  if(window.Platform.mode==='ok'){
-    const fmt=kind==='rewarded'?'reward':'interstitial';
-    AD.pending=true;
-    try{const r=await Promise.race([window.vkBridge.send('VKWebAppShowNativeAds',{ad_format:fmt}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))]);const ok=!!(r&&(r.result||r.success));if(ok){AD.dayCount++;if(kind==='rewarded')AD.lastRew=Date.now();else AD.lastInt=Date.now();}Stats.track('ad_watch',{kind,ok});return ok;}catch(e){Stats.track('ad_watch',{kind,ok:false});return false;}finally{AD.pending=false;}
-  }
-  if(!vkReady||!window.vkBridge){
+  const fmt=kind==='rewarded'?'reward':'interstitial';
+  if(!window.vkBridge){
     if(kind==='rewarded') return await showRewardedModal();
-    Stats.track('ad_watch',{kind,ok:false});
+    Stats.track('ad_watch',{kind,ok:false,err:'no-bridge'});
     return false;
   }
-  const fmt=kind==='rewarded'?'reward':'interstitial';
   AD.pending=true;
+  let pre=null;
   try{
-    let check=true;
-    try{const c=await Promise.race([window.vkBridge.send('VKWebAppCheckNativeAds',{ad_format:fmt}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),1600))]);check=!!(c&&c.result);}catch(e){check=false;}
-    if(!check){Stats.track('ad_watch',{kind,ok:false});return false;}
-    const r=await Promise.race([window.vkBridge.send('VKWebAppShowNativeAds',{ad_format:fmt}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))]);
-    const ok=!!(r&&(r.result||r.success)); if(ok){AD.dayCount++;if(kind==='rewarded')AD.lastRew=Date.now();else AD.lastInt=Date.now();}
-    Stats.track('ad_watch',{kind,ok}); return ok;
-  }catch(e){Stats.track('ad_watch',{kind,ok:false});return false;}finally{AD.pending=false;}
+    try{
+      const c=await Promise.race([window.vkBridge.send('VKWebAppCheckNativeAds',{ad_format:fmt}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('check-timeout')),2000))]);
+      pre=!!(c&&(c.result!==undefined?c.result:c.success));
+    }catch(e){pre=null;}
+    const ms=kind==='rewarded'?120000:60000;
+    const r=await Promise.race([window.vkBridge.send('VKWebAppShowNativeAds',{ad_format:fmt}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('ad-timeout')),ms))]);
+    const ok=!(r&&(r.result===false||r.success===false));
+    if(ok){AD.dayCount++;if(kind==='rewarded')AD.lastRew=Date.now();else AD.lastInt=Date.now();}
+    Stats.track('ad_watch',{kind,ok,pre:pre===null?'?':(pre?'1':'0')});
+    return ok;
+  }catch(e){
+    Stats.track('ad_watch',{kind,ok:false,err:String((e&&e.message)||e).slice(0,40)});
+    return false;
+  }finally{AD.pending=false;}
 }
 async function adShow(kind){
   const wasPlaying=!!(musicEl&&!musicEl.paused);
