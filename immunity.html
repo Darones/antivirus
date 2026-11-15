@@ -614,7 +614,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div class="battle-stage" id="battleStage">
       <div class="stage-bg"></div>
-      <img class="stage-art" src="assets/battle/bg.png" alt="" onerror="this.style.display='none'">
+      <img class="stage-art" src="assets/battle/bg.jpg" alt="" onerror="this.style.display='none'">
       <svg class="stage-veins" viewBox="0 0 480 200" preserveAspectRatio="none" aria-hidden="true">
         <path d="M0 168 C60 140 92 176 140 158 C190 138 220 172 280 150 C340 128 380 160 480 132 L480 200 L0 200 Z" fill="rgba(3,12,16,.55)"/>
         <path d="M0 184 C70 160 110 190 170 172 C240 152 280 186 340 166 C400 146 440 172 480 156" fill="none" stroke="rgba(88,255,138,.10)" stroke-width="2"/>
@@ -2121,6 +2121,7 @@ function showTutorialStep(step){
     if(!ok)B.tutorialInfCleared=true;
     renderBoard();
   }
+  if(s.kind==='red'||s.kind==='greenblue')tutorialEnsureMove(s.kind==='red'?['red']:['green','blue']);
   renderBoard();
   clearTimeout(B.tutorialHintTimer);
   B.tutorialHintTimer=setTimeout(()=>{if(B.tutorial&&B.tutorialStep===step)showTutorialHint();},1800);
@@ -2132,6 +2133,28 @@ function adjacentToInfected(cell){
     const r2=r+dr,c2=c+dc;
     if(r2<0||r2>=ROWS||c2<0||c2>=COLS)continue;
     if(B.board[r2*COLS+c2]&&B.board[r2*COLS+c2].infected)return true;
+  }
+  return false;
+}
+function findExactMove(targets){
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const i=r*COLS+c;
+    if(c<COLS-1){
+      swapCells(i,i+1); const hit=findMatches().some(x=>targets.includes(x.type)); swapCells(i,i+1);
+      if(hit)return [i,i+1];
+    }
+    if(r<ROWS-1){
+      swapCells(i,i+COLS); const hit=findMatches().some(x=>targets.includes(x.type)); swapCells(i,i+COLS);
+      if(hit)return [i,i+COLS];
+    }
+  }
+  return null;
+}
+function tutorialEnsureMove(targets){
+  if(findExactMove(targets))return true;
+  for(let i=0;i<25;i++){
+    makeBoard();
+    if(findExactMove(targets)){renderBoard();return true;}
   }
   return false;
 }
@@ -2191,7 +2214,13 @@ function showTutorialHint(){
     return;
   }
   const targets=s.kind==='red'?['red']:s.kind==='greenblue'?['green','blue']:s.kind==='infect'?['infect']:[];
-  const move=findHintMove(targets);
+  let move;
+  if(s.kind==='red'||s.kind==='greenblue'){
+    tutorialEnsureMove(targets);
+    move=findExactMove(targets)||findHintMove(targets);
+  }else{
+    move=findHintMove(targets);
+  }
   if(!move)return;
   B.tutorialMove=move; B.tutorialTarget=move;
   renderBoard();
