@@ -4400,7 +4400,7 @@ async function boot(){
     setCloudStatus(vkReady ? t('cloudCloud') : t('cloudSDK'));
     if(!vkReady){ document.body.classList.add('no-rewarded-ads'); }
     preloadRewarded();
-    if(__rewardedAdsAvailable && vkReady){ setTimeout(() => showBannerAd(), 1500); }
+    // баннер показываем уже в самой игре (immunity.html), здесь он пропадал при переходе
     if(window.Platform.mode === 'ok'){ setTimeout(initOkBanner, 500); }
 
     if(vkReady&&window.vkBridge){

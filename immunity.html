@@ -21,7 +21,7 @@ body{
   -webkit-tap-highlight-color:transparent;user-select:none;
 }
 #app{
-  position:relative;height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;
+  position:relative;height:calc(100dvh - var(--banner-h,0px));max-width:480px;margin:var(--banner-h,0px) auto 0;display:flex;flex-direction:column;
   background:radial-gradient(120% 80% at 50% 0%,#10240f 0%,#0a140b 52%,#050a06 100%);
   overflow:hidden;
 }
@@ -30,6 +30,7 @@ body{
   #app{height:calc(100dvh - 36px);border-radius:26px;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px rgba(0,0,0,.55)}
 }
 body.no-ads{--banner-h:0px}
+body.has-banner{--banner-h:60px}
 .screen{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px 12px 12px;overflow:hidden}
 .screen.scroll{overflow-y:auto;scrollbar-width:none}
 .screen.scroll::-webkit-scrollbar{display:none}
@@ -767,7 +768,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div id="settingsList"></div>
     <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.7 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.8 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -1234,6 +1235,23 @@ async function adShowRaw(kind){
     }
     return false;
   }finally{AD.pending=false;}
+}
+async function initVKBanner(){
+  if(window.Platform.mode==='ok')return;
+  if(!window.vkBridge||typeof window.vkBridge.send!=='function')return;
+  try{
+    let available=true;
+    try{
+      const c=await Promise.race([window.vkBridge.send('VKWebAppCheckBannerAd'),new Promise((_,r)=>setTimeout(()=>r(new Error('check-timeout')),2000))]);
+      available=!!(c&&(c.result!==undefined?c.result:c.success));
+    }catch(e){available=false;}
+    if(!available)return;
+    const r=await Promise.race([window.vkBridge.send('VKWebAppShowBannerAd',{banner_location:'top'}),new Promise((_,r)=>setTimeout(()=>r(new Error('show-timeout')),4000))]);
+    if(r&&r.result!==false){
+      document.body.classList.add('has-banner');
+      Stats.track('banner_shown',{pos:'top'});
+    }
+  }catch(e){}
 }
 async function adShow(kind){
   const wasPlaying=!!(musicEl&&!musicEl.paused);
@@ -2579,7 +2597,7 @@ function init(){
   $('#bootContinue').classList.add('hidden');
   if(S.cleared>0||S.tutorialDone)$('#bootContinue').classList.remove('hidden');
   Stats.track('session_start',{});
-  vkInit();
+  vkInit().then(()=>setTimeout(initVKBanner,500)).catch(()=>{});
   maybeAutoStartNewbie(firstEver);
   setInterval(()=>{if(S.screen==='map')renderMapHeader();},30000);
   document.addEventListener('visibilitychange',()=>{
