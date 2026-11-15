@@ -767,7 +767,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div id="settingsList"></div>
     <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.6 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.7 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -1192,6 +1192,13 @@ function adBlockToast(why){
   else if(why==='ads-off')toast('Реклама отключена');
   else toast('Реклама недоступна');
 }
+function adErrText(e){
+  if(!e)return 'unknown';
+  if(typeof e==='string')return e.slice(0,90);
+  if(e.error_msg||e.message)return String(e.error_msg||e.message).slice(0,90);
+  try{return JSON.stringify(e).slice(0,90);}catch(_){return String(e).slice(0,90);}
+}
+function adCanFallback(kind){return kind==='rewarded'&&window.Platform.mode==='ok';}
 async function adShowRaw(kind){
   if(!adCanShow(kind)) return false;
   const fmt=kind==='rewarded'?'reward':'interstitial';
@@ -1211,11 +1218,20 @@ async function adShowRaw(kind){
     const ms=kind==='rewarded'?120000:60000;
     const r=await Promise.race([window.vkBridge.send('VKWebAppShowNativeAds',{ad_format:fmt}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('ad-timeout')),ms))]);
     const ok=!(r&&(r.result===false||r.success===false));
+    Stats.track('ad_watch',{kind,ok,pre:pre===null?'?':(pre?'1':'0'),err:ok?'':(r?'result-false':'no-result')});
+    if(!ok&&adCanFallback(kind)){
+      Stats.track('ad_fallback',{kind,reason:'result-false'});
+      return await showRewardedModal();
+    }
     if(ok){AD.dayCount++;if(kind==='rewarded')AD.lastRew=Date.now();else AD.lastInt=Date.now();}
-    Stats.track('ad_watch',{kind,ok,pre:pre===null?'?':(pre?'1':'0')});
     return ok;
   }catch(e){
-    Stats.track('ad_watch',{kind,ok:false,err:String((e&&e.message)||e).slice(0,40)});
+    const err=adErrText(e);
+    Stats.track('ad_watch',{kind,ok:false,err});
+    if(adCanFallback(kind)){
+      Stats.track('ad_fallback',{kind,reason:err});
+      return await showRewardedModal();
+    }
     return false;
   }finally{AD.pending=false;}
 }
