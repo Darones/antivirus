@@ -766,7 +766,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div id="settingsList"></div>
     <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.2 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.3 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -1176,7 +1176,7 @@ function adCanShow(kind){
   if(AD.pending) return false;
   return true;
 }
-async function adShow(kind){
+async function adShowRaw(kind){
   if(!adCanShow(kind)) return false;
   if(window.Platform.mode==='ok'){
     const fmt=kind==='rewarded'?'reward':'interstitial';
@@ -1199,8 +1199,17 @@ async function adShow(kind){
     Stats.track('ad_watch',{kind,ok}); return ok;
   }catch(e){Stats.track('ad_watch',{kind,ok:false});return false;}finally{AD.pending=false;}
 }
-function showAdModal(){const m=$('#adModal');m.classList.remove('hidden');let n=2;const c=$('#adCount');c.textContent=n;$('#adContinue').disabled=true;clearInterval(showAdModal._t);showAdModal._t=setInterval(()=>{n--;c.textContent=Math.max(0,n);if(n<=0){clearInterval(showAdModal._t);$('#adContinue').disabled=false;}},700);}
-function closeAdModal(){$('#adModal').classList.add('hidden');if(B.result==='victory'){afterVictoryNext();}else{showScreen('map');}}
+async function adShow(kind){
+  const wasPlaying=!!(musicEl&&!musicEl.paused);
+  if(wasPlaying)pauseMusic();
+  try{
+    return await adShowRaw(kind);
+  }finally{
+    if(wasPlaying)resumeMusic();
+  }
+}
+function showAdModal(){AD.wasPlaying=!!(musicEl&&!musicEl.paused);if(AD.wasPlaying)pauseMusic();const m=$('#adModal');m.classList.remove('hidden');let n=2;const c=$('#adCount');c.textContent=n;$('#adContinue').disabled=true;clearInterval(showAdModal._t);showAdModal._t=setInterval(()=>{n--;c.textContent=Math.max(0,n);if(n<=0){clearInterval(showAdModal._t);$('#adContinue').disabled=false;}},700);}
+function closeAdModal(){$('#adModal').classList.add('hidden');if(B.result==='victory'){afterVictoryNext();}else{showScreen('map');}if(AD.wasPlaying){AD.wasPlaying=false;resumeMusic();}}
 let rewardResolve=null;
 function showRewardedModal(){return new Promise(resolve=>{rewardResolve=resolve;const m=$('#rewardedModal');m.classList.remove('hidden');let n=2;const c=$('#rewardCount');c.textContent=n;$('#rewardClaim').disabled=true;clearInterval(showRewardedModal._t);showRewardedModal._t=setInterval(()=>{n--;c.textContent=Math.max(0,n);if(n<=0){clearInterval(showRewardedModal._t);$('#rewardClaim').disabled=false;}},700);});}
 function claimReward(){clearInterval(showRewardedModal._t);$('#rewardedModal').classList.add('hidden');if(rewardResolve){const r=rewardResolve;rewardResolve=null;r(true);}}
@@ -2506,7 +2515,7 @@ function init(){
       if(B.tutorial)props.step=(B.tutorialStep|0)+1;
       Stats.track('app_close',props);Stats.flush(true);pauseMusic();
     }
-    else{resumeMusic();}
+    else{if(!AD.pending)resumeMusic();}
   });
   window.addEventListener('pagehide',()=>{Stats.endSession();});
   window.addEventListener('resize',()=>{resizeBoard();if(B.tutorial&&B.tutorialStep===4)positionTutorialArrow(B.tutorialHero);});
