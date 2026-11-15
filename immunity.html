@@ -449,6 +449,8 @@ body.tiles-art .tile-svg{display:none}
 .tutorial-bubble .tb-top .tb-speaker{display:flex;align-items:center;gap:5px;color:var(--green);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase}
 .tb-cell{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f2ffff,#9fdfe8);box-shadow:0 0 8px rgba(159,223,232,.55);display:inline-block;flex:0 0 12px}
 .tutorial-bubble p{margin:0;font-size:12px;line-height:1.35;color:#eaf6ff}
+.tutorial-bubble.nudge{border-color:rgba(255,224,102,.85);box-shadow:0 0 0 2px rgba(255,224,102,.28),0 12px 30px rgba(0,0,0,.55)}
+.tutorial-bubble.nudge p{color:#ffe9a8}
 .tutorial-bubble .tb-actions{display:flex;align-items:center;gap:8px}
 .tutorial-bubble .tb-actions .btn{padding:7px 10px;font-size:10px}
 .tutorial-bubble .skip{margin-left:auto;background:none;border:0;color:var(--muted);font-size:9px;text-decoration:underline;cursor:pointer}
@@ -573,7 +575,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
       <button class="btn btn-ghost btn-block hidden" id="bootContinue" onclick="bootContinue()">Продолжить</button>
     </div>
     <div class="boot-status" id="bootStatus">Загрузка…</div>
-    <div class="boot-note">Обучение · 6 глав · 6 боссов · сюжет</div>
+    <div class="boot-note">100 уровней · 10 глав · 10 боссов · обучение</div>
   </div>
 
   <!-- MAP -->
@@ -764,7 +766,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
     </div>
     <div id="settingsList"></div>
     <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.1 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.2 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -2040,11 +2042,11 @@ function resumeBattle(){B.paused=false;$('#pauseModal').classList.add('hidden');
 
 /* ===================== TUTORIAL ===================== */
 const TUTORIAL_STEPS=[
-  {kind:'red', text:'Собери 3 красных — Т-киллер ударит вирус.'},
-  {kind:'greenblue', text:'Зелёный лечит Нику, синий ставит щит. Собери любой.'},
-  {kind:'infect', text:'Заражённые клетки не собираются в тройки. Собери тройку рядом — заражение очистится.'},
-  {kind:'attack', text:'Следи за счётчиком: вирус атакует через 2 хода. Сделай ход.'},
-  {kind:'ult', text:'Ульта готова! Нажми на подсвеченную карточку героя — стрелка покажет куда.'}
+  {kind:'red', text:'Собери 3 красных — Т-киллер ударит вирус.', wrong:'Не тот цвет. Нужны красные — они бьют вирус.'},
+  {kind:'greenblue', text:'Зелёный лечит Нику, синий ставит щит. Собери любой.', wrong:'Нужен зелёный или синий — лечение или щит.'},
+  {kind:'infect', text:'Заражённые клетки не собираются в тройки. Собери тройку рядом — заражение очистится.', wrong:'Заражённую клетку не собрать. Собери тройку рядом с ней.'},
+  {kind:'attack', text:'Следи за счётчиком: вирус атакует через 2 хода. Сделай ход.', wrong:'Просто сделай любой ход — вирус атакует через 2 хода.'},
+  {kind:'ult', text:'Ульта готова! Нажми на подсвеченную карточку героя — стрелка покажет куда.', wrong:'Нажми на подсвеченную карточку героя — стрелка покажет куда.'}
 ];
 function startTutorial(){
   S.tutorialDone=false; B.tutorial=true;
@@ -2067,6 +2069,8 @@ function showTutorialStep(step){
   $('#tutorialText').textContent=s.text;
   $('#tutorialProgress').textContent=(step+1)+' / '+TUTORIAL_STEPS.length;
   $('#tutorialBubble').classList.remove('hidden');
+  $('#tutorialBubble').classList.remove('nudge');
+  clearTimeout(B.tutorialNudgeTimer);
   B.tutorialTarget=[]; B.tutorialMove=null;
   const hand=$('#tutorialHand'); if(hand)hand.classList.add('hidden');
   const arrow=$('#tutorialArrow'); if(arrow)arrow.classList.add('hidden');
@@ -2188,8 +2192,21 @@ function tutorialAfterMove(){
     if(step<4)showTutorialStep(step+1);
     else finishTutorial();
   }else{
+    tutorialNudge(step);
     setTimeout(()=>{if(B.tutorial&&B.tutorialStep===step)showTutorialHint();},500);
   }
+}
+function tutorialNudge(step){
+  const s=TUTORIAL_STEPS[step]; if(!s||!s.wrong)return;
+  const bubble=$('#tutorialBubble'), txt=$('#tutorialText');
+  if(!bubble||!txt)return;
+  txt.textContent=s.wrong;
+  bubble.classList.add('nudge');
+  clearTimeout(B.tutorialNudgeTimer);
+  B.tutorialNudgeTimer=setTimeout(()=>{
+    bubble.classList.remove('nudge');
+    if(B.tutorial&&B.tutorialStep===step)txt.textContent=s.text;
+  },2600);
 }
 function skipTutorial(){
   clearTutorialHint();
@@ -2432,6 +2449,15 @@ function bootPlay(){
   else showScreen('map');
 }
 function bootContinue(){showScreen('map');}
+function maybeAutoStartNewbie(firstEver){
+  if(!firstEver)return;
+  setTimeout(()=>{
+    if(S.tutorialDone||S.cleared>0)return;
+    if(B.screen!=='boot')return;
+    setBoot('Поехали…');
+    bootPlay();
+  },800);
+}
 function preloadTileArt(){
   const names=['red','green','blue','yellow','purple','virus'];
   let pending=names.length, ok=0;
@@ -2447,6 +2473,8 @@ function preloadTileArt(){
   });
 }
 function init(){
+  let firstEver=false;
+  try{firstEver=!safeStorage.get(SAVE_KEY);}catch(e){firstEver=false;}
   injectFaces();
   preloadTileArt();
   importOld();
@@ -2459,10 +2487,15 @@ function init(){
   if(S.cleared>0||S.tutorialDone)$('#bootContinue').classList.remove('hidden');
   Stats.track('session_start',{});
   vkInit();
+  maybeAutoStartNewbie(firstEver);
   setInterval(()=>{if(S.screen==='map')renderMapHeader();},30000);
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden){Stats.track('app_close',{screen:B.screen});Stats.flush(true);pauseMusic();}
-    else{Stats.track('session_start',{});resumeMusic();}
+    if(document.hidden){
+      const props={screen:B.tutorial?'tutorial':B.screen};
+      if(B.tutorial)props.step=(B.tutorialStep|0)+1;
+      Stats.track('app_close',props);Stats.flush(true);pauseMusic();
+    }
+    else{resumeMusic();}
   });
   window.addEventListener('pagehide',()=>{Stats.endSession();});
   window.addEventListener('resize',()=>{resizeBoard();if(B.tutorial&&B.tutorialStep===4)positionTutorialArrow(B.tutorialHero);});

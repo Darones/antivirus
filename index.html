@@ -2073,7 +2073,7 @@ function goToMatch3(){
   const isOK = window.Platform && window.Platform.mode === 'ok';
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
   console.log('[goToMatch3]', JSON.stringify({isOK,isMobile,branch:isOK&&isMobile?'iframe':'href'}));
-  try { Stats.track('transition_to_match3', { screen, mode, level }); } catch(e){}
+  try { Stats.track('enter_game', { screen, mode, level }); } catch(e){}
   if(isOK && isMobile){ openMatch3Iframe(); } else {
     transitioningToMatch3 = true;
     try { Stats.flush(true); } catch(e){}
@@ -4298,8 +4298,7 @@ document.addEventListener('visibilitychange',()=>{
       lastAppCloseTime = now;
       pause();record();
       if(!transitioningToMatch3){
-        Stats.track('app_close', { screen, mode, level });
-        Stats.endSession();
+        Stats.flush(true);
       }
     }
   }
@@ -4312,7 +4311,7 @@ window.addEventListener('blur',()=>{
 window.addEventListener('pagehide',()=>{
   if(duelMode){ leaveDuelByDisconnect(); return; }
   pause();record();
-  if(!transitioningToMatch3) Stats.track('app_close', { screen: screen, mode: mode, level: level });
+  if(!transitioningToMatch3) Stats.flush(true);
   writeLocal();if(cloudDirty)vkCloudSave();
 });
 
@@ -4436,8 +4435,6 @@ async function boot(){
     }
     console.warn('[Boot] Antivirus v2 loaded (Fast-iOS mode).');
   })();
-
-  Stats.track('session_start');
 }
 const OK_BANNER_CONFIG = {
   enabled: true,
