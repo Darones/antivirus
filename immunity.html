@@ -454,7 +454,7 @@ body.tiles-art .tile-svg{display:none}
 .tutorial-bubble.nudge p{color:#ffe9a8}
 .tutorial-bubble .tb-actions{display:flex;align-items:center;gap:8px}
 .tutorial-bubble .tb-actions .btn{padding:7px 10px;font-size:10px}
-.tutorial-bubble .tb-actions .tb-skip{width:100%;font-size:10px}
+.tutorial-bubble .tb-actions .tb-skip{width:auto;font-size:9px;padding:5px 8px;opacity:.75}
 .tutorial-bubble .skip{margin-left:auto;background:none;border:0;color:var(--muted);font-size:9px;text-decoration:underline;cursor:pointer}
 .tutorial-hand{position:absolute;z-index:26;font-size:22px;pointer-events:none;animation:handBob .8s infinite;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
 @keyframes handBob{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-62%)}}
@@ -766,7 +766,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
       <div class="grow"><div class="eyebrow">Ещё</div><h2>Настройки</h2></div>
     </div>
     <div id="settingsList"></div>
-    <div class="settings-version">Антивирус: Иммунитет · v1.10 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.11 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -1009,11 +1009,12 @@ function makeLevels(){
     for(let i=1;i<=10;i++){
       const boss=i===10;
       const tier=boss?3:(i<=3?0:(i<=6?1:2));
-      const targetTurns=13+(id-1)*0.10+(boss?3:0);
-      const dmgPerTurn=21+(id-1)*0.25;
+      const early=id<=3;
+      const targetTurns=(id<=3?9:(id<=6?11:13))+(id-1)*0.10+(boss?3:0);
+      const dmgPerTurn=(21+(id-1)*0.25)*(early?0.75:1);
       const hpMul=boss?1.12:1+tier*0.06;
       const hp=Math.round(targetTurns*dmgPerTurn*hpMul);
-      const atk=Math.round((26+(id-1)*0.08+(boss?2:0)+tier*0.4)*10)/10;
+      const atk=Math.round(((26+(id-1)*0.08+(boss?2:0)+tier*0.4)*(early?0.7:1))*10)/10;
       const sig=ch.type;
       const prev=ch.id>1?CHAPTERS[ch.id-2].type:null;
       const mods=[sig];
