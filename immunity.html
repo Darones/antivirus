@@ -766,7 +766,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
       <div class="grow"><div class="eyebrow">Ещё</div><h2>Настройки</h2></div>
     </div>
     <div id="settingsList"></div>
-    <div class="settings-version">Антивирус: Иммунитет · v1.9 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.10 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -2541,7 +2541,7 @@ function renderMap(){
     return '<div class="chapter '+(locked?'locked':'')+'">'
       +'<div class="chapter-head"><div><div class="chapter-num">Глава '+ch.id+'</div><div class="chapter-name">'+ch.name+'</div></div><div class="chapter-tags"><span class="virus-tag">'+TYPE_NAMES[ch.type]+'</span><span class="skill-tag">'+ch.skill+'</span></div></div>'
       +'<div class="nodes">'+nodes+'</div>'
-      +'<div class="chapter-reward"><span>Навык: <b>'+ch.skill+'</b> · награда: <b>'+chHero+'</b></span><button class="chapter-story" onclick="startStory(\'intro\','+ch.id+',()=>showScreen(\'map\'))">Комикс</button></div>'
+      +'<div class="chapter-reward"><span>Навык: <b>'+ch.skill+'</b> · награда: <b>'+chHero+'</b></span></div>'
       +'</div>';
   }).join('');
   renderMapHeader(); renderAll();
