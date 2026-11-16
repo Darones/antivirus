@@ -70,6 +70,10 @@ button{font-family:inherit}
 /* faces */
 .nika-face,.virus-face{display:block;flex:0 0 auto;position:relative}
 .nika-face svg,.virus-face svg{display:block;width:100%;height:100%;overflow:visible}
+.nika-battle-img{display:block;width:100%;height:100%;object-fit:contain;border-radius:14px;background:#071a23;filter:saturate(1.05)}
+.nika-face.mood-hurt .nika-battle-img{filter:saturate(1.15) hue-rotate(-8deg) brightness(.95)}
+.nika-face.mood-critical .nika-battle-img{filter:saturate(.55) brightness(.85)}
+.nika-face.mood-happy .nika-battle-img{filter:saturate(1.18) brightness(1.06)}
 .nika-face .eyes,.nika-face .mouth{display:none}
 .nika-face.mood-normal .eyes-normal,.nika-face.mood-normal .mouth-smile{display:block}
 .nika-face.mood-happy .eyes-happy,.nika-face.mood-happy .mouth-open{display:block}
@@ -90,8 +94,11 @@ button{font-family:inherit}
 @keyframes virusShake{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(-4px,1px) rotate(-4deg)}40%{transform:translate(4px,-2px) rotate(4deg)}60%{transform:translate(-3px,2px) rotate(-3deg)}80%{transform:translate(2px,0) rotate(2deg)}}
 
 /* boot */
-#screenBoot{align-items:center;justify-content:center;text-align:center;gap:12px;padding:24px}
-.boot-title{font-size:clamp(30px,8vw,44px);line-height:1.02;letter-spacing:-.04em;margin:0}
+#screenBoot{align-items:center;justify-content:center;text-align:center;gap:12px;padding:24px;position:relative;overflow:hidden;background:url("assets/welcome/bg.jpg") center/cover no-repeat}
+#screenBoot::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,8,6,.22),rgba(3,8,6,.58) 45%,rgba(3,8,6,.94));z-index:0}
+#screenBoot>*{position:relative;z-index:1}
+.boot-head{width:min(360px,100%);background:rgba(3,10,7,.62);border:1px solid rgba(120,255,150,.18);border-radius:20px;padding:10px 14px 12px;backdrop-filter:blur(8px);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+.boot-title{font-size:clamp(30px,8vw,44px);line-height:1.02;letter-spacing:-.04em;margin:0;text-shadow:0 2px 14px rgba(0,0,0,.45)}
 .boot-title span{background:linear-gradient(90deg,#eaf6ff,#39e6b0 55%,#5ab0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .boot-sub{font-size:12px;color:#b9d2e2;max-width:320px;margin:0}
 .boot-faces{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0}
@@ -100,6 +107,10 @@ button{font-family:inherit}
 .boot-actions{display:flex;flex-direction:column;gap:8px;width:min(300px,100%);margin-top:8px}
 .boot-status{font-size:10px;color:var(--muted);min-height:14px}
 .boot-note{font-size:9px;color:#5f7f91;max-width:300px}
+.boot-sub,.boot-status,.boot-note{text-shadow:0 1px 8px rgba(0,0,0,.85)}
+.boot-hero{width:min(330px,100%);max-width:100%;aspect-ratio:1/1;border-radius:26px;overflow:hidden;border:1px solid rgba(120,255,150,.3);box-shadow:0 22px 55px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.06);margin:2px 0;background:#071a23}
+.boot-hero img{display:block;width:100%;height:100%;object-fit:cover}
+@media (max-height:720px){.boot-hero{width:min(260px,100%)}.boot-title{font-size:clamp(26px,7vw,34px)}}
 
 /* map */
 .map-head{display:flex;align-items:center;gap:8px;padding:2px 0 4px}
@@ -220,7 +231,8 @@ button{font-family:inherit}
 .stage-nika-info .bar{height:5px}
 .stage-shield{font-size:7.5px;color:var(--blue);margin-top:2px;text-align:right}
 .stage-party{position:absolute;left:10px;bottom:8px;display:flex;gap:4px;z-index:5}
-.stage-hero{width:27px;height:27px;border-radius:9px;border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:13px;color:#04121a;background:var(--c,#39e6b0);box-shadow:0 2px 0 rgba(0,0,0,.35),0 0 10px rgba(255,255,255,.12)}
+.stage-hero{width:27px;height:27px;border-radius:9px;border:1px solid var(--c,#39e6b0);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--c,#39e6b0);background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(0,0,0,.26));box-shadow:0 2px 0 rgba(0,0,0,.35),0 0 10px rgba(255,255,255,.10)}
+.stage-hero .hero-icon-img{width:70%;height:70%}
 .stage-hero.cast{animation:heroCast .35s ease}
 @keyframes heroCast{0%,100%{transform:translateY(0) scale(1)}40%{transform:translateY(-6px) scale(1.16)}}
 .stage-enemy{position:absolute;right:6px;top:5px;width:calc(100% - 142px);max-width:310px;display:flex;flex-direction:column;align-items:center;z-index:4}
@@ -300,7 +312,7 @@ button{font-family:inherit}
 #screenBattle .stage-shield{font-size:7px;margin-top:1px}
 #screenBattle .stage-party{left:7px;bottom:5px;gap:3px}
 #screenBattle .stage-hero{width:22px;height:22px;border-radius:7px;font-size:11px}
-#screenBattle .stage-enemy{right:4px;top:3px;width:calc(100% - 116px);max-width:320px}
+#screenBattle .stage-enemy{right:4px;top:3px;width:calc(100% - 136px);max-width:320px}
 #screenBattle .enemy-name-row{font-size:10px;margin-bottom:0}
 #screenBattle .enemy-name-row .armor{font-size:7px;padding:0 3px}
 #screenBattle .virus-art{width:114px;height:98px}
@@ -323,8 +335,9 @@ button{font-family:inherit}
 #app{max-width:560px}
 #screenBattle .battle-top .level-name b{font-size:13px}
 #screenBattle .battle-top .level-name span{font-size:9.5px}
-#screenBattle .stage-nika{width:112px}
-#screenBattle .stage-nika .nika-face{width:50px;height:50px}
+#screenBattle .stage-nika{width:124px}
+#screenBattle .stage-nika .nika-face{width:64px;height:76px}
+#battleNikaFace{border-radius:16px;overflow:hidden;box-shadow:0 0 0 2px rgba(88,255,138,.22),0 6px 16px rgba(0,0,0,.45)}
 #screenBattle .stage-mini-label{font-size:8.5px}
 #screenBattle .stage-mini-label b{font-size:10px}
 #screenBattle .stage-mini-label span{font-size:8.5px}
@@ -400,7 +413,8 @@ body.tiles-art .tile-svg{display:none}
 }
 .hero-card:active{transform:scale(.97)}
 .hero-card .hero-top{display:flex;align-items:center;gap:4px;margin-bottom:4px;min-width:0}
-.hero-icon{width:19px;height:19px;flex:0 0 19px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#04121a;background:var(--c,#39e6b0);box-shadow:0 0 8px rgba(255,255,255,.15)}
+.hero-icon{width:19px;height:19px;flex:0 0 19px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--c,#39e6b0);background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(0,0,0,.26));border:1px solid var(--c,#39e6b0);box-shadow:0 0 8px rgba(255,255,255,.08),inset 0 0 6px rgba(0,0,0,.35)}
+.hero-icon-img{width:72%;height:72%;object-fit:contain;display:block;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}
 .hero-name{font-size:8.8px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hero-card .bar{height:4px}
 .hero-card .hero-ult{font-size:7.8px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -566,12 +580,11 @@ input[type=range]{width:110px;accent-color:#39e6b0}
 
   <!-- BOOT -->
   <div class="screen" id="screenBoot">
+    <div class="boot-head">
     <h1 class="boot-title">Антивирус:<br><span>Иммунитет</span></h1>
     <p class="boot-sub">Собирай три в ряд, командуй иммунитетом и защити Нику от вирусов.</p>
-    <div class="boot-faces">
-      <div class="nika-face mood-normal" data-face="nika"></div>
-      <div class="virus-face mood-smug" data-face="virus"></div>
     </div>
+    <div class="boot-hero"><img src="assets/welcome/keyart.jpg" alt="Ника и Лейкоцит"></div>
     <div class="boot-actions">
       <button class="btn btn-primary btn-block" id="bootPlay" onclick="bootPlay()">Играть</button>
       <button class="btn btn-ghost btn-block hidden" id="bootContinue" onclick="bootContinue()">Продолжить</button>
@@ -901,7 +914,7 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, Number(v)||0));
 function toast(msg){
   const el=$('#toastBox'); if(!el)return;
   el.textContent=msg; el.classList.add('show');
-  clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),1800);
+  clearTimeout(toast._t); toast._t=setTimeout(()=>{el.classList.remove('show');el.textContent='';},1800);
 }
 
 /* ===================== STATS ===================== */
@@ -989,6 +1002,20 @@ const CHAPTER_OUTROS={
   10:'Сердце бьётся ровно. Последний вирус обезврежен.'
 };
 CHAPTERS.forEach(c=>{ if(!c.outro) c.outro=CHAPTER_OUTROS[c.id]||''; });
+const CHAPTER_MIDS={
+  1:'Первый рубеж взят. Но в горле ещё шевелится эхо вируса. Лейкоцит просит не расслабляться.',
+  2:'Лёгкие дышат ровнее. Делящийся вирус оставил споры — впереди новая волна.',
+  3:'Кровь очищается, но регенератор уже собирает силы. Нужен мощный удар, пока он не восстановился.',
+  4:'Лимфа успокоилась. Взрывной вирус оставил осколки, и они снова светятся.',
+  5:'Туман в голове рассеялся. Призрак ушёл в тень — но не исчез.',
+  6:'Кожа согрелась. Ледяной вирус оставил трещины, из которых тянет холодом.',
+  7:'Печень очищается. Яд отступает, но оставляет токсичный след.',
+  8:'Силы возвращаются. Вор цвета уже ищет, чем поживиться.',
+  9:'Кости снова держат. Туманный вирус прячется в глубине.',
+  10:'Сердце бьётся ровно. Но супервирус ещё не показал всё, на что способен.'
+};
+const HERO_ICON={red:'assets/icons/swords.svg',green:'assets/icons/cross.svg',blue:'assets/icons/shield.svg',yellow:'assets/icons/star.svg',purple:'assets/icons/hex.svg'};
+function heroIconImg(id){const src=HERO_ICON[id]||'';return src?'<img class="hero-icon-img" src="'+src+'" alt="" draggable="false">':(HEROES[id]?HEROES[id].icon:'');}
 const TYPE_NAMES={bronze:'Бронзовый',splitter:'Делящийся',regen:'Регенерирующий',explosive:'Взрывной',ghost:'Призрак',ice:'Ледяной',poison:'Ядовитый',thief:'Вор цвета',fog:'Туманный',super:'Супервирус'};
 const TRAIT_NAMES={bronze:'броня',splitter:'деление',regen:'регенерация',explosive:'взрыв',ghost:'тень',ice:'лёд',poison:'яд',thief:'кража цвета',fog:'туман',super:'всё сразу'};
 const STRAINS={
@@ -1188,6 +1215,11 @@ function adBlockReason(kind){
   return '';
 }
 function adCanShow(kind){return !adBlockReason(kind);}
+function adAvailable(kind){
+  if(adBlockReason(kind))return false;
+  if(window.Platform.mode==='ok')return true;
+  return !!vkReady&&!!window.vkBridge;
+}
 function adBlockToast(why){
   if(why==='cooldown')toast('Подожди 20 секунд');
   else if(why==='daily-limit')toast('Лимит рекламы на сегодня');
@@ -1316,7 +1348,8 @@ function buyWithCoins(itemId){
 /* ===================== FACES ===================== */
 const NIKA_SVG = '<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="nikaBg" cx="50%" cy="35%" r="70%"><stop offset="0%" stop-color="#1c4a5c"/><stop offset="100%" stop-color="#08222e"/></radialGradient><clipPath id="nikaClip"><circle cx="32" cy="32" r="30"/></clipPath></defs><circle cx="32" cy="32" r="30" fill="url(#nikaBg)" stroke="rgba(255,255,255,.2)"/><g clip-path="url(#nikaClip)"><path d="M10 36 Q14 8 32 8 Q50 8 54 36 L54 64 L10 64Z" fill="#e5bf62"/><circle cx="32" cy="36" r="15" fill="#ffd9c7"/><path d="M17 34 Q18 18 32 18 Q46 18 47 34 Q42 26 32 26 Q22 26 17 34Z" fill="#e5bf62"/><g class="eyes eyes-normal"><circle cx="26" cy="36" r="1.8" fill="#3a1d14"/><circle cx="38" cy="36" r="1.8" fill="#3a1d14"/></g><g class="eyes eyes-happy"><path d="M23 36 q3 3 6 0" stroke="#3a1d14" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M35 36 q3 3 6 0" stroke="#3a1d14" stroke-width="2" fill="none" stroke-linecap="round"/></g><g class="eyes eyes-hurt"><path d="M24 37 l4 -3 M28 37 l-4 -3" stroke="#3a1d14" stroke-width="1.8" stroke-linecap="round"/><path d="M36 37 l4 -3 M40 37 l-4 -3" stroke="#3a1d14" stroke-width="1.8" stroke-linecap="round"/></g><g class="eyes eyes-critical"><path d="M24 36 q2 2 4 0" stroke="#3a1d14" stroke-width="2" fill="none"/><path d="M36 36 q2 2 4 0" stroke="#3a1d14" stroke-width="2" fill="none"/></g><g class="mouth mouth-smile"><path d="M28 44 q4 3 8 0" stroke="#b04a4a" stroke-width="2" fill="none" stroke-linecap="round"/></g><g class="mouth mouth-open"><ellipse cx="32" cy="45" rx="4" ry="3" fill="#b04a4a"/></g><g class="mouth mouth-flat"><path d="M28 45 h8" stroke="#b04a4a" stroke-width="2" stroke-linecap="round"/></g><path d="M18 50 q14 8 28 0 l0 8 q-14 8 -28 0Z" fill="#39e6b0" opacity=".95"/><path d="M40 54 l8 8 -6 4 -7 -9Z" fill="#39e6b0" opacity=".8"/></g></svg>';
 const VIRUS_SVG = '<svg viewBox="0 0 72 72" aria-hidden="true"><defs><radialGradient id="virusBg" cx="40%" cy="30%" r="70%"><stop offset="0%" stop-color="#ff8ab8"/><stop offset="100%" stop-color="#8a1048"/></radialGradient></defs><path d="M36 4 L43 16 L56 12 L53 26 L66 32 L56 42 L62 55 L48 54 L44 68 L34 58 L22 66 L21 52 L8 54 L14 40 L4 32 L16 26 L12 12 L26 16Z" fill="url(#virusBg)" stroke="#ff4d8d" stroke-width="2"/><g class="v-eyes v-eyes-smug"><path d="M22 32 q5 -3 10 0" stroke="#2a0518" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M40 32 q5 -3 10 0" stroke="#2a0518" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><g class="v-eyes v-eyes-angry"><path d="M20 28 l12 5 M52 28 l-12 5" stroke="#2a0518" stroke-width="2.6" stroke-linecap="round"/><circle cx="27" cy="37" r="2.4" fill="#2a0518"/><circle cx="45" cy="37" r="2.4" fill="#2a0518"/></g><g class="v-eyes v-eyes-hurt"><path d="M22 32 l8 8 M30 32 l-8 8" stroke="#2a0518" stroke-width="2.4" stroke-linecap="round"/><path d="M42 32 l8 8 M50 32 l-8 8" stroke="#2a0518" stroke-width="2.4" stroke-linecap="round"/></g><g class="v-eyes v-eyes-dead"><path d="M22 32 l8 8 M30 32 l-8 8" stroke="#2a0518" stroke-width="2.4" stroke-linecap="round"/><path d="M42 32 l8 8 M50 32 l-8 8" stroke="#2a0518" stroke-width="2.4" stroke-linecap="round"/></g><g class="v-mouth v-mouth-smirk"><path d="M28 48 q8 5 16 0" stroke="#2a0518" stroke-width="2.6" fill="none" stroke-linecap="round"/></g><g class="v-mouth v-mouth-open"><ellipse cx="36" cy="49" rx="7" ry="5" fill="#2a0518"/></g><g class="v-mouth v-mouth-wavy"><path d="M26 49 q4 -4 8 0 q4 4 8 0 q4 -4 8 0" stroke="#2a0518" stroke-width="2.2" fill="none" stroke-linecap="round"/></g><g class="v-mouth v-mouth-flat"><path d="M28 49 h16" stroke="#2a0518" stroke-width="2.6" stroke-linecap="round"/></g></svg>';
-function injectFaces(){$$('.nika-face').forEach(el=>{if(!el.dataset.ready){el.innerHTML=NIKA_SVG;el.dataset.ready='1';}});$$('.virus-face').forEach(el=>{if(!el.dataset.ready){el.innerHTML=VIRUS_SVG;el.dataset.ready='1';}});}
+function nikaImgError(img){img.parentElement.innerHTML=NIKA_SVG;}
+function injectFaces(){$$('.nika-face').forEach(el=>{if(!el.dataset.ready){el.innerHTML=el.id==='battleNikaFace'?'<img class="nika-battle-img" src="assets/nika/nika-battle.png" alt="" draggable="false" onerror="nikaImgError(this)">':NIKA_SVG;el.dataset.ready='1';}});$$('.virus-face').forEach(el=>{if(!el.dataset.ready){el.innerHTML=VIRUS_SVG;el.dataset.ready='1';}});}
 function setNikaMood(mood,temp){
   const els=$$('.nika-face').filter(el=>!el.closest('.modal'));
   els.forEach(el=>{
@@ -1402,7 +1435,7 @@ function stopVirusAnim(container){
 }
 function renderStageParty(){
   const el=$('#stageParty'); if(!el)return;
-  el.innerHTML=teamColors().map(id=>'<span class="stage-hero" data-color="'+id+'" style="--c:'+HEROES[id].color+'">'+HEROES[id].icon+'</span>').join('');
+  el.innerHTML=teamColors().map(id=>'<span class="stage-hero" data-color="'+id+'" style="--c:'+HEROES[id].color+'">'+heroIconImg(id)+'</span>').join('');
 }
 function makeSpores(){
   const el=$('#stageSpores'); if(!el||el.dataset.ready)return;
@@ -1491,13 +1524,6 @@ function findMatches(){
   for(let r=0;r<ROWS;r++){let c=0;while(c<COLS){const cell=B.board[r*COLS+c];const t=cell&&!cell.infected?cell.type:null;let e=c+1;while(e<COLS){const n=B.board[r*COLS+e];if(!n||n.infected||n.type!==t)break;e++;}if(t&&e-c>=3)runs.push({type:t,len:e-c,cells:Array.from({length:e-c},(_,k)=>r*COLS+c+k)});c=e;}}
   for(let c=0;c<COLS;c++){let r=0;while(r<ROWS){const cell=B.board[r*COLS+c];const t=cell&&!cell.infected?cell.type:null;let e=r+1;while(e<ROWS){const n=B.board[e*COLS+c];if(!n||n.infected||n.type!==t)break;e++;}if(t&&e-r>=3)runs.push({type:t,len:e-r,cells:Array.from({length:e-r},(_,k)=>(r+k)*COLS+c)});r=e;}}
   return runs;
-}
-function hasMove(){
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;
-    if(c<COLS-1){swapCells(i,i+1);const ok=findMatches().length>0;swapCells(i,i+1);if(ok)return true;}
-    if(r<ROWS-1){swapCells(i,i+COLS);const ok=findMatches().length>0;swapCells(i,i+COLS);if(ok)return true;}
-  }
-  return false;
 }
 function virusCount(){return B.board.filter(t=>t.infected).length;}
 const TILE_ICONS={red:'⚔',green:'✚',blue:'◈',yellow:'✦',purple:'⬢',virus:'☣'};
@@ -1612,6 +1638,45 @@ function clearVirus(n){
   if(cleared)applyTileVisuals();
   return cleared;
 }
+function canSwapAt(i,j){
+  if(!B.board[i]||!B.board[j])return false;
+  if(B.frozen&&(B.frozen.has(i)||B.frozen.has(j)))return false;
+  return true;
+}
+function hasMove(){
+  for(let i=0;i<B.board.length;i++){
+    const r=Math.floor(i/COLS),c=i%COLS;
+    const nbrs=[];
+    if(c+1<COLS)nbrs.push(i+1);
+    if(r+1<ROWS)nbrs.push(i+COLS);
+    for(const j of nbrs){
+      if(!canSwapAt(i,j))continue;
+      const a=B.board[i],b=B.board[j];
+      if(a.type===b.type&&!!a.infected===!!b.infected)continue;
+      B.board[i]=b;B.board[j]=a;
+      const ok=findMatches().length>0;
+      B.board[i]=a;B.board[j]=b;
+      if(ok)return true;
+    }
+  }
+  return false;
+}
+function shuffleBoard(){
+  const types=B.board.map(t=>t.type);
+  const shuffleTypes=()=>{
+    for(let i=types.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=types[i];types[i]=types[j];types[j]=t;}
+    B.board.forEach((t,i)=>{t.type=types[i];});
+  };
+  for(let attempt=0;attempt<60;attempt++){
+    shuffleTypes();
+    cleanInitialMatches();
+    if(hasMove()){renderBoard();toast('Нет ходов: доска перемешана');return true;}
+  }
+  makeBoard();
+  renderBoard();
+  toast('Нет ходов: доска пересобрана');
+  return true;
+}
 async function resolveBoard(){
   let guard=0, depth=0;
   while(guard++<30){
@@ -1642,6 +1707,7 @@ async function resolveBoard(){
   await endTurn();
   if(B.player.hp<=0){loseBattle();return;}
   if(enemyDefeated()&&!B.tutorial){winBattle();return;}
+  if(!B.tutorial&&!hasMove())shuffleBoard();
   B.busy=false;
   if(B.tutorial)tutorialAfterMove();
 }
@@ -1954,7 +2020,7 @@ function useBomb(){
   const r=Math.floor(idx/COLS),c=idx%COLS;
   let v=0;
   for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&rr<ROWS&&cc>=0&&cc<COLS){const i=rr*COLS+cc;if(B.board[i].infected){B.board[i].infected=false;v++;}B.board[i].type=randomType();}}
-  renderBoard(); updateHud(); setTimeout(()=>{B.busy=false;},200); toast(v?('Бомба! Очищено заражение: '+v):'Бомба!');
+  renderBoard(); updateHud(); setTimeout(()=>{B.busy=false;if(!hasMove())shuffleBoard();},200); toast(v?('Бомба! Очищено заражение: '+v):'Бомба!');
 }
 
 /* ===================== BATTLE START / RESULT ===================== */
@@ -1990,6 +2056,7 @@ function startBattle(level,opts){
   $('#battleCoins').textContent=S.coins;
   showScreen('battle');
   updateHud(); renderBoard(); setTimeout(resizeBoard,50);
+  if(!B.tutorial&&!hasMove())shuffleBoard();
   if(B.tutorial){showTutorialStep(0);}
   else{Stats.track('level_start',{level:level.id,mode:'battle',boss:!!level.boss});Stats.track('battle_start',{level:level.id,boss:!!level.boss,enemy:level.type});if(level.boss)showBossIntro(level);}
 }
@@ -2035,18 +2102,21 @@ function showResult(type,data){
       +'<div class="stars">'+starHtml+'</div>'
       +'<div class="reward-pill"><span>💰 <b>+'+data.coins+'</b></span><span>✦ <b>+'+data.shards+'</b></span></div>'
       +'<div class="modal-actions">'
-      +'<button class="btn btn-warm" onclick="doubleReward()">📺 Удвоить за рекламу</button>'
+      +(adAvailable('rewarded')?'<button class="btn btn-warm" onclick="doubleReward()">📺 Удвоить за рекламу</button>':'')
       +'<button class="btn btn-primary" onclick="nextFromResult()">Дальше</button>'
       +'</div>';
   }else{
     const classicFail=!!B.classicFailed;
+    const adOk=adAvailable('rewarded');
+    const coinOk=S.coins>=100;
+    const defeatText=classicFail?'Ходы кончились, а вирусы остались. Попробуй ещё раз.':(adOk?'Вирус взял верх. Продолжить можно за рекламу или 100 монет.':(coinOk?'Вирус взял верх. Продолжить можно за 100 монет.':'Вирус взял верх. Монет не хватает — вернись на карту.'));
     $('#resultCard').innerHTML='<div class="modal-faces"><div class="nika-face mood-critical" data-face="nika"></div><div class="virus-face mood-smug" data-face="virus"></div></div>'
-      +'<h3>Ника устала</h3><p>'+(classicFail?'Ходы кончились, а вирусы остались. Попробуй ещё раз.':'Вирус взял верх. Продолжить можно за рекламу или 100 монет.')+'</p>'
+      +'<h3>Ника устала</h3><p>'+defeatText+'</p>'
       +'<div class="modal-actions">'
       +(classicFail
         ?'<button class="btn btn-primary" onclick="retryBattle()">Ещё раз</button><button class="btn btn-ghost" onclick="exitBattle()">В меню</button>'
-        :'<button class="btn btn-warm" onclick="continueBattle(\'rewarded\')" '+(B.continued?'disabled':'')+'>📺 Продолжить за рекламу</button>'
-         +'<button class="btn btn-primary" onclick="continueBattle(\'coins\')" '+(B.continued?'disabled':'')+'>Продолжить · 100 💰</button>'
+        :(adOk?'<button class="btn btn-warm" onclick="continueBattle(\'rewarded\')" '+(B.continued?'disabled':'')+'>📺 Продолжить за рекламу</button>':'')
+         +'<button class="btn btn-primary" onclick="continueBattle(\'coins\')" '+(B.continued||!coinOk?'disabled':'')+'>Продолжить · 100 💰</button>'
          +'<button class="btn btn-ghost" onclick="exitBattle()">В меню</button>')
       +'</div>';
   }
@@ -2068,6 +2138,9 @@ async function nextFromResult(){
 function afterVictoryNext(){
   const lvl=B.level;
   if(B.result==='victory'&&lvl&&lvl.id>=100){startStory('ending',10,()=>showScreen('map'));return;}
+  if(B.result==='victory'&&lvl&&lvl.id%10===5&&!lvl.boss&&!S.storySeen['mid'+lvl.chapter]){
+    startStory('mid',lvl.chapter,()=>showScreen('map'));return;
+  }
   if(B.result==='victory'&&lvl&&lvl.boss){
     startStory('outro',lvl.chapter,()=>goNextLevel(lvl.id+1));
     return;
@@ -2110,7 +2183,7 @@ async function continueBattle(kind){
   const viruses=[]; B.board.forEach((t,i)=>{if(t.infected)viruses.push(i);});
   viruses.slice(0,Math.ceil(viruses.length/2)).forEach(i=>{B.board[i].infected=false;});
   B.enemy.counter=B.enemy.maxCounter; B.result=''; B.busy=false;
-  $('#resultModal').classList.add('hidden'); setNikaMood('normal'); setVirusMood('angry'); updateHud(); renderBoard(); showScreen('battle'); toast('Продолжение: Ника +40 HP');
+  $('#resultModal').classList.add('hidden'); setNikaMood('normal'); setVirusMood('angry'); updateHud(); renderBoard(); showScreen('battle'); if(!hasMove())shuffleBoard(); toast('Продолжение: Ника +40 HP');
 }
 function exitBattle(){
   $('#resultModal').classList.add('hidden'); $('#pauseModal').classList.add('hidden'); B.paused=false; B.busy=false; showScreen('map');
@@ -2122,7 +2195,7 @@ function resumeBattle(){B.paused=false;$('#pauseModal').classList.add('hidden');
 const TUTORIAL_STEPS=[
   {kind:'red', text:'Собери 3 красных — Т-киллер ударит вирус.', wrong:'Не тот цвет. Нужны красные — они бьют вирус.'},
   {kind:'infect', text:'Заражённые клетки не собираются в тройки. Собери тройку рядом — заражение очистится.', wrong:'Заражённую клетку не собрать. Собери тройку рядом с ней.'},
-  {kind:'ult', text:'Ульта готова! Нажми на подсвеченную карточку героя — стрелка покажет куда.', wrong:'Нажми на подсвеченную карточку героя — стрелка покажет куда.'}
+  {kind:'ult', text:'Ульта готова! Нажми на подсвеченную карточку героя — она ударит вирус.', wrong:'Нажми на подсвеченную карточку героя — она ударит вирус.'}
 ];
 function startTutorial(){
   S.tutorialDone=false; B.tutorial=true;
@@ -2339,6 +2412,14 @@ const STORY_EXTRA={
 function storyPages(kind,chapter){
   if(kind==='ending')return STORY_EXTRA.ending;
   if(kind==='tutorial')return STORY_EXTRA.tutorial;
+  if(kind==='mid'){
+    const mid=CHAPTERS.find(c=>c.id===chapter);
+    if(!mid)return [];
+    return [
+      {title:mid.name,text:CHAPTER_MIDS[chapter]||mid.intro,img:'ch'+chapter},
+      {title:'Новый натиск',text:'Лейкоцит: «Держись! Я чувствую, как вирус собирает силы. Это ещё не конец». Впереди — новая волна.',img:'mid-action'}
+    ];
+  }
   const ch=CHAPTERS.find(c=>c.id===chapter);
   if(!ch)return [];
   const text=kind==='intro'?ch.intro:(ch.outro||'');
@@ -2369,7 +2450,7 @@ function renderStoryPage(){
   $('#storyProgress').textContent=(B.story.index+1)+' / '+B.story.pages.length;
   $('#storyNext').textContent='Дальше';
   const scene=$('#storyScene');
-  const key=B.story.kind==='tutorial'?'start':(B.story.kind==='ending'?'ending':'ch'+B.story.chapter);
+  const key=p.img||(B.story.kind==='tutorial'?'start':(B.story.kind==='ending'?'ending':'ch'+B.story.chapter));
   const src='assets/story/'+key+'.jpg';
   scene.innerHTML='<img class="story-img" src="'+src+'" alt="" data-key="'+key+'" onerror="storyImgError(this)"><div class="story-fallback" style="display:none">'+STORY_SCENE_SVG+'</div>';
   const virus=scene.querySelector('#storyVirus');
@@ -2398,6 +2479,7 @@ function finishStory(){
   if(s.viewOnly){if(s.cb)s.cb();else showScreen('map');return;}
   if(s.kind==='tutorial'){startTutorial();return;}
   if(s.kind==='ending'){showScreen('map');return;}
+  if(s.kind==='mid'){S.storySeen['mid'+s.chapter]=true;persist();if(s.cb)s.cb();else showScreen('map');return;}
   if(s.kind==='intro'){S.storySeen['intro'+s.chapter]=true;persist();if(s.cb)s.cb();else showScreen('map');return;}
   if(s.kind==='outro'){S.storySeen['outro'+s.chapter]=true;persist();if(s.cb)s.cb();else showScreen('map');}
 }
@@ -2409,20 +2491,20 @@ function renderHeroDock(){
   el.innerHTML=teamColors().map(id=>{
     const h=HEROES[id], ch=B.charge[id]||0;
     return '<button class="hero-card" data-color="'+id+'" onclick="useUltimate(\''+id+'\')">'
-      +'<div class="hero-top"><span class="hero-icon" style="--c:'+h.color+'">'+h.icon+'</span><span class="hero-name">'+h.name+'</span></div>'
+      +'<div class="hero-top"><span class="hero-icon" style="--c:'+h.color+'">'+heroIconImg(id)+'</span><span class="hero-name">'+h.name+'</span></div>'
       +'<div class="bar charge" style="--c:'+h.color+'"><i style="width:'+ch+'%;background:'+h.color+'"></i></div>'
       +'<div class="hero-ult">Ульта · '+heroUlt(id)+'</div></button>';
   }).join('');
   renderStageParty();
 }
 function renderHeroes(){
-  const teamEl=$('#teamRow'); if(teamEl)teamEl.innerHTML=S.team.map(id=>{const h=HEROES[id];return '<div class="team-slot"><span class="dot" style="--c:'+h.color+'">'+h.icon+'</span><b>'+h.name+'</b></div>';}).join('');
+  const teamEl=$('#teamRow'); if(teamEl)teamEl.innerHTML=S.team.map(id=>{const h=HEROES[id];return '<div class="team-slot"><span class="dot" style="--c:'+h.color+'">'+heroIconImg(id)+'</span><b>'+h.name+'</b></div>';}).join('');
   const el=$('#heroList'); if(!el)return;
   el.innerHTML=HERO_ORDER.map(id=>{
     const h=HEROES[id], unlocked=S.unlockedHeroes.includes(id), st=S.heroes[id], inTeam=S.team.includes(id);
     const upCost=Math.round(120*Math.pow(1.55,st.level-1)); const tierCost=15*(st.tier+1);
     return '<div class="hero-big '+(unlocked?'':'locked')+' '+(inTeam?'in-team':'')+'">'
-      +'<div class="hero-big-head"><span class="hero-icon" style="--c:'+h.color+'">'+h.icon+'</span><div class="hinfo"><b>'+h.name+'</b><small>'+h.role+' · '+h.passive+'</small></div><span class="hero-lvl">'+(unlocked?'Ур. '+st.level:'🔒')+'</span></div>'
+      +'<div class="hero-big-head"><span class="hero-icon" style="--c:'+h.color+'">'+heroIconImg(id)+'</span><div class="hinfo"><b>'+h.name+'</b><small>'+h.role+' · '+h.passive+'</small></div><span class="hero-lvl">'+(unlocked?'Ур. '+st.level:'🔒')+'</span></div>'
       +'<div class="hero-stats"><span>Удар '+heroBase(id)+'</span><span>Ульта '+heroUlt(id)+'</span><span>Тир '+st.tier+'</span></div>'
       +(unlocked?'<div class="hero-actions"><button class="btn btn-ghost" onclick="toggleTeam(\''+id+'\')">'+(inTeam?'В команде':'В команду')+'</button><button class="btn btn-primary" onclick="upgradeHero(\''+id+'\')" '+(S.coins<upCost?'disabled':'')+'>Прокачать · '+upCost+' 💰</button><button class="btn btn-warm" onclick="upgradeTier(\''+id+'\')" '+(S.shards<tierCost?'disabled':'')+'>Способность · '+tierCost+' ✦</button></div>':'<div class="hero-actions"><button class="btn btn-ghost" disabled>Откроется после босса главы '+(id==='yellow'?1:2)+'</button></div>')
       +'</div>';
