@@ -590,7 +590,6 @@ input[type=range]{width:110px;accent-color:#39e6b0}
       </div>
       <span class="coin-pill">💰 <b id="mapCoins">0</b></span>
       <span class="shard-pill">✦ <b id="mapShards">0</b></span>
-      <button class="icon-btn" onclick="showScreen('stories')" title="Комиксы">📖</button>
       <button class="icon-btn" onclick="showScreen('settings')">⚙</button>
     </div>
     <div class="map-scroll" id="mapScroll"></div>
@@ -767,8 +766,7 @@ input[type=range]{width:110px;accent-color:#39e6b0}
       <div class="grow"><div class="eyebrow">Ещё</div><h2>Настройки</h2></div>
     </div>
     <div id="settingsList"></div>
-    <button class="btn btn-ghost btn-block" onclick="showScreen('stories')" style="margin-top:8px">📖 Комиксы и история</button>
-    <div class="settings-version">Антивирус: Иммунитет · v1.8 · <span id="cloudStatus">облако: —</span></div>
+    <div class="settings-version">Антивирус: Иммунитет · v1.9 · <span id="cloudStatus">облако: —</span></div>
     <div class="settings-version" style="font-size:8px;opacity:.65">Иконки плиток: <a href="https://game-icons.net" target="_blank" rel="noopener" style="color:var(--green)">Game-icons.net</a> (Lorc, Delapouite), CC BY 3.0</div>
   </div>
 
@@ -784,16 +782,6 @@ input[type=range]{width:110px;accent-color:#39e6b0}
       <button class="btn btn-primary" id="storyNext" onclick="nextStoryPage()">Дальше</button>
       <button class="story-skip" onclick="skipStory()">Пропустить</button>
     </div>
-  </div>
-
-  <!-- STORY GALLERY -->
-  <div class="screen scroll hidden" id="screenStories">
-    <div class="topbar">
-      <button class="icon-btn" onclick="showScreen('map')">←</button>
-      <div class="grow"><div class="eyebrow">Архив</div><h2>Комиксы</h2></div>
-    </div>
-    <p class="shop-note">Начало, 10 глав и финал. Если картинки ещё не сгенерированы — показывается заставка-заглушка.</p>
-    <div id="storiesList" class="stories-list"></div>
   </div>
 
   <!-- RESULT -->
@@ -988,6 +976,19 @@ const CHAPTERS = [
   { id:10, name:'Сердце', type:'super', virus:'Супервирус', boss:'Супервирус', skill:'Всё сразу', reward:'',
     intro:'Последний бой. Сердце Ники. Супервирус собрал всё. Пора заканчивать.' }
 ];
+const CHAPTER_OUTROS={
+  1:'Горло очищено. Ника впервые за день сглотнула без боли.',
+  2:'Дыхание стало ровным. Бронхи снова чистые, дышать легко.',
+  3:'Кровь очистилась. Жар начал спадать, щёки уже не такие красные.',
+  4:'Отёк ушёл. Лимфоузлы больше не болят.',
+  5:'Туман в голове рассеялся. Ника снова видит сны без вирусов.',
+  6:'Кожа снова тёплая. Морозные узоры растаяли без следа.',
+  7:'Яд выведен. Печень снова работает тихо и незаметно.',
+  8:'Силы возвращаются. Ника сжала кулаки — и они слушаются.',
+  9:'Туман в костях рассеялся. Тело снова держит.',
+  10:'Сердце бьётся ровно. Последний вирус обезврежен.'
+};
+CHAPTERS.forEach(c=>{ if(!c.outro) c.outro=CHAPTER_OUTROS[c.id]||''; });
 const TYPE_NAMES={bronze:'Бронзовый',splitter:'Делящийся',regen:'Регенерирующий',explosive:'Взрывной',ghost:'Призрак',ice:'Ледяной',poison:'Ядовитый',thief:'Вор цвета',fog:'Туманный',super:'Супервирус'};
 const TRAIT_NAMES={bronze:'броня',splitter:'деление',regen:'регенерация',explosive:'взрыв',ghost:'тень',ice:'лёд',poison:'яд',thief:'кража цвета',fog:'туман',super:'всё сразу'};
 const STRAINS={
@@ -1994,9 +1995,7 @@ function startBattle(level,opts){
 function startLevel(id){
   const level=LEVELS.find(l=>l.id===id); if(!level)return;
   if(id>S.cleared+1){toast('Сначала пройди предыдущий уровень');return;}
-  if(level.index===1&&!S.storySeen['intro'+level.chapter]){
-    startStory('intro',level.chapter,()=>startBattle(level));
-  }else startBattle(level);
+  startBattle(level);
 }
 function winBattle(){
   if(B.result==='victory')return;
@@ -2066,8 +2065,18 @@ async function nextFromResult(){
   afterVictoryNext();
 }
 function afterVictoryNext(){
-  if(B.result==='victory'&&B.level&&B.level.id>=100){startStory('ending',10,()=>showScreen('map'));return;}
+  const lvl=B.level;
+  if(B.result==='victory'&&lvl&&lvl.id>=100){startStory('ending',10,()=>showScreen('map'));return;}
+  if(B.result==='victory'&&lvl&&lvl.boss){
+    startStory('outro',lvl.chapter,()=>goNextLevel(lvl.id+1));
+    return;
+  }
   showScreen('map');
+}
+function goNextLevel(id){
+  const next=LEVELS.find(l=>l.id===id);
+  if(next&&id<=S.cleared+1)startBattle(next);
+  else showScreen('map');
 }
 function retryBattle(){
   Stats.track('result_action',{action:'retry',win:B.result==='victory'});
@@ -2344,7 +2353,7 @@ function renderStories(){
     +'<span class="sc-thumb"><span>'+it.emoji+'</span><img src="assets/story/'+it.key+'.jpg" alt="" data-key="'+it.key+'" onerror="storyThumbError(this)"></span>'
     +'<b>'+it.title+'</b><small>'+it.sub+'</small><span class="sc-open">Открыть</span></button>').join('');
 }
-function openStory(kind,chapter){startStory(kind,chapter,()=>showScreen('stories'),true);}
+function openStory(kind,chapter){startStory(kind,chapter,()=>showScreen('map'),true);}
 function startStory(kind,chapter,cb,viewOnly){
   const pages=storyPages(kind,chapter); if(!pages.length){if(cb)cb();return;}
   B.story={kind,chapter,pages,index:0,cb:cb||null,viewOnly:!!viewOnly};
@@ -2385,7 +2394,7 @@ function skipStory(){finishStory();}
 function finishStory(){
   const s=B.story; B.story=null;
   if(!s){showScreen('map');return;}
-  if(s.viewOnly){if(s.cb)s.cb();else showScreen('stories');return;}
+  if(s.viewOnly){if(s.cb)s.cb();else showScreen('map');return;}
   if(s.kind==='tutorial'){startTutorial();return;}
   if(s.kind==='ending'){showScreen('map');return;}
   if(s.kind==='intro'){S.storySeen['intro'+s.chapter]=true;persist();if(s.cb)s.cb();else showScreen('map');return;}
@@ -2506,7 +2515,6 @@ function showScreen(name){
   if(name==='heroes'){renderHeroes();renderAll();}
   if(name==='shop'){renderShop();renderAll();}
   if(name==='settings'){renderSettings();renderAll();}
-  if(name==='stories'){renderStories();}
   if(name==='battle'){updateHud();renderHeroDock();setTimeout(resizeBoard,50);setTimeout(resizeBoard,300);}
   Stats.track('screen',{screen:name});
 }
