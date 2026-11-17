@@ -922,9 +922,10 @@ const STATS_URL = (location.hostname === 'localhost' || location.hostname === '1
   ? 'http://localhost:3000/stats/event'
   : 'https://antivirus-duel-server.relaxdev.ru/stats/event';
 const Stats = (() => {
-  const queue=[]; const sessionId=Math.random().toString(36).slice(2,10);
+  const queue=[]; let sessionId=Math.random().toString(36).slice(2,10);
   const anon=(()=>{const KEY='antivirus-playerid';const gen=()=>'anon_'+Math.random().toString(36).substring(2,10);try{let id=localStorage.getItem(KEY);if(!id){id=gen();localStorage.setItem(KEY,id);}if(localStorage.getItem(KEY)===id)return id;}catch(e){}return 'anon_guest';})();
   let lastEnd=Math.floor(Date.now()/1000);
+  let active=false;
   function playerId(){
     try{const urlId=new URLSearchParams(location.search).get('vk_user_id');if(urlId){try{localStorage.setItem('antivirus-playerid',urlId);}catch(e){}return String(urlId);}}catch(e){}
     try{if(typeof vkUserId!=='undefined'&&vkUserId){try{localStorage.setItem('antivirus-playerid',vkUserId);}catch(e){}return String(vkUserId);}}catch(e){}
@@ -941,9 +942,23 @@ const Stats = (() => {
     if(beacon&&navigator.sendBeacon){try{if(navigator.sendBeacon(STATS_URL,body))return;}catch(e){}}
     try{fetch(STATS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body,keepalive:true}).catch(()=>{});}catch(e){}
   }
-  function endSession(){const now=Math.floor(Date.now()/1000);track('session_end',{duration:now-lastEnd});lastEnd=now;flush(true);}
+  function startSession(){
+    if(active)return;
+    active=true;
+    sessionId=Math.random().toString(36).slice(2,10);
+    lastEnd=Math.floor(Date.now()/1000);
+    track('session_start',{});
+  }
+  function endSession(){
+    if(!active)return;
+    const now=Math.floor(Date.now()/1000);
+    track('session_end',{duration:Math.max(0,now-lastEnd)});
+    lastEnd=now;
+    active=false;
+    flush(true);
+  }
   setInterval(flush,20000);
-  return {track,flush,endSession};
+  return {track,flush,endSession,startSession};
 })();
 
 /* ===================== CONSTANTS / DATA ===================== */
@@ -2687,7 +2702,7 @@ function init(){
   renderSettings();
   $('#bootContinue').classList.add('hidden');
   if(S.cleared>0||S.tutorialDone)$('#bootContinue').classList.remove('hidden');
-  Stats.track('session_start',{});
+  Stats.startSession();
   vkInit().then(()=>setTimeout(initVKBanner,500)).catch(()=>{});
   maybeAutoStartNewbie(firstEver);
   setInterval(()=>{if(S.screen==='map')renderMapHeader();},30000);
@@ -2695,11 +2710,12 @@ function init(){
     if(document.hidden){
       const props={screen:B.tutorial?'tutorial':B.screen};
       if(B.tutorial)props.step=(B.tutorialStep|0)+1;
-      Stats.track('app_close',props);Stats.flush(true);pauseMusic();
+      Stats.track('app_close',props);Stats.endSession();pauseMusic();
     }
-    else{if(!AD.pending)resumeMusic();}
+    else{Stats.startSession();if(!AD.pending)resumeMusic();}
   });
   window.addEventListener('pagehide',()=>{Stats.endSession();});
+  window.addEventListener('pageshow',()=>{if(document.visibilityState==='visible')Stats.startSession();});
   window.addEventListener('resize',()=>{resizeBoard();if(B.tutorial&&B.tutorialStep===2)positionTutorialArrow(B.tutorialHero);});
   document.addEventListener('pointerdown',unlockAudio,{once:true});
 }
