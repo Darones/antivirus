@@ -491,7 +491,7 @@ body.tiles-art .tile-svg{display:none}
 .screen-shake{animation:screenShake .28s ease}
 @keyframes screenShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(2px,1px)}}
 .tutorial-bubble{
-  position:absolute;left:10px;right:10px;bottom:92px;z-index:25;
+  position:absolute;left:10px;right:10px;bottom:6px;z-index:25;
   background:rgba(4,18,26,.96);border:1px solid rgba(47,134,216,.45);border-radius:16px;padding:10px 12px;
   box-shadow:0 12px 30px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:7px;
 }
@@ -511,16 +511,17 @@ body.tiles-art .tile-svg{display:none}
 .tutorial-arrow .ta-label{font-family:ui-monospace,Consolas,monospace;font-size:9px;font-weight:900;letter-spacing:.14em;color:#1a1400;background:#ffe066;border:1px solid #fff8d0;border-radius:999px;padding:2px 9px;box-shadow:0 0 18px rgba(255,224,102,.85);white-space:nowrap}
 .tutorial-arrow .ta-tri{font-size:30px;line-height:.9;color:#ffe066;text-shadow:0 0 10px #ffd166,0 0 22px #ffb84d;margin-top:-3px}
 @keyframes taBounce{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,7px)}}
-.tutorial-bubble.ult-step{bottom:190px;border-color:rgba(255,224,102,.55)}
+.tutorial-bubble.ult-step{position:static;left:auto;right:auto;bottom:auto;margin-bottom:2px;border-color:rgba(255,224,102,.55)}
 #screenBattle .hero-card.tutorial-target{transform:translateY(-3px) scale(1.05);border-color:#ffe066!important;box-shadow:0 0 0 2px #ffe066,0 0 24px rgba(255,224,102,.85)!important;animation:taCard .9s infinite!important;z-index:6}
 @keyframes taCard{0%,100%{box-shadow:0 0 0 2px #ffe066,0 0 18px rgba(255,224,102,.6)!important}50%{box-shadow:0 0 0 4px #fff8d0,0 0 34px rgba(255,224,102,1)!important}}
 
 /* story */
 .story-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.story-scene{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#050a06;flex:0 0 auto}
+.story-scene{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#050a06;flex:1 1 auto;min-height:190px;display:flex;align-items:stretch}
 .story-scene svg{display:block;width:100%;height:auto}
-.story-img{display:block;width:100%;height:42vh;object-fit:cover}
-.story-fallback{display:none}
+.story-img{display:block;width:100%;height:100%;min-height:190px;object-fit:cover;object-position:center}
+.story-fallback{display:none;height:100%}
+.story-fallback svg{display:block;width:100%;height:100%}
 .story-text{font-size:13px;line-height:1.5;color:#d6ebf6;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin:0}
 .story-text b{color:#fff}
 body.bright .story-text{font-size:15px;color:#123a5e;background:#ffffff;border-color:rgba(255,180,60,.5)}
@@ -908,6 +909,11 @@ body.bright .enemy-name-row .armor{font-size:11px;padding:2px 8px}
 body.bright .enemy-name-row .armor{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:800;
   padding:3px 9px;border-radius:999px;background:#123a5e;color:#ffe08a;border:2px solid #ffd166;
   box-shadow:0 2px 6px rgba(10,40,70,.35);letter-spacing:.02em}
+
+body.bright #screenBattle>.tutorial-bubble{position:static;left:auto;right:auto;bottom:auto;z-index:30;margin-top:2px}
+body.bright #screenBattle>.tutorial-bubble.ult-step{position:static;left:auto;right:auto;bottom:auto}
+body.bright #screenBattle>.tutorial-arrow{position:fixed}
+body.bright #screenBattle>.tutorial-bubble.ult-step+.dock-head{margin-top:2px}
 </style>
 </head>
 <body class="tiles-cartoon bright">
@@ -2668,8 +2674,14 @@ function clearTutorialHint(){
   B.tutorialMove=null; B.tutorialTarget=[];
   const h=$('#tutorialHand'); if(h)h.classList.add('hidden');
   const arrow=$('#tutorialArrow'); if(arrow)arrow.classList.add('hidden');
-  const bubble=$('#tutorialBubble'); if(bubble)bubble.classList.remove('ult-step');
+  const bubble=$('#tutorialBubble');
+  if(bubble){
+    bubble.classList.remove('ult-step');
+    const arrowEl=$('#tutorialArrow');
+    if(arrowEl&&bubble.nextElementSibling!==arrowEl)arrowEl.parentNode.insertBefore(bubble,arrowEl);
+  }
   $$('#heroDock .hero-card').forEach(el=>el.classList.remove('tutorial-target'));
+  requestAnimationFrame(()=>resizeBoard());
 }
 function showTutorialStep(step){
   B.tutorialStep=step;
@@ -2680,11 +2692,17 @@ function showTutorialStep(step){
   $('#tutorialProgress').textContent=(step+1)+' / '+TUTORIAL_STEPS.length;
   $('#tutorialBubble').classList.remove('hidden');
   $('#tutorialBubble').classList.remove('nudge');
+  requestAnimationFrame(()=>resizeBoard());
   clearTimeout(B.tutorialNudgeTimer);
   B.tutorialTarget=[]; B.tutorialMove=null;
   const hand=$('#tutorialHand'); if(hand)hand.classList.add('hidden');
   const arrow=$('#tutorialArrow'); if(arrow)arrow.classList.add('hidden');
-  const bubbleEl=$('#tutorialBubble'); if(bubbleEl)bubbleEl.classList.remove('ult-step');
+  const bubbleEl=$('#tutorialBubble');
+  const arrowEl=$('#tutorialArrow');
+  if(bubbleEl){
+    bubbleEl.classList.remove('ult-step');
+    if(arrowEl&&bubbleEl.nextElementSibling!==arrowEl)arrowEl.parentNode.insertBefore(bubbleEl,arrowEl);
+  }
   $$('#heroDock .hero-card').forEach(el=>el.classList.remove('tutorial-target'));
   if(s.kind==='attack'){
     B.enemy.attack=8; B.enemy.counter=2; B.enemyAttacked=false; updateHud();
@@ -2692,9 +2710,13 @@ function showTutorialStep(step){
   if(s.kind==='ult'){
     B.tutorialHero=teamColors()[0]||'red';
     B.charge[B.tutorialHero]=100; updateHud();
-    if(bubbleEl)bubbleEl.classList.add('ult-step');
+    if(bubbleEl){
+      bubbleEl.classList.add('ult-step');
+      const dockHead=document.querySelector('#screenBattle .dock-head');
+      if(dockHead)dockHead.parentNode.insertBefore(bubbleEl,dockHead);
+    }
     $$('#heroDock .hero-card').forEach(el=>el.classList.toggle('tutorial-target',el.dataset.color===B.tutorialHero));
-    requestAnimationFrame(()=>positionTutorialArrow(B.tutorialHero));
+    requestAnimationFrame(()=>{resizeBoard();positionTutorialArrow(B.tutorialHero);});
     setTimeout(()=>{if(B.tutorial&&B.tutorialStep===step)showTutorialHint();},250);
   }
   if(s.kind==='infect'){
@@ -2781,16 +2803,20 @@ function positionTutorialHand(move){
   const wrap=$('#boardWrap'); const hand=$('#tutorialHand');
   if(!tile||!wrap||!hand)return;
   const tr=tile.getBoundingClientRect(), wr=wrap.getBoundingClientRect();
-  hand.style.left=(tr.left-wr.left+tr.width/2)+'px';
-  hand.style.top=(tr.bottom-wr.top+6)+'px';
+  const sc=wr.width/wrap.offsetWidth||1;
+  hand.style.left=((tr.left-wr.left)/sc+(tr.width/sc)/2)+'px';
+  hand.style.top=((tr.bottom-wr.top)/sc+6)+'px';
   hand.classList.remove('hidden');
 }
 function positionTutorialArrow(hero){
   const card=document.querySelector('#heroDock .hero-card[data-color="'+hero+'"]');
   const arrow=$('#tutorialArrow'); if(!card||!arrow)return;
+  if(B.tutorialStep===2){arrow.classList.add('hidden');return;}
+  const appEl=$('#app'), ar=appEl.getBoundingClientRect();
+  const sc=ar.width/appEl.offsetWidth||1;
   const r=card.getBoundingClientRect();
-  arrow.style.left=(r.left+r.width/2)+'px';
-  arrow.style.top=Math.max(8,r.top-54)+'px';
+  arrow.style.left=((r.left+r.width/2-ar.left)/sc)+'px';
+  arrow.style.top=((Math.max(ar.top+8,r.top-54)-ar.top)/sc)+'px';
   arrow.classList.remove('hidden');
 }
 function showTutorialHint(){
