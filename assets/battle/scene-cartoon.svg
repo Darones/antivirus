@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fa4e8"/>
+      <stop offset="0.45" stop-color="#1f6fb4"/>
+      <stop offset="1" stop-color="#0c3c6e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="18%" r="60%">
+      <stop offset="0" stop-color="#bfeaff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#bfeaff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a8f"/>
+      <stop offset="1" stop-color="#e8455f"/>
+    </linearGradient>
+    <linearGradient id="rock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b7fb8"/>
+      <stop offset="1" stop-color="#1a4a78"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="1600" fill="url(#bg)"/>
+  <rect width="900" height="1600" fill="url(#glow)"/>
+
+  <g opacity="0.8">
+    <polygon points="360,0 430,0 610,1600 500,1600" fill="url(#ray)"/>
+    <polygon points="500,0 540,0 760,1600 690,1600" fill="url(#ray)" opacity="0.7"/>
+    <polygon points="250,0 290,0 300,1600 210,1600" fill="url(#ray)" opacity="0.5"/>
+  </g>
+
+  <!-- bubbles -->
+  <g fill="none" stroke="#dff4ff" stroke-opacity="0.55">
+    <circle cx="140" cy="250" r="26"/><circle cx="170" cy="210" r="10"/>
+    <circle cx="760" cy="330" r="18"/><circle cx="735" cy="290" r="8"/>
+    <circle cx="210" cy="620" r="14"/><circle cx="700" cy="760" r="22"/>
+    <circle cx="120" cy="1050" r="16"/><circle cx="800" cy="1180" r="12"/>
+  </g>
+  <g fill="#ffffff" opacity="0.5">
+    <circle cx="132" cy="242" r="7"/><circle cx="754" cy="324" r="5"/>
+    <circle cx="694" cy="752" r="6"/><circle cx="114" cy="1044" r="4"/>
+  </g>
+
+  <!-- bottom reef -->
+  <path d="M0 1500 Q140 1420 300 1470 T620 1450 T900 1490 L900 1600 L0 1600 Z" fill="url(#rock)"/>
+  <path d="M0 1540 Q180 1500 360 1535 T720 1520 T900 1545 L900 1600 L0 1600 Z" fill="#123c66" opacity="0.9"/>
+
+  <!-- left coral -->
+  <g stroke="#5a1030" stroke-width="30" fill="none" stroke-linecap="round">
+    <path d="M120 1600 C120 1500 90 1450 60 1410"/>
+    <path d="M120 1520 C150 1480 175 1460 205 1445"/>
+    <path d="M120 1470 C105 1430 85 1415 55 1405"/>
+    <path d="M205 1445 C225 1420 230 1400 228 1375"/>
+  </g>
+  <g stroke="url(#coral)" stroke-width="20" fill="none" stroke-linecap="round">
+    <path d="M120 1600 C120 1500 90 1450 60 1410"/>
+    <path d="M120 1520 C150 1480 175 1460 205 1445"/>
+    <path d="M120 1470 C105 1430 85 1415 55 1405"/>
+    <path d="M205 1445 C225 1420 230 1400 228 1375"/>
+  </g>
+
+  <!-- right coral -->
+  <g stroke="#5a1030" stroke-width="28" fill="none" stroke-linecap="round">
+    <path d="M800 1600 C800 1500 830 1450 860 1420"/>
+    <path d="M800 1530 C770 1495 750 1475 720 1460"/>
+    <path d="M800 1480 C815 1440 835 1425 862 1415"/>
+  </g>
+  <g stroke="url(#coral)" stroke-width="18" fill="none" stroke-linecap="round">
+    <path d="M800 1600 C800 1500 830 1450 860 1420"/>
+    <path d="M800 1530 C770 1495 750 1475 720 1460"/>
+    <path d="M800 1480 C815 1440 835 1425 862 1415"/>
+  </g>
+
+  <!-- seaweed -->
+  <g stroke="#3f9a4a" stroke-width="22" fill="none" stroke-linecap="round">
+    <path d="M260 1600 C240 1540 280 1510 260 1450 C245 1405 275 1380 265 1345"/>
+    <path d="M640 1600 C665 1545 625 1515 645 1455 C660 1410 635 1385 645 1350"/>
+  </g>
+  <g stroke="#6fdc72" stroke-width="12" fill="none" stroke-linecap="round">
+    <path d="M260 1600 C240 1540 280 1510 260 1450 C245 1405 275 1380 265 1345"/>
+    <path d="M640 1600 C665 1545 625 1515 645 1455 C660 1410 635 1385 645 1350"/>
+  </g>
+
+  <!-- left virus cluster -->
+  <g transform="translate(90 420)">
+    <g stroke="#14243d" stroke-width="14" stroke-linecap="round">
+      <path d="M0 -92 V-120"/><path d="M65 -65 L85 -85"/><path d="M92 0 H120"/><path d="M65 65 L85 85"/>
+      <path d="M0 92 V120"/><path d="M-65 65 L-85 85"/><path d="M-92 0 H-120"/><path d="M-65 -65 L-85 -85"/>
+    </g>
+    <circle r="88" fill="#ff5f7a" stroke="#14243d" stroke-width="14"/>
+    <ellipse cx="-30" cy="-38" rx="26" ry="15" fill="#ffffff" opacity="0.35"/>
+    <circle cx="-28" cy="-6" r="18" fill="#ffffff"/><circle cx="28" cy="-6" r="18" fill="#ffffff"/>
+    <circle cx="-24" cy="-2" r="8" fill="#14243d"/><circle cx="32" cy="-2" r="8" fill="#14243d"/>
+    <path d="M-26 40 Q0 58 26 40" stroke="#14243d" stroke-width="10" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- right virus -->
+  <g transform="translate(805 620) scale(0.72)">
+    <g stroke="#14243d" stroke-width="14" stroke-linecap="round">
+      <path d="M0 -92 V-120"/><path d="M65 -65 L85 -85"/><path d="M92 0 H120"/><path d="M65 65 L85 85"/>
+      <path d="M0 92 V120"/><path d="M-65 65 L-85 85"/><path d="M-92 0 H-120"/><path d="M-65 -65 L-85 -85"/>
+    </g>
+    <circle r="88" fill="#ff9f43" stroke="#14243d" stroke-width="14"/>
+    <ellipse cx="-30" cy="-38" rx="26" ry="15" fill="#ffffff" opacity="0.35"/>
+    <circle cx="-28" cy="-6" r="18" fill="#ffffff"/><circle cx="28" cy="-6" r="18" fill="#ffffff"/>
+    <circle cx="-24" cy="-2" r="8" fill="#14243d"/><circle cx="32" cy="-2" r="8" fill="#14243d"/>
+    <path d="M-26 40 Q0 58 26 40" stroke="#14243d" stroke-width="10" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- bottom-left cell -->
+  <g transform="translate(120 1180) scale(0.6)">
+    <circle r="86" fill="#ff6b9d" stroke="#14243d" stroke-width="14"/>
+    <g stroke="#14243d" stroke-width="12" stroke-linecap="round">
+      <path d="M0 -86 V-112"/><path d="M61 -61 L80 -80"/><path d="M86 0 H112"/><path d="M61 61 L80 80"/>
+      <path d="M0 86 V112"/><path d="M-61 61 L-80 80"/><path d="M-86 0 H-112"/><path d="M-61 -61 L-80 -80"/>
+    </g>
+    <circle cx="-24" cy="-18" r="12" fill="#ffffff" opacity="0.6"/>
+    <circle cx="26" cy="14" r="10" fill="#ffffff" opacity="0.45"/>
+  </g>
+
+  <!-- antibodies -->
+  <g stroke="#14243d" stroke-width="20" fill="none" stroke-linecap="round">
+    <path d="M690 1270 V1330 M690 1330 L660 1370 M690 1330 L720 1370"/>
+  </g>
+  <g stroke="#ffd166" stroke-width="12" fill="none" stroke-linecap="round">
+    <path d="M690 1270 V1330 M690 1330 L660 1370 M690 1330 L720 1370"/>
+  </g>
+
+  <!-- particles -->
+  <g fill="#ffffff" opacity="0.7">
+    <circle cx="330" cy="300" r="4"/><circle cx="620" cy="420" r="3"/><circle cx="740" cy="900" r="4"/>
+    <circle cx="180" cy="760" r="3"/><circle cx="520" cy="1150" r="4"/><circle cx="380" cy="1250" r="3"/>
+  </g>
+</svg>

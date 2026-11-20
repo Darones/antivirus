@@ -1,0 +1,274 @@
+[
+ {
+  "id": "cartoon",
+  "name": "Вирус-лаборатория",
+  "shape": "square",
+  "family": "cartoon",
+  "bg": "radial-gradient(circle at 30% 16%,rgba(255,255,255,.40),transparent 42%),linear-gradient(160deg,#5aa7f0,#2a62b8 62%,#173f7d)",
+  "edge": "rgba(255,255,255,.25)",
+  "colors": {
+   "red": "#ff5a4e",
+   "green": "#7ee36a",
+   "blue": "#eaf2ff",
+   "yellow": "#ffd166",
+   "purple": "#c06bff",
+   "virus": "#ff5aa0"
+  },
+  "desc": "Яркие глянцевые символы на синих плитках: вирусы, капсулы, антитела."
+ },
+ {
+  "id": "stone",
+  "name": "Классика",
+  "shape": "square",
+  "family": "classic",
+  "bg": "linear-gradient(160deg,#2c2c34,#151519 68%,#08080b)",
+  "edge": "rgba(255,255,255,.07)",
+  "colors": {
+   "red": "#ff5a4e",
+   "green": "#8fe36a",
+   "blue": "#6a9cff",
+   "yellow": "#ffc24d",
+   "purple": "#b98cff",
+   "virus": "#ff6b9d"
+  },
+  "desc": "Скруглённые плиты, мечи, крест и щит. Тёмный камень."
+ },
+ {
+  "id": "runes",
+  "name": "Руны",
+  "shape": "oct",
+  "family": "runes",
+  "bg": "linear-gradient(160deg,#3a2a1c,#1c130c 68%,#0b0704)",
+  "edge": "rgba(255,210,150,.10)",
+  "colors": {
+   "red": "#ff7a4d",
+   "green": "#c9d96a",
+   "blue": "#e0a45a",
+   "yellow": "#ffd166",
+   "purple": "#e08a6a",
+   "virus": "#ff5a7a"
+  },
+  "desc": "Восьмиугольники и угловатые руны. Бронза и охра."
+ },
+ {
+  "id": "gems",
+  "name": "Кристаллы",
+  "shape": "hex",
+  "family": "gems",
+  "bg": "linear-gradient(160deg,#2a1b45,#140b26 68%,#08040f)",
+  "edge": "rgba(200,150,255,.10)",
+  "colors": {
+   "red": "#ff4f7a",
+   "green": "#9be36a",
+   "blue": "#7a8cff",
+   "yellow": "#ffd166",
+   "purple": "#c06bff",
+   "virus": "#ff5aa0"
+  },
+  "desc": "Шестиугольники и гранёные камни. Фиолет и неон."
+ },
+ {
+  "id": "medical",
+  "name": "Медицина",
+  "shape": "circle",
+  "family": "medical",
+  "bg": "linear-gradient(160deg,#fbf6ec,#e6d6bf 68%,#cdb99e)",
+  "edge": "rgba(0,0,0,.10)",
+  "colors": {
+   "red": "#c0392b",
+   "green": "#1e7a4e",
+   "blue": "#245a8d",
+   "yellow": "#c98a12",
+   "purple": "#6b3fa0",
+   "virus": "#a01840"
+  },
+  "desc": "Круглые светлые плитки: шприц, крест, щит, ДНК."
+ },
+ {
+  "id": "alchemy",
+  "name": "Алхимия",
+  "shape": "oct",
+  "family": "alchemy",
+  "bg": "linear-gradient(160deg,#3a2c10,#171004 68%,#080501)",
+  "edge": "rgba(255,209,102,.12)",
+  "colors": {
+   "red": "#ffd166",
+   "green": "#c9d96a",
+   "blue": "#e0a45a",
+   "yellow": "#ffe08a",
+   "purple": "#e08a6a",
+   "virus": "#ff6a8a"
+  },
+  "desc": "Восьмиугольники и алхимические знаки: огонь, вода, земля, соль."
+ },
+ {
+  "id": "pictograms",
+  "name": "Пиктограммы",
+  "shape": "square",
+  "family": "pictograms",
+  "bg": "linear-gradient(160deg,#3a2214,#1a0e07 68%,#080402)",
+  "edge": "rgba(255,160,110,.12)",
+  "colors": {
+   "red": "#ff7a4d",
+   "green": "#9be36a",
+   "blue": "#6a9cff",
+   "yellow": "#ffd166",
+   "purple": "#b98cff",
+   "virus": "#ff6b9d"
+  },
+  "desc": "Плотные силуэты: меч, сердце, щит, звезда, ромб. Медь."
+ },
+ {
+  "id": "neon",
+  "name": "Неон",
+  "shape": "square",
+  "family": "neon",
+  "bg": "linear-gradient(160deg,#12121c,#08080e 68%,#030305)",
+  "edge": "rgba(255,120,200,.16)",
+  "colors": {
+   "red": "#ff4f9a",
+   "green": "#9be36a",
+   "blue": "#7a8cff",
+   "yellow": "#ffd166",
+   "purple": "#c06bff",
+   "virus": "#ff5aa0"
+  },
+  "desc": "Толстые светящиеся контуры: молния, крест, щит, вспышка."
+ },
+ {
+  "id": "pixel",
+  "name": "Пиксель",
+  "shape": "pixel",
+  "family": "pixel",
+  "bg": "linear-gradient(160deg,#151a28,#090c14 68%,#04050a)",
+  "edge": "rgba(140,170,255,.14)",
+  "colors": {
+   "red": "#ff5a5a",
+   "green": "#7ee36a",
+   "blue": "#6a9cff",
+   "yellow": "#ffd166",
+   "purple": "#b98cff",
+   "virus": "#ff6b9d"
+  },
+  "desc": "8-битные пиксельные символы и почти квадратные плитки."
+ },
+ {
+  "id": "candy",
+  "name": "Карамель",
+  "shape": "circle",
+  "family": "candy",
+  "bg": "linear-gradient(160deg,#2a1520,#13060c 68%,#070204)",
+  "edge": "rgba(255,150,190,.14)",
+  "colors": {
+   "red": "#ff4f6a",
+   "green": "#7ee36a",
+   "blue": "#6a9cff",
+   "yellow": "#ffd166",
+   "purple": "#c06bff",
+   "virus": "#ff5aa0"
+  },
+  "desc": "Глянцевые объёмные символы с бликами. Круглые плитки."
+ },
+ {
+  "id": "circuit",
+  "name": "Схемы",
+  "shape": "hex",
+  "family": "circuit",
+  "bg": "linear-gradient(160deg,#0f2418,#06120b 68%,#020604)",
+  "edge": "rgba(120,255,160,.12)",
+  "colors": {
+   "red": "#ff6a5a",
+   "green": "#7ee36a",
+   "blue": "#8fb8e8",
+   "yellow": "#ffd166",
+   "purple": "#b98cff",
+   "virus": "#ff6b9d"
+  },
+  "desc": "Дорожки, контакты и микросхемы. Техно-стиль."
+ },
+ {
+  "id": "nature",
+  "name": "Природа",
+  "shape": "circle",
+  "family": "nature",
+  "bg": "linear-gradient(160deg,#122415,#071009 68%,#030604)",
+  "edge": "rgba(150,255,170,.12)",
+  "colors": {
+   "red": "#ff6a4a",
+   "green": "#8fe36a",
+   "blue": "#7ab8a0",
+   "yellow": "#ffd166",
+   "purple": "#c06bff",
+   "virus": "#ff5a7a"
+  },
+  "desc": "Шипы, листья, кора и семена. Органика."
+ },
+ {
+  "id": "chess",
+  "name": "Шахматы",
+  "shape": "cut",
+  "family": "chess",
+  "bg": "linear-gradient(160deg,#241a12,#0f0a06 68%,#050302)",
+  "edge": "rgba(255,220,170,.12)",
+  "colors": {
+   "red": "#e8d7c0",
+   "green": "#9be36a",
+   "blue": "#8fb8e8",
+   "yellow": "#ffd166",
+   "purple": "#c06bff",
+   "virus": "#ff5a7a"
+  },
+  "desc": "Силуэты фигур: конь, слон, ладья, ферзь, король, пешка."
+ },
+ {
+  "id": "paper",
+  "name": "Бумага",
+  "shape": "square",
+  "family": "paper",
+  "bg": "linear-gradient(160deg,#f2e9d8,#d9c8ad 68%,#bfae92)",
+  "edge": "rgba(0,0,0,.10)",
+  "colors": {
+   "red": "#c0392b",
+   "green": "#2e7a4e",
+   "blue": "#2b5a8d",
+   "yellow": "#b8860b",
+   "purple": "#6b3fa0",
+   "virus": "#a01840"
+  },
+  "desc": "Слоёные бумажные фигуры с тенью. Светлый крафт."
+ },
+ {
+  "id": "ink",
+  "name": "Тушь",
+  "shape": "circle",
+  "family": "ink",
+  "bg": "linear-gradient(160deg,#f4efe4,#ddd2be 68%,#c2b49c)",
+  "edge": "rgba(0,0,0,.10)",
+  "colors": {
+   "red": "#1d1d22",
+   "green": "#1d1d22",
+   "blue": "#1d1d22",
+   "yellow": "#1d1d22",
+   "purple": "#1d1d22",
+   "virus": "#8c1238"
+  },
+  "desc": "Живые мазки тушью. Светлая рисовая бумага, чёрные штрихи."
+ },
+ {
+  "id": "sticker",
+  "name": "Стикеры",
+  "shape": "square",
+  "family": "sticker",
+  "bg": "linear-gradient(160deg,#1a1430,#0b0818 68%,#04020a)",
+  "edge": "rgba(200,160,255,.14)",
+  "colors": {
+   "red": "#ff4f6a",
+   "green": "#7ee36a",
+   "blue": "#6a9cff",
+   "yellow": "#ffd166",
+   "purple": "#c06bff",
+   "virus": "#ff5aa0"
+  },
+  "desc": "Толстая белая обводка и плотная заливка. Как наклейки."
+ }
+]
