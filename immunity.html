@@ -32,6 +32,8 @@ body{
 body.no-ads{--banner-h:0px}
 body.has-banner{--banner-h:60px}
 .screen{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px 12px 12px;overflow:hidden}
+#app{transform:scale(var(--ui-scale,1));transform-origin:top center;height:calc(100dvh / var(--ui-scale,1))}
+@media(min-width:700px){#app{height:calc((100dvh - 36px) / var(--ui-scale,1))}}
 .screen.scroll{overflow-y:auto;scrollbar-width:none}
 .screen.scroll::-webkit-scrollbar{display:none}
 .hidden{display:none!important}
@@ -3207,7 +3209,14 @@ function preloadTileArt(){
     im.src='assets/battle/tile-'+n+'.png';
   });
 }
+function fitApp(){
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let sc=1;
+  if(vw>=700) sc=Math.min(1,Math.max(0.62,vh/1150));
+  document.documentElement.style.setProperty('--ui-scale',sc.toFixed(3));
+}
 function init(){
+  fitApp();
   let firstEver=false;
   try{firstEver=!safeStorage.get(SAVE_KEY);}catch(e){firstEver=false;}
   injectFaces();
@@ -3232,7 +3241,7 @@ function init(){
   });
   window.addEventListener('pagehide',()=>{Stats.endSession();});
   window.addEventListener('pageshow',()=>{if(document.visibilityState==='visible')Stats.startSession();});
-  window.addEventListener('resize',()=>{resizeBoard();if(B.tutorial&&B.tutorialStep===2)positionTutorialArrow(B.tutorialHero);});
+  window.addEventListener('resize',()=>{fitApp();resizeBoard();if(B.tutorial&&B.tutorialStep===2)positionTutorialArrow(B.tutorialHero);});
   document.addEventListener('pointerdown',unlockAudio,{once:true});
 }
 document.addEventListener('DOMContentLoaded',init);
