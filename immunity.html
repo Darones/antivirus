@@ -913,11 +913,47 @@ body.bright .enemy-name-row .armor{display:inline-flex;align-items:center;gap:3p
 body.bright #screenBattle>.tutorial-bubble{position:static;left:auto;right:auto;bottom:auto;z-index:30;margin-top:2px}
 body.bright #screenBattle>.tutorial-bubble.ult-step{position:static;left:auto;right:auto;bottom:auto}
 body.bright #screenBattle>.tutorial-arrow{position:fixed}
-body.bright #screenBattle>.tutorial-bubble.ult-step+.dock-head{margin-top:2px}
+body.bright #screenBattle>.tutorial-bubble.ult-step+.hero-dock{margin-top:2px}
 
 .tutorial-done-art{display:block;width:150px;height:150px;margin:2px auto 10px;border-radius:32px;object-fit:cover;
   border:3px solid #ffd166;box-shadow:0 10px 24px rgba(20,60,100,.2);background:#eaf6ff}
 @media(max-height:720px){.tutorial-done-art{width:118px;height:118px;border-radius:26px}}
+
+/* battle readability pass 2 */
+body.bright .hero-dock{background:none;border-radius:0;box-shadow:none;padding:9px 0 2px;gap:7px}
+.tutorial-bubble{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'top act' 'text text';align-items:center;column-gap:8px;row-gap:3px}
+.tutorial-bubble .tb-top{grid-area:top}
+.tutorial-bubble p{grid-area:text}
+.tutorial-bubble .tb-actions{grid-area:act;justify-content:flex-end}
+.tutorial-bubble .tb-actions .tb-skip{background:none;border:0;box-shadow:none;color:#9fc4e2;font-size:12px;font-weight:700;
+  padding:2px 4px;text-decoration:underline;opacity:1}
+#screenBattle .tutorial-bubble{padding:9px 11px}
+#screenBattle .tutorial-bubble p{font-size:15px;line-height:1.35}
+#screenBattle .tutorial-bubble .tb-top{font-size:10.5px}
+#screenBattle .tutorial-bubble .tb-actions .btn{font-size:12.5px;padding:8px 12px}
+#screenBattle .hero-label{font-size:15px;line-height:1.12;font-weight:900;color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.8),0 1px 2px rgba(0,0,0,.9);letter-spacing:.01em}
+#screenBattle .hero-label.ready{color:#ffd166;text-shadow:0 0 12px rgba(255,190,40,.85),0 2px 6px #000}
+#screenBattle .hero-badge{font-size:12px;min-width:26px;height:26px;border-width:2px}
+#screenBattle .meta-row{font-size:13.5px;min-height:22px}
+#screenBattle .meta-row .turns b{font-size:14.5px}
+#screenBattle .infection b{font-size:13.5px}
+#screenBattle .battle-top .level-name b{font-size:18px}
+#screenBattle .battle-top .level-name span{font-size:13.5px}
+#screenBattle .enemy-name-row{font-size:15px}
+#screenBattle .enemy-name-row .armor{font-size:11.5px;padding:2px 7px}
+#screenBattle .stage-mini-label b{font-size:12px}
+#screenBattle .stage-mini-label span{font-size:10.5px}
+#screenBattle .stage-shield{font-size:10.5px}
+#screenBattle .enemy-bar-row #enemyHpText,#screenBattle .enemy-bar-row #cloneHpText{font-size:12.5px!important}
+#screenBattle .intent-chip{font-size:12px;padding:2px 8px}
+body.bright .coin-pill,body.bright .shard-pill{font-size:14px}
+body.bright .nav button{font-size:13.5px}
+@media(max-width:480px){
+  #screenBattle .hero-label{font-size:14px}
+  #screenBattle .meta-row{font-size:12.5px}
+  #screenBattle .battle-top .level-name b{font-size:17px}
+}
 </style>
 </head>
 <body class="tiles-cartoon bright">
@@ -1065,7 +1101,7 @@ body.bright #screenBattle>.tutorial-bubble.ult-step+.dock-head{margin-top:2px}
     <div class="board-wrap" id="boardWrap">
       <div class="board" id="board"></div>
       <div class="tutorial-hand hidden" id="tutorialHand">👆</div>
-    </div>    <div class="dock-head"><b>Твои помощники</b><span>тройки цвета = заряд</span></div>
+    </div>
     <div class="hero-dock" id="heroDock"></div>
     <div class="meta-row">
       <div class="infection"><span id="infectionLabel">Заражение</span><div class="bar inf"><i id="infectionBar"></i></div><b id="infectionText">0%</b></div>
@@ -1076,7 +1112,7 @@ body.bright #screenBattle>.tutorial-bubble.ult-step+.dock-head{margin-top:2px}
     <div class="tutorial-bubble hidden" id="tutorialBubble">
       <div class="tb-top"><span class="tb-speaker"><i class="tb-cell"></i>Лейкоцит</span><span id="tutorialProgress">1 / 3</span></div>
       <p id="tutorialText"></p>
-      <div class="tb-actions"><button class="btn btn-ghost tb-skip" onclick="skipTutorial()">Пропустить обучение</button></div>
+      <div class="tb-actions"><button class="btn btn-ghost tb-skip" onclick="skipTutorial()">Пропустить</button></div>
     </div>
     <div class="tutorial-arrow hidden" id="tutorialArrow"><span class="ta-label">НАЖМИ</span><span class="ta-tri">▼</span></div>
     <div class="classic-intro hidden" id="classicIntro">
@@ -2716,8 +2752,8 @@ function showTutorialStep(step){
     B.charge[B.tutorialHero]=100; updateHud();
     if(bubbleEl){
       bubbleEl.classList.add('ult-step');
-      const dockHead=document.querySelector('#screenBattle .dock-head');
-      if(dockHead)dockHead.parentNode.insertBefore(bubbleEl,dockHead);
+      const dockEl=document.querySelector('#screenBattle .hero-dock');
+      if(dockEl)dockEl.parentNode.insertBefore(bubbleEl,dockEl);
     }
     $$('#heroDock .hero-card').forEach(el=>el.classList.toggle('tutorial-target',el.dataset.color===B.tutorialHero));
     requestAnimationFrame(()=>{resizeBoard();positionTutorialArrow(B.tutorialHero);});
