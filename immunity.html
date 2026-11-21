@@ -1004,6 +1004,18 @@ body.bright .story-text{font-size:calc(19px * var(--fs,0.92));line-height:1.45}
 
 body.bright #screenBattle>.tutorial-bubble,
 body.bright #screenBattle>.tutorial-bubble.ult-step{min-height:94px;position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;margin:0!important;z-index:30!important;width:auto!important}
+
+.battle-hint-bar{position:relative;flex:0 0 auto;height:84px;min-height:84px;display:flex;align-items:stretch;z-index:35;margin:0;padding:0;overflow:hidden}
+#battleHintBar .tutorial-bubble{position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:8px 11px;border-radius:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'top act' 'text text';align-items:center;column-gap:8px;row-gap:2px;box-sizing:border-box}
+#battleHintBar .tutorial-bubble .tb-top{grid-area:top;font-size:calc(13px * var(--fs,0.92))}
+#battleHintBar .tutorial-bubble p{grid-area:text;font-size:calc(20px * var(--fs,0.92));line-height:1.28}
+#battleHintBar .tutorial-bubble .tb-actions{grid-area:act;justify-content:flex-end}
+#battleHintBar .tutorial-bubble .tb-actions .tb-skip{font-size:calc(13px * var(--fs,0.92))}
+#battleHintBar .toast{position:absolute!important;left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;margin:0;transform:translate(-50%,-50%)!important;max-width:96%;white-space:normal;text-align:center;font-size:calc(18px * var(--fs,0.92));padding:8px 12px;border-radius:14px;line-height:1.3}
+#battleHintBar .toast.show{transform:translate(-50%,-50%)!important;opacity:1}
+#battleHintBar .infect-hint{position:absolute!important;left:8px!important;right:8px!important;top:50%!important;bottom:auto!important;transform:translateY(-50%)!important;width:auto!important;max-width:none;font-size:calc(16px * var(--fs,0.92));padding:8px 10px}
+#battleHintBar .infect-hint b{font-size:calc(15px * var(--fs,0.92))}
+body.bright .story-text{font-size:calc(19px * var(--fs,0.92));line-height:1.45}
 </style>
 </head>
 <body class="tiles-cartoon bright">
@@ -1146,6 +1158,8 @@ body.bright #screenBattle>.tutorial-bubble.ult-step{min-height:94px;position:sta
         <div class="bi-traits" id="biTraits">броня</div>
         <button class="bi-skip" onclick="event.stopPropagation();hideBossIntro()">В БОЙ</button>
       </div>
+    </div>
+    <div class="battle-hint-bar" id="battleHintBar">
       <div class="infect-hint hidden" id="infectHint" onclick="this.classList.add('hidden')"><b>☣ ЗАРАЖЕНИЕ</b><span>Клетка не собирается в тройки. Собери тройку рядом, чтобы очистить.</span></div>
     </div>
     <div class="board-wrap" id="boardWrap">
@@ -1344,14 +1358,7 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const clamp = (v,a,b) => Math.max(a, Math.min(b, Number(v)||0));
 
-function positionBattleHints(){
-  const scr=$('#screenBattle'); if(!scr||B.screen!=='battle')return;
-  const stage=$('#battleStage'); if(!stage)return;
-  const top=stage.offsetTop+stage.offsetHeight+4;
-  ['tutorialBubble','toastBox','infectHint'].forEach(function(id){
-    const el=document.getElementById(id); if(el)el.style.setProperty('top',top+'px','important');
-  });
-}
+function positionBattleHints(){}
 function toast(msg){
   const el=$('#toastBox'); if(!el)return;
   el.textContent=msg; el.classList.add('show');
@@ -2778,8 +2785,8 @@ function clearTutorialHint(){
   const bubble=$('#tutorialBubble');
   if(bubble){
     bubble.classList.remove('ult-step');
-    const arrowEl=$('#tutorialArrow');
-    if(arrowEl&&bubble.nextElementSibling!==arrowEl)arrowEl.parentNode.insertBefore(bubble,arrowEl);
+    const bar=$('#battleHintBar');
+    if(bar&&bubble.parentNode!==bar)bar.appendChild(bubble);
   }
   $$('#heroDock .hero-card').forEach(el=>el.classList.remove('tutorial-target'));
 }
@@ -2801,8 +2808,8 @@ function showTutorialStep(step){
   const arrowEl=$('#tutorialArrow');
   if(bubbleEl){
     bubbleEl.classList.remove('ult-step');
-    const stage=$('#battleStage');
-    if(stage&&stage.parentNode)stage.parentNode.insertBefore(bubbleEl,stage.nextSibling);
+    const bar=$('#battleHintBar');
+    if(bar&&bubbleEl.parentNode!==bar)bar.appendChild(bubbleEl);
   }
   $$('#heroDock .hero-card').forEach(el=>el.classList.remove('tutorial-target'));
   if(s.kind==='attack'){
@@ -3558,6 +3565,7 @@ const BE_KEY = 'antivirus-battle-layout-v2';
 const BE_BLOCKS = [
   { sel: '.battle-top',  key: 'top',   h: false },
   { sel: '.battle-stage', key: 'stage', h: true  },
+  { sel: '#battleHintBar', key: 'hint', h: true },
   { sel: '#boardWrap',   key: 'board', h: true  },
   { sel: '#heroDock',    key: 'dock',  h: false },
   { sel: '.meta-row',    key: 'meta',  h: false }
@@ -3853,10 +3861,25 @@ function beSettingsExtra() {
 }
 
 /* hook battle show + settings render */
+var BE_toastBox = document.getElementById('toastBox');
+var BE_toastHome = BE_toastBox ? BE_toastBox.parentNode : null;
+function beMountHints() {
+  var bar = document.getElementById('battleHintBar');
+  if (!bar) return;
+  ['tutorialBubble', 'infectHint', 'toastBox'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el && el.parentNode !== bar) bar.appendChild(el);
+  });
+}
 var BE_showScreen0 = showScreen;
 window.showScreen = function (name) {
   BE_showScreen0(name);
-  if (name === 'battle') setTimeout(beApplyLayout, 60);
+  if (name === 'battle') {
+    beMountHints();
+    setTimeout(beApplyLayout, 60);
+  } else if (BE_toastBox && BE_toastHome && BE_toastBox.parentNode !== BE_toastHome) {
+    BE_toastHome.appendChild(BE_toastBox);
+  }
 };
 
 /* boot */
