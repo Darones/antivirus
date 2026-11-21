@@ -88,8 +88,8 @@ textarea{
     </div>
 
     <div class="control">
-      <label>Общий шрифт <span class="val" id="fsv">100%</span></label>
-      <input id="fs" type="range" min="85" max="170" step="5" value="100">
+      <label>Общий шрифт <span class="val" id="fsv">92%</span></label>
+      <input id="fs" type="range" min="85" max="170" step="5" value="92">
     </div>
 
     <div class="control">
@@ -114,7 +114,7 @@ textarea{
 </main>
 <script>
 (function () {
-  var KEY = 'antivirus-battle-layout-v1';
+  var KEY = 'antivirus-battle-layout-v2';
   var SIZES = {
     phone: { w: 442, h: 670, label: '442×670', name: 'Телефон' },
     pc:    { w: 560, h: 720, label: '560×720', name: 'ПК / ВК' }
@@ -168,7 +168,7 @@ textarea{
       var L = null;
       try { L = JSON.parse(w.localStorage.getItem(KEY) || 'null'); } catch (e) {}
       if (!L) return null;
-      if (!L.fontScale) L.fontScale = 1;
+      if (!L.fontScale) L.fontScale = 0.92;
       if (!L.board) L.board = (L.blocks && L.blocks.board && L.blocks.board.width) || 312;
       L.viewport = { w: SIZES[current].w, h: SIZES[current].h };
       return L;
@@ -189,7 +189,7 @@ textarea{
       if (ed) {
         ready = true;
         var L = readCfg(false);
-        var pct = (L && L.fontScale) ? Math.round(L.fontScale * 100) : 100;
+        var pct = (L && L.fontScale) ? Math.round(L.fontScale * 100) : 92;
         fs.value = String(pct);
         fsv.textContent = pct + '%';
         var bw = (L && L.board) ? L.board : ((w.document.getElementById('board') || {}).offsetWidth || 300);
@@ -216,7 +216,7 @@ textarea{
     try { frame.contentWindow.localStorage.removeItem(KEY); } catch (e) {}
     ready = false;
     frame.src = 'immunity.html?edit=1&designer=1&r=' + Date.now();
-    fs.value = '100'; fsv.textContent = '100%';
+    fs.value = '92'; fsv.textContent = '92%';
     bd.value = String(Math.min(312, SIZES[current].w - 16));
     bdv.textContent = bd.value;
     json.value = '';
