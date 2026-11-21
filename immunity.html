@@ -914,6 +914,10 @@ body.bright #screenBattle>.tutorial-bubble{position:static;left:auto;right:auto;
 body.bright #screenBattle>.tutorial-bubble.ult-step{position:static;left:auto;right:auto;bottom:auto}
 body.bright #screenBattle>.tutorial-arrow{position:fixed}
 body.bright #screenBattle>.tutorial-bubble.ult-step+.dock-head{margin-top:2px}
+
+.tutorial-done-art{display:block;width:150px;height:150px;margin:2px auto 10px;border-radius:32px;object-fit:cover;
+  border:3px solid #ffd166;box-shadow:0 10px 24px rgba(20,60,100,.2);background:#eaf6ff}
+@media(max-height:720px){.tutorial-done-art{width:118px;height:118px;border-radius:26px}}
 </style>
 </head>
 <body class="tiles-cartoon bright">
@@ -1183,7 +1187,7 @@ body.bright #screenBattle>.tutorial-bubble.ult-step+.dock-head{margin-top:2px}
 
   <!-- TUTORIAL DONE -->
   <div class="modal hidden" id="tutorialDoneModal"><div class="modal-card">
-    <div class="modal-faces"><div class="nika-face mood-happy" data-face="nika"></div><div class="virus-face mood-hurt" data-face="virus"></div></div>
+    <img class="tutorial-done-art" src="assets/nika/tutorial-done.jpg?v=1" alt="Ника победила вирус">
     <h3>Тренировка пройдена</h3>
     <p>Ты научился бить, лечить, ставить щит, чистить вирус и использовать ульту. Пора спасать Нику по-настоящему.</p>
     <div class="modal-actions"><button class="btn btn-primary" onclick="startRealAfterTutorial()">В бой</button></div>
