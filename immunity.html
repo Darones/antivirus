@@ -993,6 +993,17 @@ body.bright #screenBattle>.tutorial-bubble.ult-step{position:absolute!important;
 .toast.show{transform:translate(-50%,0)}
 body.bright .infect-hint{top:8px!important;bottom:auto!important}
 .stage-shake{animation:screenShake .26s ease}
+
+body.bright #screenBattle>.tutorial-bubble p{font-size:calc(20px * var(--fs,0.92));line-height:1.34}
+body.bright #screenBattle>.tutorial-bubble .tb-top{font-size:calc(13px * var(--fs,0.92))}
+body.bright #screenBattle>.tutorial-bubble .tb-actions .tb-skip{font-size:calc(14px * var(--fs,0.92))}
+#toastBox{font-size:calc(18px * var(--fs,0.92));max-width:92%;padding:9px 14px}
+body.bright .infect-hint{font-size:calc(16px * var(--fs,0.92));padding:9px 11px}
+body.bright .infect-hint b{font-size:calc(15px * var(--fs,0.92))}
+body.bright .story-text{font-size:calc(19px * var(--fs,0.92));line-height:1.45}
+
+body.bright #screenBattle>.tutorial-bubble,
+body.bright #screenBattle>.tutorial-bubble.ult-step{min-height:94px;position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;margin:0!important;z-index:30!important;width:auto!important}
 </style>
 </head>
 <body class="tiles-cartoon bright">
@@ -1333,9 +1344,18 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const clamp = (v,a,b) => Math.max(a, Math.min(b, Number(v)||0));
 
+function positionBattleHints(){
+  const scr=$('#screenBattle'); if(!scr||B.screen!=='battle')return;
+  const stage=$('#battleStage'); if(!stage)return;
+  const top=stage.offsetTop+stage.offsetHeight+4;
+  ['tutorialBubble','toastBox','infectHint'].forEach(function(id){
+    const el=document.getElementById(id); if(el)el.style.setProperty('top',top+'px','important');
+  });
+}
 function toast(msg){
   const el=$('#toastBox'); if(!el)return;
   el.textContent=msg; el.classList.add('show');
+  positionBattleHints();
   clearTimeout(toast._t); toast._t=setTimeout(()=>{el.classList.remove('show');el.textContent='';},1800);
 }
 
@@ -2421,6 +2441,7 @@ function showInfectHint(){
   if(B.infectHintShown)return;
   B.infectHintShown=true;
   const el=$('#infectHint'); if(!el)return;
+  positionBattleHints();
   el.classList.remove('hidden');
   clearTimeout(showInfectHint._t);
   showInfectHint._t=setTimeout(()=>el.classList.add('hidden'),4200);
@@ -2771,6 +2792,7 @@ function showTutorialStep(step){
   $('#tutorialProgress').textContent=(step+1)+' / '+TUTORIAL_STEPS.length;
   $('#tutorialBubble').classList.remove('hidden');
   $('#tutorialBubble').classList.remove('nudge');
+  requestAnimationFrame(positionBattleHints);
   clearTimeout(B.tutorialNudgeTimer);
   B.tutorialTarget=[]; B.tutorialMove=null;
   const hand=$('#tutorialHand'); if(hand)hand.classList.add('hidden');
@@ -2779,7 +2801,8 @@ function showTutorialStep(step){
   const arrowEl=$('#tutorialArrow');
   if(bubbleEl){
     bubbleEl.classList.remove('ult-step');
-    if(arrowEl&&bubbleEl.nextElementSibling!==arrowEl)arrowEl.parentNode.insertBefore(bubbleEl,arrowEl);
+    const stage=$('#battleStage');
+    if(stage&&stage.parentNode)stage.parentNode.insertBefore(bubbleEl,stage.nextSibling);
   }
   $$('#heroDock .hero-card').forEach(el=>el.classList.remove('tutorial-target'));
   if(s.kind==='attack'){
@@ -3233,7 +3256,7 @@ function showScreen(name){
   if(name==='heroes'){renderHeroes();renderAll();}
   if(name==='shop'){renderShop();renderAll();}
   if(name==='settings'){renderSettings();renderAll();}
-  if(name==='battle'){updateHud();renderHeroDock();setTimeout(resizeBoard,50);setTimeout(resizeBoard,300);}
+  if(name==='battle'){updateHud();renderHeroDock();setTimeout(()=>{resizeBoard();positionBattleHints();},50);setTimeout(()=>{resizeBoard();positionBattleHints();},300);}
   Stats.track('screen',{screen:name});
 }
 function renderMapHeader(){
@@ -3353,7 +3376,7 @@ function init(){
   });
   window.addEventListener('pagehide',()=>{Stats.endSession();});
   window.addEventListener('pageshow',()=>{if(document.visibilityState==='visible')Stats.startSession();});
-  window.addEventListener('resize',()=>{fitApp();resizeBoard();if(B.tutorial&&B.tutorialStep===2)positionTutorialArrow(B.tutorialHero);});
+  window.addEventListener('resize',()=>{fitApp();resizeBoard();positionBattleHints();if(B.tutorial&&B.tutorialStep===2)positionTutorialArrow(B.tutorialHero);});
   document.addEventListener('pointerdown',unlockAudio,{once:true});
 }
 document.addEventListener('DOMContentLoaded',init);
