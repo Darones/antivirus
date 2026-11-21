@@ -977,6 +977,22 @@ body.bright .hero-dock{padding:7px 0 2px;gap:7px}
 .nika-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:74px}
 .nika-btn b,.nika-btn span{margin:0}
 .nika-btn span{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+
+.story-duo{display:flex;flex-direction:column;gap:6px;width:100%;height:100%}
+.story-panel{position:relative;flex:1 1 0;min-height:0;overflow:hidden;border-radius:14px;background:#0a1a26}
+.story-panel .story-img{height:100%;min-height:0;object-fit:cover;object-position:center 42%}
+.story-panel .story-fallback{position:absolute;inset:0}
+.story-panel .story-fallback svg{width:100%;height:100%}
+.story-cap{position:absolute;left:8px;bottom:8px;padding:3px 9px;border-radius:999px;
+  background:rgba(8,35,65,.8);border:1px solid rgba(255,209,102,.55);color:#ffe9a8;
+  font-size:calc(13px * var(--fs,0.92));font-weight:800;letter-spacing:.02em;backdrop-filter:blur(4px)}
+body.bright #screenBattle>.tutorial-bubble,
+body.bright #screenBattle>.tutorial-bubble.ult-step{position:absolute!important;left:8px!important;right:8px!important;top:4px!important;bottom:auto!important;margin:0!important;z-index:45!important}
+#toastBox{top:8px!important;bottom:auto!important}
+.toast{transform:translate(-50%,-12px)}
+.toast.show{transform:translate(-50%,0)}
+body.bright .infect-hint{top:8px!important;bottom:auto!important}
+.stage-shake{animation:screenShake .26s ease}
 </style>
 </head>
 <body class="tiles-cartoon bright">
@@ -2213,7 +2229,7 @@ async function enemyAttack(mult,clone){
   dmg=Math.max(1,dmg);
   let absorbed=0;
   if(B.player.shield>0){const cap=Math.max(1,Math.ceil(dmg*0.4));absorbed=Math.min(B.player.shield,cap);B.player.shield-=absorbed;dmg-=absorbed;}
-  if(dmg>0){B.player.hp=Math.max(0,B.player.hp-dmg);floatDamage(dmg,$('#battleHp'),null,'-',crit);setNikaMood('hurt',600);$('#screenBattle').classList.add('screen-shake');setTimeout(()=>$('#screenBattle').classList.remove('screen-shake'),320);const stage=$('#battleStage');if(stage){const v=document.createElement('div');v.className='hit-vignette';stage.appendChild(v);setTimeout(()=>v.remove(),500);}}
+  if(dmg>0){B.player.hp=Math.max(0,B.player.hp-dmg);floatDamage(dmg,$('#battleHp'),null,'-',crit);setNikaMood('hurt',600);if($('#battleStage')){$('#battleStage').classList.add('stage-shake');setTimeout(()=>$('#battleStage').classList.remove('stage-shake'),300);}const stage=$('#battleStage');if(stage){const v=document.createElement('div');v.className='hit-vignette';stage.appendChild(v);setTimeout(()=>v.remove(),500);}}
   const ep=$('#enemyPanel'); if(ep){ep.classList.add('attacking');setTimeout(()=>ep.classList.remove('attacking'),380);}
   const art=$('#virusArt'); if(art){art.classList.add('lunge');setTimeout(()=>art.classList.remove('lunge'),430);}
   const ca=$('#cloneArt'); if(ca&&B.enemy.cloneHp>0){ca.classList.add('lunge');setTimeout(()=>ca.classList.remove('lunge'),430);}
@@ -2295,7 +2311,7 @@ function explodeEnemy(){
   if(B.player.shield>0){const cap=Math.ceil(raw*0.4);absorbed=Math.min(B.player.shield,cap);B.player.shield-=absorbed;dmg-=absorbed;}
   if(dmg>0){B.player.hp=Math.max(0,B.player.hp-dmg);floatDamage(dmg,$('#battleHp'),null,'-',false);setNikaMood('hurt',700);const stage=$('#battleStage');if(stage){const v=document.createElement('div');v.className='hit-vignette';stage.appendChild(v);setTimeout(()=>v.remove(),500);}}
   showBossBanner('ВЗРЫВ! Ника −'+dmg+(absorbed?' (щит '+absorbed+')':''));
-  sfx('enemy');vibrate([30,50,30]);$('#screenBattle').classList.add('screen-shake');setTimeout(()=>$('#screenBattle').classList.remove('screen-shake'),360);
+  sfx('enemy');vibrate([30,50,30]);if($('#battleStage')){$('#battleStage').classList.add('stage-shake');setTimeout(()=>$('#battleStage').classList.remove('stage-shake'),320);}
 }
 function spreadVirus(){
   const infected=[]; B.board.forEach((t,i)=>{if(t.infected)infected.push(i);});
@@ -2401,6 +2417,7 @@ function showBossIntro(level){
 }
 function hideBossIntro(){const el=$('#bossIntro');if(el)el.classList.add('hidden');clearTimeout(showBossIntro._t);}
 function showInfectHint(){
+  if(B.tutorial)return;
   if(B.infectHintShown)return;
   B.infectHintShown=true;
   const el=$('#infectHint'); if(!el)return;
@@ -2505,7 +2522,7 @@ function useBomb(){
   S.bombs--; persist(); B.busy=true;
   sfx('bomb');
   const bf=document.createElement('div');bf.className='bomb-flash';document.body.appendChild(bf);setTimeout(()=>bf.remove(),520);
-  const _bs=$('#screenBattle');if(_bs){_bs.classList.add('screen-shake');setTimeout(()=>_bs.classList.remove('screen-shake'),360);}
+  const _bs=$('#battleStage');if(_bs){_bs.classList.add('stage-shake');setTimeout(()=>_bs.classList.remove('stage-shake'),320);}
   const idx=(B.selected==null?24:B.selected);
   const r=Math.floor(idx/COLS),c=idx%COLS;
   let v=0;
@@ -2546,7 +2563,7 @@ function startBattle(level,opts){
   $('#battleCoins').textContent=S.coins;
   showScreen('battle');
   updateHud(); renderBoard(); setTimeout(resizeBoard,50);
-  if(!S.hintChargeSeen){S.hintChargeSeen=true;persist();setTimeout(()=>toast('Собирай тройки цвета — так заряжается ульта. Нажми на круг, когда он заполнится.'),900);}
+  if(!S.hintChargeSeen&&!B.tutorial){S.hintChargeSeen=true;persist();setTimeout(()=>toast('Собирай тройки цвета — так заряжается ульта. Нажми на круг, когда он заполнится.'),900);}
   if(!B.tutorial&&B.enemy&&B.enemy.armor>0){setTimeout(()=>toast('У вируса броня '+B.enemy.armor+': удары слабее. Ульта Т-киллера пробивает броню.'),2800);}
   if(!B.tutorial&&!hasMove())shuffleBoard();
   if(B.tutorial){showTutorialStep(0);}
@@ -2744,7 +2761,6 @@ function clearTutorialHint(){
     if(arrowEl&&bubble.nextElementSibling!==arrowEl)arrowEl.parentNode.insertBefore(bubble,arrowEl);
   }
   $$('#heroDock .hero-card').forEach(el=>el.classList.remove('tutorial-target'));
-  requestAnimationFrame(()=>resizeBoard());
 }
 function showTutorialStep(step){
   B.tutorialStep=step;
@@ -2755,7 +2771,6 @@ function showTutorialStep(step){
   $('#tutorialProgress').textContent=(step+1)+' / '+TUTORIAL_STEPS.length;
   $('#tutorialBubble').classList.remove('hidden');
   $('#tutorialBubble').classList.remove('nudge');
-  requestAnimationFrame(()=>resizeBoard());
   clearTimeout(B.tutorialNudgeTimer);
   B.tutorialTarget=[]; B.tutorialMove=null;
   const hand=$('#tutorialHand'); if(hand)hand.classList.add('hidden');
@@ -2773,13 +2788,9 @@ function showTutorialStep(step){
   if(s.kind==='ult'){
     B.tutorialHero=teamColors()[0]||'red';
     B.charge[B.tutorialHero]=100; updateHud();
-    if(bubbleEl){
-      bubbleEl.classList.add('ult-step');
-      const dockEl=document.querySelector('#screenBattle .hero-dock');
-      if(dockEl)dockEl.parentNode.insertBefore(bubbleEl,dockEl);
-    }
+    if(bubbleEl)bubbleEl.classList.add('ult-step');
     $$('#heroDock .hero-card').forEach(el=>el.classList.toggle('tutorial-target',el.dataset.color===B.tutorialHero));
-    requestAnimationFrame(()=>{resizeBoard();positionTutorialArrow(B.tutorialHero);});
+    requestAnimationFrame(()=>positionTutorialArrow(B.tutorialHero));
     setTimeout(()=>{if(B.tutorial&&B.tutorialStep===step)showTutorialHint();},250);
   }
   if(s.kind==='infect'){
@@ -2953,7 +2964,9 @@ function startRealAfterTutorial(){
 /* ===================== STORY ===================== */
 const STORY_EXTRA={
   tutorial:[
-    {title:'Ника заболела',text:'Ника заболела. Ты — её иммунитет. Собирай три в ряд, бей вирусы и защищай её.'}
+    {title:'Ника заболела',
+     text:'Утром Ника играла во дворе с Лейкоцитом, а к вечеру у неё поднялась температура. Ты — её иммунитет: собирай тройки, бей вирусы и защищай Нику.',
+     imgs:['nika-play','nika-sick'],caps:['Утром','Вечером']}
   ],
   ending:[
     {title:'Ника выздоровела',text:'Температура спала. Ника открыла глаза и улыбнулась. Иммунитет победил.'}
@@ -2978,7 +2991,7 @@ function storyPages(kind,chapter){
 }
 function renderStories(){
   const el=$('#storiesList'); if(!el)return;
-  const items=[{kind:'tutorial',chapter:0,key:'start',title:'Начало',sub:'Ника заболела',emoji:'🎬',cls:'start'}]
+  const items=[{kind:'tutorial',chapter:0,key:'nika-play',title:'Начало',sub:'Ника заболела',emoji:'🎬',cls:'start'}]
     .concat(CHAPTERS.map(ch=>({kind:'intro',chapter:ch.id,key:'ch'+ch.id,title:'Глава '+ch.id,sub:ch.name,emoji:'🧬',cls:''})))
     .concat([{kind:'ending',chapter:10,key:'ending',title:'Финал',sub:'Ника выздоровела',emoji:'🏁',cls:'final'}]);
   el.innerHTML=items.map(it=>'<button class="story-card '+it.cls+'" onclick="openStory(\''+it.kind+'\','+it.chapter+')">'
@@ -3003,17 +3016,27 @@ function renderStoryPage(){
   $('#storyProgress').textContent=(B.story.index+1)+' / '+B.story.pages.length;
   $('#storyNext').textContent='Дальше';
   const scene=$('#storyScene');
-  const key=p.img||(B.story.kind==='tutorial'?'start':(B.story.kind==='ending'?'ending':'ch'+B.story.chapter));
-  const src='assets/story/'+key+'.jpg';
-  scene.innerHTML='<img class="story-img" src="'+src+'" alt="" data-key="'+key+'" onerror="storyImgError(this)"><div class="story-fallback" style="display:none">'+STORY_SCENE_SVG+'</div>';
-  const virus=scene.querySelector('#storyVirus');
-  if(virus)virus.style.opacity='0';
+  if(p.imgs&&p.imgs.length>1){
+    scene.innerHTML='<div class="story-duo">'+p.imgs.map(function(k,i){
+      return '<div class="story-panel"><img class="story-img" src="assets/story/'+k+'.jpg" alt="" data-key="'+k+'" onerror="storyImgError(this)">'
+        +'<span class="story-cap">'+((p.caps&&p.caps[i])||'')+'</span>'
+        +'<div class="story-fallback" style="display:none">'+STORY_SCENE_SVG+'</div></div>';
+    }).join('')+'</div>';
+  }else{
+    const key=p.img||(B.story.kind==='tutorial'?'start':(B.story.kind==='ending'?'ending':'ch'+B.story.chapter));
+    const src='assets/story/'+key+'.jpg';
+    scene.innerHTML='<img class="story-img" src="'+src+'" alt="" data-key="'+key+'" onerror="storyImgError(this)"><div class="story-fallback" style="display:none">'+STORY_SCENE_SVG+'</div>';
+    const virus=scene.querySelector('#storyVirus');
+    if(virus)virus.style.opacity='0';
+  }
 }
 function storyImgError(img){
   const key=img.dataset.key||'';
   if(img.dataset.ext!=='png'){img.dataset.ext='png';img.src='assets/story/'+key+'.png';return;}
   img.style.display='none';
-  const fb=img.nextElementSibling; if(fb)fb.style.display='block';
+  const panel=img.closest?img.closest('.story-panel'):null;
+  const fb=panel?panel.querySelector('.story-fallback'):img.nextElementSibling;
+  if(fb)fb.style.display='block';
 }
 function storyThumbError(img){
   const key=img.dataset.key||'';
